@@ -8,7 +8,7 @@ export default function AnaSayfa() {
         
         {/* Deme Oyunu Butonu */}
         <Link to="/deme" className="bg-white p-6 rounded-3xl shadow-xl hover:scale-105 transition-transform flex flex-col items-center">
-          <img src="DEME_LOGO_URL" alt="Deme Oyunu" className="w-48 mb-4"/>
+          <img src="/logo.png"/>
           <h2 className="text-2xl font-bold">Deme! Oyunu</h2>
         </Link>
         

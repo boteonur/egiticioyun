@@ -1085,7 +1085,7 @@ export default function Deme() {
             <div className="bg-white/20 p-8 rounded-[3rem] backdrop-blur-sm border border-white/30 shadow-2xl flex flex-col items-center">
               
               <img 
-                src="https://placehold.co/400x150/ffffff/8b5cf6?text=LOGO+BURAYA&font=Montserrat" 
+                src="/logo.png" 
                 alt="Oyun Logosu" 
                 className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               />
