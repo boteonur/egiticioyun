@@ -327,7 +327,7 @@ const SuggestionModal = ({ onClose, wordDatabase }) => {
           </div>
 
           <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
-            <label className="block text-gray-700 font-bold mb-3 flex items-center gap-2">
+            <label className="text-gray-700 font-bold mb-3 flex items-center gap-2">
               <X size={18} className="text-red-500"/> Deme Kelimeleri:
             </label>
             <div className="space-y-2">
@@ -593,7 +593,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
             </div>
 
             <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-              <label className="block text-red-600 font-bold mb-3 flex items-center gap-2">
+              <label className="text-red-600 font-bold mb-3 flex items-center gap-2">
                 <X size={18} /> Yasaklı Kelimeler (5 Adet)
               </label>
               <div className="space-y-2">
