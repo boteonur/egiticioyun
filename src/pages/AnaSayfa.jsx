@@ -12,7 +12,7 @@ export default function AnaSayfa() {
         
         {/* Locked Checker Butonu */}
         <Link to="/lockedchecker" className="bg-white p-6 rounded-3xl shadow-xl hover:scale-105 transition-transform flex flex-col items-center">
-          <img src="/logo.png"/>
+          <img src="/logo2.png"/>
         </Link>
 
       </div>
