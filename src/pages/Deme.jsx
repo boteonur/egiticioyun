@@ -1090,9 +1090,9 @@ export default function Deme() {
                 className="w-full max-w-[225px] md:max-w-[300px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               />
               
-              <p className="text-white/90 text-lg md:text-xl mb-12 text-center max-w-md font-medium">
+              {/*<p className="text-white/90 text-lg md:text-xl mb-12 text-center max-w-md font-medium">
                 Yasaklı kelimeleri kullanmadan takım arkadaşlarına kelimeyi anlat!
-              </p>
+              </p>*/}
               
               <div className="flex flex-col items-center gap-4">
                 {/* HATA MESAJI GÖSTERİMİ */}
