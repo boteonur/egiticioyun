@@ -1161,24 +1161,19 @@ export default function Deme() {
               />
             </div>
             
-            {team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase() && (
+            {/* Hata Mesajı veya İleri Butonu */}
+            {team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase() ? (
               <div className="mt-8 bg-red-500/90 text-white px-6 py-3 rounded-full font-bold shadow-lg backdrop-blur-sm animate-bounce flex items-center gap-2 border-2 border-white/50">
                 <Info size={20} /> Takım isimleri birbirinden farklı olmalıdır!
               </div>
+            ) : (
+              <button 
+                onClick={nextStep}
+                className="mt-10 px-12 py-4 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-black text-xl flex items-center gap-3 transition-all shadow-[0_5px_0_rgba(0,0,0,0.15)] hover:shadow-none hover:translate-y-1"
+              >
+                İLERİ <ArrowRight size={24} strokeWidth={3} />
+              </button>
             )}
-            
-            <button 
-              onClick={() => {
-                if (team1Name.trim().toLowerCase() !== team2Name.trim().toLowerCase()) nextStep();
-              }}
-              className={`absolute right-4 md:right-8 top-1/2 -translate-y-1/2 p-4 rounded-full backdrop-blur-sm text-white transition-all shadow-xl ${
-                team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase()
-                  ? 'bg-white/10 opacity-50 cursor-not-allowed'
-                  : 'bg-white/20 hover:bg-white/40 hover:scale-110 animate-pulse'
-              }`}
-            >
-              <ArrowRight size={48} />
-            </button>
           </div>
 
           {/* STEP 2: AYARLAR */}
