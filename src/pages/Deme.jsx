@@ -1282,43 +1282,43 @@ export default function Deme() {
                   <label className="block text-xl font-bold text-gray-800 mb-4">Oyun Nasıl Biter?</label>
                   
                   <div className="space-y-4">
-                    <label className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${settings.endType === 'rounds' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
+                    <label className={`flex items-start md:items-center gap-3 md:gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${settings.endType === 'rounds' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
                       <input 
                         type="radio" name="endType" checked={settings.endType === 'rounds'}
                         onChange={() => setSettings({...settings, endType: 'rounds'})}
-                        className="w-5 h-5 text-purple-600"
+                        className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0"
                       />
-                      <div className="flex-1 flex items-center gap-2 text-lg">
-                        <span className="font-semibold text-gray-700">Her oyuncu</span>
+                      <div className="flex-1 flex flex-wrap items-center gap-x-2 gap-y-2 text-base md:text-lg">
+                        <span className="font-semibold text-gray-700 whitespace-nowrap">Her oyuncu</span>
                         <select 
                           disabled={settings.endType !== 'rounds'}
                           value={settings.endRoundsValue}
                           onChange={(e) => setSettings({...settings, endRoundsValue: parseInt(e.target.value)})}
-                          className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
                         >
                           {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
-                        <span className="font-semibold text-gray-700">kez anlattığında.</span>
+                        <span className="font-semibold text-gray-700 whitespace-nowrap">kez anlattığında.</span>
                       </div>
                     </label>
 
-                    <label className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${settings.endType === 'score' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
+                    <label className={`flex items-start md:items-center gap-3 md:gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${settings.endType === 'score' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
                       <input 
                         type="radio" name="endType" checked={settings.endType === 'score'}
                         onChange={() => setSettings({...settings, endType: 'score'})}
-                        className="w-5 h-5 text-purple-600"
+                        className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0"
                       />
-                      <div className="flex-1 flex items-center gap-2 text-lg flex-wrap">
-                        <span className="font-semibold text-gray-700">Toplam skor</span>
+                      <div className="flex-1 flex flex-wrap items-center gap-x-2 gap-y-2 text-base md:text-lg">
+                        <span className="font-semibold text-gray-700 whitespace-nowrap">Toplam skor</span>
                         <select 
                           disabled={settings.endType !== 'score'}
                           value={settings.endScoreValue}
                           onChange={(e) => setSettings({...settings, endScoreValue: parseInt(e.target.value)})}
-                          className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
                         >
                           {Array.from({length: 20}, (_, i) => (i+1)*5).map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
-                        <span className="font-semibold text-gray-700">olduğunda.</span>
+                        <span className="font-semibold text-gray-700 whitespace-nowrap">olduğunda.</span>
                       </div>
                     </label>
                   </div>
