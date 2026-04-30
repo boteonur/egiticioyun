@@ -1329,14 +1329,14 @@ export default function Deme() {
           </div>
 
           {/* STEP 4: KATEGORİ SEÇİMİ */}
-          <div className="min-w-full h-full flex flex-col items-center justify-center p-6 relative">
-            <div className="absolute top-8 left-8">
+          <div className="min-w-full h-full flex flex-col items-center justify-start p-6 pt-24 pb-24 relative overflow-y-auto">
+            <div className="absolute top-8 left-8 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
             
-            <h2 className="text-5xl md:text-6xl font-black text-white mb-12 drop-shadow-xl text-center">Kategori Seç</h2>
+            <h2 className="text-5xl md:text-6xl font-black text-white mb-10 drop-shadow-xl text-center flex-shrink-0">Kategori Seç</h2>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 w-full max-w-5xl px-4">
               {CATEGORY_LIST.map((cat) => {
