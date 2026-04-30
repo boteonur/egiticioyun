@@ -1087,17 +1087,18 @@ export default function Deme() {
               <img 
                 src="/logo.png" 
                 alt="Oyun Logosu" 
-                className="w-full max-w-[225px] md:max-w-[300px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+                className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-4 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               />
-              <p className="text-white/70 text-md md:text-lg mb-10 text-center max-w-md font-medium">
-                - - - - - - - - - - - - - - 
-              </p>
-              <p className="text-white/90 text-md md:text-lg mb-12 text-center max-w-md font-medium">
+              
+              {/* Üst Çizgi */}
+              <div className="w-32 h-[2px] bg-white/30 mb-3 rounded-full"></div>
+              
+              <p className="text-white/90 text-lg md:text-xl mb-3 text-center max-w-md font-medium">
                 Yasaklı kelimeleri kullanmadan takım arkadaşlarına kelimeyi anlat!
               </p>
-              <p className="text-white/70 text-md md:text-lg mb-10 text-center max-w-md font-medium">
-                - - - - - - - - - - - - - - 
-              </p>
+
+              {/* Alt Çizgi */}
+              <div className="w-32 h-[2px] bg-white/30 mb-8 rounded-full"></div>
               
               <div className="flex flex-col items-center gap-4">
                 {/* HATA MESAJI GÖSTERİMİ */}
