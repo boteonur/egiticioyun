@@ -1087,10 +1087,10 @@ export default function Deme() {
               <img 
                 src="/logo.png" 
                 alt="Oyun Logosu" 
-                className="w-full max-w-[200px] md:max-w-[300px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+                className="w-full max-w-[225px] md:max-w-[300px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               />
               
-              <p className="text-white/90 text-xl md:text-2xl mb-12 text-center max-w-md font-medium">
+              <p className="text-white/90 text-lg md:text-xl mb-12 text-center max-w-md font-medium">
                 Yasaklı kelimeleri kullanmadan takım arkadaşlarına kelimeyi anlat!
               </p>
               
