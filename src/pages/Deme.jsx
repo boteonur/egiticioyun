@@ -1139,7 +1139,7 @@ export default function Deme() {
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
-            <h2 className="text-2xl font-bold text-white mb-12 drop-shadow-md text-center">Takımları Belirle</h2>
+            <h2 className="text-3xl font-bold text-white mb-12 drop-shadow-md text-center">Takımları Belirle</h2>
             
             <div className="w-full max-w-md flex flex-col gap-12 mt-4">
               <TeamSetupCard 
