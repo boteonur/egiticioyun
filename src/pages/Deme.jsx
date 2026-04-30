@@ -1322,9 +1322,9 @@ export default function Deme() {
 
             <button 
               onClick={nextStep}
-              className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-4 rounded-full backdrop-blur-sm text-white transition-all shadow-xl hover:scale-110 animate-bounce"
+              className="mt-6 mb-8 px-6 py-2 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-bold text-base flex items-center gap-2 transition-all shadow-md hover:scale-105 hover:shadow-lg flex-shrink-0"
             >
-              <ArrowRight size={48} />
+              İLERİ <ArrowRight size={18} strokeWidth={3} />
             </button>
           </div>
 
