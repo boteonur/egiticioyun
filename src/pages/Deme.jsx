@@ -1177,15 +1177,15 @@ export default function Deme() {
           </div>
 
           {/* STEP 1: TAKIM ADLARI */}
-          <div className="min-w-full h-full flex flex-col items-center justify-center p-6 relative">
-            <div className="absolute top-8 left-8">
+          <div className="min-w-full h-full flex flex-col items-center justify-start p-6 pt-24 pb-24 relative overflow-y-auto">
+            <div className="absolute top-8 left-8 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-12 drop-shadow-md text-center">Takımları Belirle</h2>
+            <h2 className="text-5xl font-bold text-white mb-12 drop-shadow-md text-center flex-shrink-0">Takımları Belirle</h2>
             
-            <div className="w-full max-w-md flex flex-col gap-12 mt-4">
+            <div className="w-full max-w-md flex flex-col gap-12 mt-4 flex-shrink-0">
               <TeamSetupCard 
                 title="1. TAKIM" teamName={team1Name} setTeamName={setTeam1Name}
                 playerCount={team1Players} setPlayerCount={setTeam1Players}
@@ -1201,28 +1201,28 @@ export default function Deme() {
             
             {/* Hata Mesajı veya İleri Butonu */}
             {team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase() ? (
-              <div className="mt-8 bg-red-500/90 text-white px-6 py-3 rounded-full font-bold shadow-lg backdrop-blur-sm animate-bounce flex items-center gap-2 border-2 border-white/50">
+              <div className="mt-8 bg-red-500/90 text-white px-6 py-3 rounded-full font-bold shadow-lg backdrop-blur-sm animate-bounce flex items-center gap-2 border-2 border-white/50 flex-shrink-0">
                 <Info size={20} /> Takım isimleri birbirinden farklı olmalıdır!
               </div>
             ) : (
               <button 
                 onClick={nextStep}
-                className="mt-10 px-12 py-4 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-black text-xl flex items-center gap-3 transition-all shadow-[0_5px_0_rgba(0,0,0,0.15)] hover:shadow-none hover:translate-y-1"
+                className="mt-6 px-6 py-2 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-bold text-base flex items-center gap-2 transition-all shadow-md hover:scale-105 hover:shadow-lg flex-shrink-0"
               >
-                İLERİ <ArrowRight size={24} strokeWidth={3} />
+                İLERİ <ArrowRight size={18} strokeWidth={3} />
               </button>
             )}
           </div>
 
           {/* STEP 2: AYARLAR */}
-          <div className="min-w-full h-full flex flex-col items-center justify-center p-4 md:p-6 relative overflow-y-auto">
+          <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-24 pb-24 md:p-6 md:pt-24 md:pb-24 relative overflow-y-auto">
             <div className="absolute top-8 left-8 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
             
-            <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-3xl shadow-2xl my-auto mt-16">
+            <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-3xl shadow-2xl flex-shrink-0">
               <div className="flex items-center gap-3 mb-8 border-b pb-4">
                 <Settings className="text-purple-600" size={32} />
                 <h2 className="text-4xl font-extrabold text-gray-800">Oyun Ayarları</h2>
@@ -1327,7 +1327,6 @@ export default function Deme() {
               İLERİ <ArrowRight size={18} strokeWidth={3} />
             </button>
           </div>
-
           {/* STEP 4: KATEGORİ SEÇİMİ */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-6 pt-24 pb-24 relative overflow-y-auto">
             <div className="absolute top-8 left-8 z-10">
