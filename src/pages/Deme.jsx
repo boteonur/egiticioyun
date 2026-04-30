@@ -760,7 +760,7 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
           type="text" 
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
-          className={`flex-1 min-w-0 text-center text-2xl font-black py-3 px-2 rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`}
+          className={`flex-1 min-w-0 text-center text-sm sm:text-base md:text-xl lg:text-2xl font-black py-3 px-1 rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`}
           placeholder="Takım Adı"
         />
         
