@@ -1122,9 +1122,9 @@ export default function Deme() {
                   
                   <button
                     onClick={() => setShowAdmin(true)}
-                    className="px-5 py-2.5 bg-transparent hover:bg-white/10 text-white/60 hover:text-white rounded-full text-sm font-medium transition-colors flex items-center gap-2"
+                    className="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-full text-sm font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 border border-white/30"
                   >
-                    <Lock size={16} />
+                    <Lock size={18} />
                     Yönetici Girişi
                   </button>
                 </div>
