@@ -1183,7 +1183,11 @@ export default function Deme() {
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
-            <h2 className="text-5xl font-bold text-white mb-12 drop-shadow-md text-center flex-shrink-0">Takımları Belirle</h2>
+            
+            {/* ORTAK BAŞLIK */}
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-3 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-10 flex-shrink-0">
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide text-center">Takımları Belirle</h2>
+            </div>
             
             <div className="w-full max-w-md flex flex-col gap-12 mt-4 flex-shrink-0">
               <TeamSetupCard 
@@ -1222,11 +1226,13 @@ export default function Deme() {
               </button>
             </div>
             
+            {/* ORTAK BAŞLIK */}
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-3 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-8 flex-shrink-0 flex items-center justify-center gap-3">
+              <Settings className="text-white" size={32} />
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide text-center">Oyun Ayarları</h2>
+            </div>
+            
             <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-3xl shadow-2xl flex-shrink-0">
-              <div className="flex items-center gap-3 mb-8 border-b pb-4">
-                <Settings className="text-purple-600" size={32} />
-                <h2 className="text-4xl font-extrabold text-gray-800">Oyun Ayarları</h2>
-              </div>
 
               <div className="space-y-8">
                 <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100 shadow-sm">
@@ -1335,7 +1341,10 @@ export default function Deme() {
               </button>
             </div>
             
-            <h2 className="text-5xl md:text-6xl font-black text-white mb-10 drop-shadow-xl text-center flex-shrink-0">Kategori Seç</h2>
+            {/* ORTAK BAŞLIK */}
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-3 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-10 flex-shrink-0">
+              <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide text-center">Kategori Seç</h2>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 w-full max-w-5xl px-4">
               {CATEGORY_LIST.map((cat) => {
