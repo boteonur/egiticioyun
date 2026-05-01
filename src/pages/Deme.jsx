@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3 } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
+import emailjs from '@emailjs/browser';
 import { getAuth, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
 
@@ -417,9 +418,13 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(null);
-  const [activeTab, setActiveTab] = useState('add'); // 'add' | 'review'
+  const [activeTab, setActiveTab] = useState('add');
 
-  // Add Word States
+  // Şifremi Unuttum State'leri
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
+  // Kelime Ekleme State'leri
   const [category, setCategory] = useState("Genel");
   const [word, setWord] = useState("");
   const [forbidden, setForbidden] = useState(["", "", "", "", ""]);
@@ -431,6 +436,39 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
       setStatus(null);
     } else {
       setStatus({ type: 'error', msg: "Hatalı şifre girdiniz!" });
+    }
+  };
+
+  const handleResetPassword = () => {
+    if (resetEmail.trim() === "boteonur@gmail.com") {
+      setStatus({ type: 'info', msg: "E-posta gönderiliyor, lütfen bekleyin..." });
+
+      const templateParams = {
+        to_email: 'boteonur@gmail.com',
+        message: 'admin123', // Mevcut yönetici şifreniz
+      };
+
+      // BURADAKİ BİLGİLERİ KENDİ EMAILJS HESABINIZDAN ALDIKLARINIZLA DEĞİŞTİRİN
+      emailjs.send(
+        'SERVICE_ID_BURAYA',    
+        'TEMPLATE_ID_BURAYA',   
+        templateParams,
+        'PUBLIC_KEY_BURAYA'     
+      )
+      .then((response) => {
+        setStatus({ type: 'success', msg: "Şifreniz boteonur@gmail.com adresine başarıyla gönderildi!" });
+        setTimeout(() => {
+          setIsForgotPassword(false);
+          setStatus(null);
+          setResetEmail("");
+        }, 4000);
+      })
+      .catch((err) => {
+        setStatus({ type: 'error', msg: "E-posta gönderilemedi. Hata: " + err.text });
+      });
+
+    } else {
+      setStatus({ type: 'error', msg: "Böyle bir yönetici e-posta adresi bulunamadı!" });
     }
   };
 
@@ -475,11 +513,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
         forbidden: forbiddenArr.map(f => f.trim())
       };
       
-      // Kategoriye ekle
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName.trim());
       await setDoc(catRef, { words: [...currentWords, newWordObj] });
       
-      // Öneriden sil
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'suggestions', id));
       
       setStatus({ type: 'success', msg: "Öneri onaylandı ve veritabanına eklendi!" });
@@ -499,6 +535,61 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
     }
   };
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        
+        if (!Array.isArray(data)) {
+          throw new Error("Dosya içeriği geçerli bir dizi (array) formatında değil. Örnek formata bakın.");
+        }
+
+        setStatus({ type: 'info', msg: "Yükleniyor, lütfen bekleyin..." });
+
+        const groupedWords = {};
+        let validWordCount = 0;
+
+        data.forEach(item => {
+          if (item.category && item.word && Array.isArray(item.forbidden) && item.forbidden.length > 0) {
+            const cat = item.category.trim();
+            if (!groupedWords[cat]) groupedWords[cat] = [];
+            
+            groupedWords[cat].push({
+              word: item.word.trim().toLocaleUpperCase('tr-TR'),
+              forbidden: item.forbidden.map(f => f.trim())
+            });
+            validWordCount++;
+          }
+        });
+
+        if (validWordCount === 0) {
+          throw new Error("Dosyada geçerli formatta hiç kelime bulunamadı.");
+        }
+
+        for (const [catName, newWords] of Object.entries(groupedWords)) {
+          const currentWords = wordDatabase[catName] || [];
+          const updatedWords = [...currentWords, ...newWords];
+          
+          const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName);
+          await setDoc(catRef, { words: updatedWords });
+        }
+
+        setStatus({ type: 'success', msg: `Tebrikler! ${validWordCount} adet kelime başarıyla eklendi.` });
+        e.target.value = null; 
+        setTimeout(() => setStatus(null), 5000);
+
+      } catch (error) {
+        setStatus({ type: 'error', msg: "Hata: " + error.message });
+        e.target.value = null;
+      }
+    };
+    reader.readAsText(file);
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
@@ -513,26 +604,67 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           </h2>
 
           <div className="space-y-4">
-            <div className="text-sm text-gray-500 mb-4">Panele erişmek için yönetici şifresini girin.</div>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              placeholder="Şifre" 
-              className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
-            />
-            
-            {status && (
-              <div className="p-3 rounded-xl font-bold flex items-center gap-2 bg-red-100 text-red-700 border border-red-200">
-                <Info size={20} />
-                {status.msg}
+            {isForgotPassword ? (
+              <div className="animate-fade-in">
+                <div className="text-sm text-gray-500 mb-4">Şifrenizi yenilemek için yönetici e-posta adresinizi girin.</div>
+                <input 
+                  type="email" 
+                  value={resetEmail} 
+                  onChange={(e) => setResetEmail(e.target.value)} 
+                  onKeyDown={(e) => e.key === 'Enter' && handleResetPassword()}
+                  placeholder="bo................@gmail.com" 
+                  className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
+                />
+                
+                {status && (
+                  <div className={`mt-4 p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
+                    {status.type === 'success' ? <Check size={20} /> : <Info size={20} />}
+                    {status.msg}
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-4">
+                  <button onClick={handleResetPassword} className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black py-4 rounded-xl shadow-[0_5px_0_rgb(2,132,199)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">
+                    GÖNDER
+                  </button>
+                  <button onClick={() => { setIsForgotPassword(false); setStatus(null); setResetEmail(""); }} className="px-5 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold rounded-xl shadow-[0_5px_0_rgb(209,213,219)] hover:translate-y-1 hover:shadow-none transition-all">
+                    İptal
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="animate-fade-in">
+                <div className="text-sm text-gray-500 mb-4">Panele erişmek için yönetici şifresini girin.</div>
+                <input 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  placeholder="Şifre" 
+                  className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
+                />
+                
+                {status && (
+                  <div className={`mt-4 p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
+                    {status.type === 'success' ? <Check size={20} /> : <Info size={20} />}
+                    {status.msg}
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-4">
+                  <button onClick={handleLogin} className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3">
+                    GİRİŞ YAP
+                  </button>
+                  <button 
+                    onClick={() => { setIsForgotPassword(true); setStatus(null); }}
+                    className="w-16 bg-gray-100 hover:bg-gray-200 flex items-center justify-center rounded-xl shadow-[0_5px_0_rgb(209,213,219)] hover:translate-y-1 hover:shadow-none transition-all text-3xl"
+                    title="Şifremi Unuttum"
+                  >
+                    😔
+                  </button>
+                </div>
               </div>
             )}
-
-            <button onClick={handleLogin} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-4">
-              GİRİŞ YAP
-            </button>
           </div>
         </div>
       </div>
@@ -551,31 +683,35 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           Yönetici Paneli
         </h2>
 
-        {/* Sekmeler (Tabs) */}
-        <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
+        <div className="flex flex-wrap md:flex-nowrap gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
           <button 
             onClick={() => setActiveTab('add')}
-            className={`flex-1 py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
+            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
           >
-            <Edit3 size={18} /> Kelime Ekle
+            <Edit3 size={18} /> Tek Ekle
+          </button>
+          <button 
+            onClick={() => setActiveTab('import')}
+            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
+          >
+            <Upload size={18} /> Toplu Yükle
           </button>
           <button 
             onClick={() => setActiveTab('review')}
-            className={`flex-1 py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
+            className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
           >
-            <ListTodo size={18} /> Önerileri İncele 
+            <ListTodo size={18} /> Öneriler
             {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{suggestions.length}</span>}
           </button>
         </div>
 
         {status && (
-          <div className={`p-4 rounded-xl font-bold flex items-center gap-2 mb-4 ${status.type === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
-            {status.type === 'success' ? <Check size={20} /> : <Info size={20} />}
+          <div className={`p-4 rounded-xl font-bold flex items-center gap-2 mb-4 ${status.type === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border border-blue-200 animate-pulse' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+            {status.type === 'success' ? <Check size={20} /> : status.type === 'info' ? <Upload size={20} /> : <Info size={20} />}
             {status.msg}
           </div>
         )}
 
-        {/* Sekme 1: Direkt Kelime Ekle */}
         {activeTab === 'add' && (
           <div className="space-y-4 animate-fade-in">
             <div>
@@ -593,7 +729,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
             </div>
 
             <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-              <label className="text-red-600 font-bold mb-3 flex items-center gap-2">
+              <label className="block text-red-600 font-bold mb-3 flex items-center gap-2">
                 <X size={18} /> Yasaklı Kelimeler (5 Adet)
               </label>
               <div className="space-y-2">
@@ -619,7 +755,50 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           </div>
         )}
 
-        {/* Sekme 2: Önerileri İncele */}
+        {activeTab === 'import' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
+              <h3 className="text-blue-800 font-bold mb-2 flex items-center gap-2">
+                <FileJson size={20} /> Nasıl Yüklenir?
+              </h3>
+              <p className="text-sm text-blue-700 mb-4">
+                Yüzlerce kelimeyi tek seferde yüklemek için kelimelerinizi bir <strong>.json</strong> dosyası olarak hazırlayın. Dosyanızın içeriği aşağıdaki örnekteki gibi görünmelidir:
+              </p>
+              <pre className="bg-white p-4 rounded-xl text-xs font-mono text-gray-700 border border-blue-100 overflow-x-auto shadow-inner">
+{`[
+  {
+    "category": "Genel",
+    "word": "ASTRONOT",
+    "forbidden": ["Uzay", "Gemi", "Yıldız", "Gezegen", "Roket"]
+  },
+  {
+    "category": "Spor",
+    "word": "HALTER",
+    "forbidden": ["Ağırlık", "Kaldırmak", "Demir", "Kas", "Sporcu"]
+  }
+]`}
+              </pre>
+            </div>
+
+            <div className="bg-purple-50 p-6 rounded-2xl border-2 border-dashed border-purple-300 flex flex-col items-center justify-center text-center">
+              <Upload size={48} className="text-purple-400 mb-4" />
+              <p className="font-bold text-purple-900 mb-2">JSON Dosyanızı Seçin</p>
+              <p className="text-sm text-purple-600 mb-6 max-w-sm">
+                Hazırladığınız .json uzantılı dosyayı seçin. Kelimeler otomatik olarak ayrıştırılıp ait oldukları kategorilere eklenecektir.
+              </p>
+              <label className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl cursor-pointer transition-colors shadow-md">
+                <span>Dosya Seç ve Yükle</span>
+                <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+              </label>
+            </div>
+
+            <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl text-amber-700 text-sm border border-amber-200">
+              <AlertTriangle size={24} className="flex-shrink-0" />
+              <p>Mevcut kategorilere ait (Örn: "Genel", "Spor") kelimeler direkt içine eklenir. Eğer json dosyasında yeni bir kategori ismi yazarsanız, sistem o kategoriyi otomatik olarak oluşturur.</p>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'review' && (
           <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {suggestions.length === 0 ? (
