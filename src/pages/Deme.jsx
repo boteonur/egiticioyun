@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3 } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, User, LogOut, LogIn, UserPlus } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import emailjs from '@emailjs/browser';
-import { getAuth, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
 
 // ==========================================
@@ -996,6 +996,53 @@ export default function Deme() {
   // Modals
   const [showAdmin, setShowAdmin] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+
+  // --- YENİ: KULLANICI GİRİŞİ (AUTH) STATE'LERİ ---
+  const auth = getAuth();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authStatus, setAuthStatus] = useState(null);
+
+  // Kullanıcının giriş yapıp yapmadığını dinle
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthStatus({ type: 'info', msg: "İşlem yapılıyor..." });
+    try {
+      if (isLoginMode) {
+        await signInWithEmailAndPassword(auth, authEmail, authPassword);
+        setAuthStatus({ type: 'success', msg: "Başarıyla giriş yapıldı!" });
+      } else {
+        await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+        setAuthStatus({ type: 'success', msg: "Kayıt başarılı, giriş yapıldı!" });
+      }
+      setTimeout(() => {
+        setShowAuthModal(false);
+        setAuthStatus(null);
+        setAuthEmail("");
+        setAuthPassword("");
+      }, 1500);
+    } catch (error) {
+      let errorMsg = "Bir hata oluştu.";
+      if (error.code === 'auth/email-already-in-use') errorMsg = "Bu e-posta zaten kullanımda.";
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') errorMsg = "E-posta veya şifre hatalı.";
+      if (error.code === 'auth/weak-password') errorMsg = "Şifre en az 6 karakter olmalıdır.";
+      setAuthStatus({ type: 'error', msg: errorMsg });
+    }
+  };
+
+  const handleLogout = () => {
+    signOut(auth);
+  };
 
   const [setupStep, setSetupStep] = useState(0); 
 
