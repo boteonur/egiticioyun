@@ -552,6 +552,13 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
                 </div>
               )}
 
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
+                <Info size={24} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-blue-800 font-medium">
+                  Oyun oluşturmayı tamamladığınızda, oyununuz "Oyna" seçeneği altındaki kategorilere eklenecek ve hemen oynamaya hazır olacaktır. Ancak herkese açılması için yönetici onayı gerekmektedir. Kullanılan kelimelerdeki sorumluluk ekleyen kullanıcıya aittir. Nefret söylemi, cinsellik, şiddet içeren kelimeler kullanmaktan kaçının.
+                </p>
+              </div>
+
               <div className="flex gap-4">
                 <label className={`flex-1 p-3 rounded-xl border-2 flex items-center justify-center gap-2 cursor-pointer transition-all ${visibility === 'public' ? 'border-blue-500 bg-blue-50 shadow-inner' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
                   <input type="radio" checked={visibility === 'public'} onChange={() => setVisibility('public')} className="hidden" />
