@@ -7,7 +7,6 @@ import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, u
 
 // ==========================================
 // 🔴 FIREBASE AYARLARI BURAYA GELECEK 🔴
-// Aşağıdaki firebaseConfig nesnesinin içini kendi Firebase projenizden aldığınız bilgilerle doldurun.
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyB1gHSr2fpZZvXRLBi8CUEXhRRjXLCyfhw",
@@ -23,16 +22,13 @@ let app, auth, db, appId;
 let isUsingUserFirebase = false;
 
 try {
-  // 1. Durum: Kullanıcı kendi API anahtarını kullanıyorsa
   if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "SİZİN_API_KEY" && firebaseConfig.projectId === "egiticioyuntr") {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
-    appId = "deme-oyunu-v1"; // Kendi veritabanı klasörünüz
+    appId = "deme-oyunu-v1";
     isUsingUserFirebase = true;
-  } 
-  // 2. Durum: Canvas ortamındaysa
-  else if (typeof __firebase_config !== 'undefined') {
+  } else if (typeof __firebase_config !== 'undefined') {
     const config = JSON.parse(__firebase_config);
     app = initializeApp(config);
     auth = getAuth(app);
@@ -84,11 +80,9 @@ const DEFAULT_WORD_DATABASE = {
   ]
 };
 
-// Rastgele isim oluşturucu sözlükler
 const ADJECTIVES = ["Cesur", "Uçan", "Gizemli", "Hızlı", "Zeki", "Korkusuz", "Muhteşem", "Çılgın", "Efsanevi", "Yenilmez", "Kızgın", "Süper", "Görünmez", "Komik"];
 const NOUNS = ["Aslanlar", "Kartallar", "Ejderhalar", "Kaplanlar", "Büyücüler", "Savaşçılar", "Dahiler", "Ninjalar", "Korsanlar", "Şövalyeler", "Robotlar", "Zombiler"];
 
-// --- KATEGORİ GÖRSELLERİ VE RENKLERİ ---
 const CATEGORY_LIST = [
   { name: "Genel", icon: Globe, color: "text-blue-500", gradient: "from-blue-100 to-blue-200" },
   { name: "Spor", icon: Medal, color: "text-orange-500", gradient: "from-orange-100 to-orange-200" },
@@ -98,14 +92,11 @@ const CATEGORY_LIST = [
   { name: "Çocuk", icon: Smile, color: "text-pink-500", gradient: "from-pink-100 to-pink-200" }
 ];
 
-// --- SES EFEKTLERİ SİSTEMİ ---
 const getAudioCtx = () => {
   if (!window.audioCtx) {
     window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  if (window.audioCtx.state === 'suspended') {
-    window.audioCtx.resume();
-  }
+  if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
   return window.audioCtx;
 };
 
@@ -227,12 +218,11 @@ const playTimeUpSound = () => {
    ALT BİLEŞENLER
 ============================================= */
 
-// --- Yeni: Oyunlarım Modalı (Kullanıcı Kendi Oyunlarını Yönetir) ---
+// --- Oyunlarım Modalı ---
 const MyGamesModal = ({ onClose, user, myGames }) => {
-  const [view, setView] = useState('list'); // 'list', 'add', 'view', 'edit'
+  const [view, setView] = useState('list'); 
   const [selectedGame, setSelectedGame] = useState(null);
 
-  // Form State'leri
   const [categoryName, setCategoryName] = useState("");
   const [visibility, setVisibility] = useState("public");
   const [word, setWord] = useState("");
@@ -240,7 +230,6 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
   const [addedWords, setAddedWords] = useState([]);
   const [status, setStatus] = useState(null);
   
-  // Düzenleme / Silme State'leri
   const [editingWordIndex, setEditingWordIndex] = useState(null);
   const [confirmDeleteGame, setConfirmDeleteGame] = useState(false);
 
@@ -334,19 +323,19 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
 
     try {
       setStatus({ type: 'info', msg: "Kaydediliyor..." });
+      
       const gameData = {
         name: categoryName.trim(),
         words: addedWords,
         ownerId: user.uid,
         ownerEmail: user.email || "Üye",
         visibility: visibility,
-        updatedAt: Date.now()
+        status: visibility === 'public' ? (view === 'edit' ? (selectedGame?.status || 'pending') : 'pending') : 'private',
+        updatedAt: Date.now(),
+        createdAt: view === 'edit' ? (selectedGame?.createdAt || Date.now()) : Date.now()
       };
 
       if (view === 'edit') {
-        gameData.createdAt = selectedGame.createdAt || Date.now();
-        if (visibility === 'public') gameData.status = selectedGame.status || 'pending';
-
         const oldColl = selectedGame.type === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
         const newColl = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
 
@@ -358,9 +347,6 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
         }
         setStatus({ type: 'success', msg: "Değişiklikler başarıyla kaydedildi!" });
       } else {
-        gameData.createdAt = Date.now();
-        if (visibility === 'public') gameData.status = 'pending';
-        
         const coll = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
         await addDoc(collection(db, 'artifacts', appId, ...coll.split('/')), gameData);
         setStatus({ type: 'success', msg: "Oyun başarıyla oluşturuldu!" });
@@ -461,7 +447,7 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              {selectedGame.words.map((w, idx) => (
+              {selectedGame.words?.map((w, idx) => (
                 <div key={idx} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                   <h4 className="font-black text-lg text-blue-700 mb-2 border-b border-blue-100 pb-2">{w.word}</h4>
                   <ul className="text-sm font-semibold text-red-500 space-y-1">
@@ -744,7 +730,7 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   );
 };
 
-// --- YENİ: Yönetici İçin Kelime Düzenleme Satırı ---
+// --- Yönetici İçin Kelime Düzenleme Satırı ---
 const AdminWordRow = ({ wordObj, onSave, onDelete }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [word, setWord] = useState(wordObj.word);
@@ -848,7 +834,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(null);
-  const [activeTab, setActiveTab] = useState('categories'); // Varsayılan olarak Kategoriler gelsin
+  const [activeTab, setActiveTab] = useState('categories'); 
 
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -857,7 +843,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
   const [word, setWord] = useState("");
   const [forbidden, setForbidden] = useState(["", "", "", "", ""]);
 
-  // --- KATEGORİ YÖNETİMİ STATE'LERİ ---
   const [selectedCat, setSelectedCat] = useState(null);
   const [editCatName, setEditCatName] = useState("");
 
@@ -1188,6 +1173,10 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
     );
   }
 
+  // Güvenli filtreleme için fallback listesi
+  const safePublicGames = customPublicGames || [];
+  const pendingGames = safePublicGames.filter(g => g.status !== 'approved');
+
   return (
     <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-4xl shadow-2xl relative border-4 border-purple-200 my-auto min-h-[60vh]">
@@ -1229,13 +1218,13 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
         </div>
 
         {status && (
-          <div className={`p-4 rounded-xl font-bold flex items-center gap-2 mb-4 ${status.type === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border border-blue-200 animate-pulse' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+          <div className={`p-4 rounded-xl font-bold flex items-center gap-2 mb-4 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200 animate-pulse' : 'bg-red-100 text-red-700 border-red-200'}`}>
             {status.type === 'success' ? <Check size={20} /> : status.type === 'info' ? <Upload size={20} /> : <Info size={20} />}
             {status.msg}
           </div>
         )}
 
-        {/* --- YENİ: KATEGORİLER SEKMSİ --- */}
+        {/* --- KATEGORİLER SEKMESİ --- */}
         {activeTab === 'categories' && (
           <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
             {!selectedCat ? (
@@ -1257,15 +1246,15 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
 
                 <h3 className="font-bold text-orange-500 uppercase tracking-widest text-sm mb-3">Onay Bekleyen Oyunlar (Üyelerden)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {customPublicGames.filter(g => g.status === 'pending').length === 0 ? (
+                  {pendingGames.length === 0 ? (
                     <div className="col-span-2 text-center py-6 text-gray-400 font-medium">Onay bekleyen oyun yok.</div>
                   ) : (
-                    customPublicGames.filter(g => g.status === 'pending').map(game => (
+                    pendingGames.map(game => (
                       <div key={game.id} className="bg-orange-50 border-2 border-orange-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-orange-300 transition-colors">
                         <div>
                           <div className="font-black text-lg text-orange-800">{game.name}</div>
                           <div className="flex gap-2 mt-1">
-                            <span className="text-[10px] font-bold text-orange-600 bg-orange-200 px-2 py-0.5 rounded">{game.words.length} Kelime</span>
+                            <span className="text-[10px] font-bold text-orange-600 bg-orange-200 px-2 py-0.5 rounded">{game.words?.length || 0} Kelime</span>
                             <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
                           </div>
                         </div>
@@ -1294,7 +1283,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
                 </div>
 
                 <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
-                  {(selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : selectedCat.data.words).map((w, idx) => (
+                  {(selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])).map((w, idx) => (
                     <AdminWordRow 
                       key={idx} 
                       wordObj={w} 
@@ -1763,6 +1752,8 @@ export default function Deme() {
       const arr = [];
       snapshot.forEach(d => arr.push({ id: d.id, ...d.data(), type: 'public' }));
       setCustomPublicGames(arr);
+    }, (err) => {
+      console.error("Oyunlar yüklenirken hata oluştu:", err);
     });
 
     // Sadece Bana Özel Kullanıcı Oyunları (Private Custom Games)
@@ -2123,7 +2114,6 @@ export default function Deme() {
                         Oyunlarım
                       </button>
 
-                      {/* Giriş yapıldıysa yönetici butonunu gizledik, çıkış butonunu bıraktık */}
                       <button
                         onClick={handleLogout}
                         className="p-3 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-all shadow-md hover:scale-105 border border-red-400/50"
@@ -2362,7 +2352,7 @@ export default function Deme() {
                         
                         <div className="flex flex-col items-center gap-1 mt-1">
                           <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
-                            {custom.words.length} Kelime
+                            {custom.words?.length || 0} Kelime
                           </span>
                           {custom.type === 'public' && custom.ownerEmail && (
                             <span className="text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
