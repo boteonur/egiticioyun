@@ -2240,19 +2240,19 @@ export default function Deme() {
           </div>
 
           {/* STEP 1: TAKIM ADLARI */}
-          <div className="min-w-full h-full flex flex-col items-center justify-start p-6 pt-24 pb-24 relative overflow-y-auto">
-            <div className="absolute top-8 left-8 z-10">
+          <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-16 md:p-6 md:pt-24 pb-20 relative overflow-y-auto">
+            <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
             
             {/* ORTAK BAŞLIK */}
-            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-3 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-10 flex-shrink-0">
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-10 flex-shrink-0">
               <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide text-center">Takımları Belirle</h2>
             </div>
             
-            <div className="w-full max-w-md flex flex-col gap-12 mt-4 flex-shrink-0">
+            <div className="w-full max-w-md flex flex-col gap-6 md:gap-12 mt-2 flex-shrink-0">
               <TeamSetupCard 
                 title="1. TAKIM" teamName={team1Name} setTeamName={setTeam1Name}
                 playerCount={team1Players} setPlayerCount={setTeam1Players}
@@ -2541,35 +2541,35 @@ export default function Deme() {
   if (gameState === 'playing' && currentWord) {
     return (
       <div className="w-full h-screen bg-gray-50 flex flex-col font-sans">
-        <div className="bg-white shadow-sm p-4 flex justify-between items-center px-6 border-b">
+        <div className="bg-white shadow-sm p-4 flex justify-between items-center px-4 md:px-6 border-b flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-xl">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-lg md:text-xl">
               {timeLeft}
             </div>
             <span className="font-bold text-gray-500 hidden md:block">Saniye Kaldı</span>
           </div>
-          <div className="text-xl font-black text-purple-900">
+          <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">
             {currentTeamName} Oynuyor
           </div>
-          <div className="flex gap-4 font-bold text-gray-500">
-            <div>Doğru: <span className="text-green-600">{turnStats.correct}</span></div>
-            <div>Tabu: <span className="text-red-500">{turnStats.taboo}</span></div>
+          <div className="flex gap-2 md:gap-4 font-bold text-gray-500 text-sm md:text-base">
+            <div className="flex flex-col md:flex-row items-center md:gap-1"><span>Doğru:</span> <span className="text-green-600">{turnStats.correct}</span></div>
+            <div className="flex flex-col md:flex-row items-center md:gap-1"><span>Tabu:</span> <span className="text-red-500">{turnStats.taboo}</span></div>
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-8 border-yellow-400 flex flex-col h-[60vh] min-h-[400px]">
-            <div className="bg-yellow-400 text-center py-8 px-4 flex-shrink-0">
-              <h2 className="text-4xl md:text-5xl font-black text-gray-900 uppercase tracking-wide">
+        <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-8 overflow-hidden">
+          <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-4 md:border-8 border-yellow-400 flex flex-col flex-1 max-h-[65vh] md:h-[60vh] md:min-h-[400px]">
+            <div className="bg-yellow-400 text-center py-4 md:py-8 px-4 flex-shrink-0">
+              <h2 className="text-3xl md:text-5xl font-black text-gray-900 uppercase tracking-wide">
                 {currentWord.word}
               </h2>
             </div>
             
-            <div className="flex-1 bg-white p-6 md:p-10 flex flex-col justify-center gap-4 md:gap-6 items-center">
+            <div className="flex-1 bg-white p-4 md:p-10 flex flex-col justify-center gap-3 md:gap-6 items-center overflow-y-auto">
               {currentWord.forbidden.map((word, index) => (
                 <div key={index} className="w-full flex items-center justify-center relative">
                   <div className="absolute left-0 right-0 h-px bg-gray-200"></div>
-                  <span className="relative bg-white px-6 text-2xl md:text-3xl font-bold text-gray-700 capitalize">
+                  <span className="relative bg-white px-4 md:px-6 text-xl md:text-3xl font-bold text-gray-700 capitalize">
                     {word}
                   </span>
                 </div>
@@ -2578,26 +2578,26 @@ export default function Deme() {
           </div>
         </div>
 
-        <div className="bg-white p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-4 md:gap-8">
+        <div className="bg-white p-3 md:p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-2 md:gap-8 flex-shrink-0">
           <button 
             onClick={() => handleAction('taboo')}
-            className="flex-1 max-w-xs py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-3xl font-black text-2xl md:text-3xl shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-2"
+            className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] md:shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
           >
-            <X size={36} /> TABU (-{settings.penalty})
+            <X size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">TABU (-{settings.penalty})</span><span className="hidden md:inline">TABU (-{settings.penalty})</span>
           </button>
           
           <button 
             onClick={() => handleAction('pass')}
-            className={`flex-1 max-w-[120px] py-6 rounded-3xl font-black text-xl flex flex-col items-center justify-center gap-2 transition-all ${passesLeft > 0 || settings.passLimit === 999 ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-[0_8px_0_rgb(202,138,4)] active:shadow-none active:translate-y-2' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+            className={`flex-1 max-w-[90px] md:max-w-[120px] py-3 md:py-6 rounded-2xl md:rounded-3xl font-black text-base md:text-xl flex flex-col items-center justify-center gap-1 md:gap-2 transition-all ${passesLeft > 0 || settings.passLimit === 999 ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-[0_6px_0_rgb(202,138,4)] md:shadow-[0_8px_0_rgb(202,138,4)] active:shadow-none active:translate-y-2' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
           >
-            <SkipForward size={32} /> <span className="text-base">PAS ({settings.passLimit === 999 ? '∞' : passesLeft})</span>
+            <SkipForward size={24} className="md:w-8 md:h-8" /> <span className="text-xs md:text-base">PAS ({settings.passLimit === 999 ? '∞' : passesLeft})</span>
           </button>
 
           <button 
             onClick={() => handleAction('correct')}
-            className="flex-1 max-w-xs py-6 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-3xl font-black text-2xl md:text-3xl shadow-[0_8px_0_rgb(21,128,61)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-2"
+            className="flex-1 max-w-xs py-3 md:py-6 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(21,128,61)] md:shadow-[0_8px_0_rgb(21,128,61)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
           >
-            <Check size={36} /> DOĞRU (+1)
+            <Check size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DOĞRU (+1)</span><span className="hidden md:inline">DOĞRU (+1)</span>
           </button>
         </div>
       </div>
