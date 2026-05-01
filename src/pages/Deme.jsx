@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, User, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import emailjs from '@emailjs/browser';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
 
 // ==========================================
@@ -228,7 +227,7 @@ const playTimeUpSound = () => {
 ============================================= */
 
 // --- Kullanıcı Kelime Öneri Modalı ---
-const SuggestionModal = ({ onClose, wordDatabase }) => {
+const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   const [category, setCategory] = useState("Genel");
   const [customCategory, setCustomCategory] = useState("");
   const [word, setWord] = useState("");
@@ -255,7 +254,9 @@ const SuggestionModal = ({ onClose, wordDatabase }) => {
         category: category === "NEW" ? customCategory.trim() : category,
         word: word.trim().toLocaleUpperCase('tr-TR'),
         forbidden: forbidden.map(f => f.trim()),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        // KİMİN ÖNERDİĞİNİ VERİTABANINA KAYDEDİYORUZ:
+        suggestedBy: user && !user.isAnonymous ? user.email : "Anonim" 
       });
 
       setIsSuccess(true);
@@ -374,7 +375,15 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
     <div className="bg-purple-50 rounded-2xl p-4 border-2 border-purple-100 mb-4 shadow-sm">
       <div className="flex flex-col md:flex-row gap-4 mb-4">
         <div className="flex-1">
-          <label className="text-xs font-bold text-purple-600 uppercase mb-1 block">Kategori</label>
+          <div className="flex justify-between items-center mb-1">
+            <label className="text-xs font-bold text-purple-600 uppercase block">Kategori</label>
+            {/* ÖNERENİN E-POSTASI BURADA GÖZÜKÜR */}
+            {suggestion.suggestedBy && (
+              <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">
+                Öneren: {suggestion.suggestedBy}
+              </span>
+            )}
+          </div>
           <input value={cat} onChange={(e) => setCat(e.target.value)} className="w-full p-2 rounded-lg border border-purple-200 font-bold focus:outline-none focus:border-purple-500"/>
         </div>
         <div className="flex-1">
@@ -439,7 +448,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
     }
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (resetEmail.trim() === "boteonur@gmail.com") {
       setStatus({ type: 'info', msg: "E-posta gönderiliyor, lütfen bekleyin..." });
 
@@ -448,24 +457,34 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
         message: 'admin123', // Mevcut yönetici şifreniz
       };
 
-      // BURADAKİ BİLGİLERİ KENDİ EMAILJS HESABINIZDAN ALDIKLARINIZLA DEĞİŞTİRİN
-     emailjs.send(
-        'service_cw4u7yi',
-        'template_578qx5p',
-        templateParams,
-        'BF8KlO7uXh462AIYf'
-      )
-      .then((response) => {
-        setStatus({ type: 'success', msg: "Şifreniz boteonur@gmail.com adresine başarıyla gönderildi!" });
-        setTimeout(() => {
-          setIsForgotPassword(false);
-          setStatus(null);
-          setResetEmail("");
-        }, 4000);
-      })
-      .catch((err) => {
-        setStatus({ type: 'error', msg: "E-posta gönderilemedi. Hata: " + err.text });
-      });
+      try {
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            service_id: 'service_cw4u7yi',
+            template_id: 'template_578qx5p',
+            user_id: 'BF8KlO7uXh462AIYf',
+            template_params: templateParams
+          })
+        });
+
+        if (response.ok) {
+          setStatus({ type: 'success', msg: "Şifreniz boteonur@gmail.com adresine başarıyla gönderildi!" });
+          setTimeout(() => {
+            setIsForgotPassword(false);
+            setStatus(null);
+            setResetEmail("");
+          }, 4000);
+        } else {
+          const errText = await response.text();
+          setStatus({ type: 'error', msg: "E-posta gönderilemedi. Hata: " + errText });
+        }
+      } catch (err) {
+        setStatus({ type: 'error', msg: "E-posta gönderilemedi. Lütfen bağlantınızı kontrol edin." });
+      }
 
     } else {
       setStatus({ type: 'error', msg: "Böyle bir yönetici e-posta adresi bulunamadı!" });
@@ -991,65 +1010,19 @@ export default function Deme() {
   const [user, setUser] = useState(null);
   const [wordDatabase, setWordDatabase] = useState(DEFAULT_WORD_DATABASE);
   const [suggestions, setSuggestions] = useState([]);
-  const [dbError, setDbError] = useState(""); // Firebase izin hatalarını yakalamak için
+  const [dbError, setDbError] = useState(""); 
   
   // Modals
   const [showAdmin, setShowAdmin] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
 
-  // --- YENİ: KULLANICI GİRİŞİ (AUTH) STATE'LERİ ---
-  const auth = getAuth();
-  const [currentUser, setCurrentUser] = useState(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authStatus, setAuthStatus] = useState(null);
-
-  // Kullanıcının giriş yapıp yapmadığını dinle
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-    });
-    return () => unsubscribe();
-  }, [auth]);
-
-  const handleAuthSubmit = async (e) => {
-    e.preventDefault();
-    setAuthStatus({ type: 'info', msg: "İşlem yapılıyor..." });
-    try {
-      if (isLoginMode) {
-        await signInWithEmailAndPassword(auth, authEmail, authPassword);
-        setAuthStatus({ type: 'success', msg: "Başarıyla giriş yapıldı!" });
-      } else {
-        await createUserWithEmailAndPassword(auth, authEmail, authPassword);
-        setAuthStatus({ type: 'success', msg: "Kayıt başarılı, giriş yapıldı!" });
-      }
-      setTimeout(() => {
-        setShowAuthModal(false);
-        setAuthStatus(null);
-        setAuthEmail("");
-        setAuthPassword("");
-      }, 1500);
-    } catch (error) {
-      let errorMsg = "Bir hata oluştu.";
-      if (error.code === 'auth/email-already-in-use') errorMsg = "Bu e-posta zaten kullanımda.";
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') errorMsg = "E-posta veya şifre hatalı.";
-      if (error.code === 'auth/weak-password') errorMsg = "Şifre en az 6 karakter olmalıdır.";
-      setAuthStatus({ type: 'error', msg: errorMsg });
-    }
-  };
-
-  const handleLogout = () => {
-    signOut(auth);
-  };
-
   const [setupStep, setSetupStep] = useState(0); 
 
-  // --- YENİ: Kaydırma (Swipe) State'leri ---
+  // --- KAYDIRMA STATE'LERİ ---
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
+  // --- OYUN STATE'LERİ ---
   const [team1Name, setTeam1Name] = useState("Kırmızı Ejderler");
   const [team2Name, setTeam2Name] = useState("Mavi Aslanlar");
   const [team1Players, setTeam1Players] = useState(2);
@@ -1077,16 +1050,52 @@ export default function Deme() {
   const [turnStats, setTurnStats] = useState({ correct: 0, taboo: 0, pass: 0 });
   const [passesLeft, setPassesLeft] = useState(0);
 
+  // --- YENİ: KULLANICI GİRİŞİ (AUTH) STATE VE FONKSİYONLARI ---
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authStatus, setAuthStatus] = useState(null);
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    setAuthStatus({ type: 'info', msg: "İşlem yapılıyor..." });
+    try {
+      if (isLoginMode) {
+        await signInWithEmailAndPassword(auth, authEmail, authPassword);
+        setAuthStatus({ type: 'success', msg: "Başarıyla giriş yapıldı!" });
+      } else {
+        await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+        setAuthStatus({ type: 'success', msg: "Kayıt başarılı, giriş yapıldı!" });
+      }
+      setTimeout(() => {
+        setShowAuthModal(false);
+        setAuthStatus(null);
+        setAuthEmail("");
+        setAuthPassword("");
+      }, 1500);
+    } catch (error) {
+      let errorMsg = "Bir hata oluştu.";
+      if (error.code === 'auth/email-already-in-use') errorMsg = "Bu e-posta zaten kullanımda.";
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') errorMsg = "E-posta veya şifre hatalı.";
+      if (error.code === 'auth/weak-password') errorMsg = "Şifre en az 6 karakter olmalıdır.";
+      setAuthStatus({ type: 'error', msg: errorMsg });
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    // Çıkış yapıldıktan sonra sistem otomatik olarak aşağıda yazdığımız initAuth() sayesinde tekrar Anonim girişe geçecektir.
+  };
+
   // Auth Effect
   useEffect(() => {
     if (!auth) return;
     const initAuth = async () => {
       try {
         if (isUsingUserFirebase) {
-          // Kullanıcının kendi veritabanında "Anonim Giriş" kullanılmalı
           await signInAnonymously(auth);
         } else {
-          // Canvas önizleme ortamında özel token kullanılır
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
             try {
               await signInWithCustomToken(auth, __initial_auth_token);
@@ -1105,9 +1114,18 @@ export default function Deme() {
         }
       }
     };
+    
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      // Eğer kullanıcı tamamen çıkış yaparsa (null olursa), misafir olarak oyuna devam edebilmesi için tekrar anonim giriş yaptırıyoruz.
+      if (!currentUser) {
+        initAuth();
+      }
+    });
+    
+    // Uygulama ilk açıldığında çalıştır
     initAuth();
     
-    const unsubscribe = auth.onAuthStateChanged(setUser);
     return () => unsubscribe();
   }, []);
 
@@ -1118,9 +1136,8 @@ export default function Deme() {
     // Categories Fetch
     const wordsRef = collection(db, 'artifacts', appId, 'public', 'data', 'categories');
     const unsubWords = onSnapshot(wordsRef, (snapshot) => {
-      setDbError(""); // Hata yoksa mesajı temizle
+      setDbError(""); 
       if (snapshot.empty) {
-        // Eğer veritabanı boşsa varsayılan verileri yükle
         Object.keys(DEFAULT_WORD_DATABASE).forEach(cat => {
           setDoc(doc(wordsRef, cat), { words: DEFAULT_WORD_DATABASE[cat] })
             .catch(err => console.error("Tohumlama hatası:", err));
@@ -1135,7 +1152,7 @@ export default function Deme() {
     }, (error) => {
       console.error("Firestore okuma hatası:", error);
       if (error.code === 'permission-denied' || error.message.includes('permission')) {
-        setDbError("Veritabanı İzin Hatası: Lütfen Firebase Console'da 'Firestore Database -> Rules' sekmesine gidip veritabanınızı Test Moduna alın (allow read, write: if true).");
+        setDbError("Veritabanı İzin Hatası: Lütfen Firebase Console'da 'Firestore Database -> Rules' sekmesine gidip veritabanınızı Test Moduna alın.");
       }
     });
 
@@ -1153,7 +1170,7 @@ export default function Deme() {
   const nextStep = () => setSetupStep(prev => prev + 1);
   const prevStep = () => setSetupStep(prev => Math.max(0, prev - 1));
 
-  // --- YENİ: Kaydırma (Swipe) İşleyicileri ---
+  // --- Kaydırma (Swipe) İşleyicileri ---
   const minSwipeDistance = 50;
 
   const onTouchStart = (e) => {
@@ -1172,13 +1189,10 @@ export default function Deme() {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    // Sola kaydırma (İleri)
     if (isLeftSwipe && setupStep < 3) {
-      // Eğer Takım adları ekranındaysak (step 1) ve isimler aynıysa geçişi engelle
       if (setupStep === 1 && team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase()) return;
       nextStep();
     }
-    // Sağa kaydırma (Geri)
     if (isRightSwipe && setupStep > 0) {
       prevStep();
     }
@@ -1328,7 +1342,73 @@ export default function Deme() {
   }
   
   if (showSuggestionModal) {
-    return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} />;
+    // Burada "user" bilgisini de gönderiyoruz ki kimin önerdiği belli olsun
+    return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
+  }
+
+  if (showAuthModal) {
+    return (
+      <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl relative border-4 border-purple-200">
+          <button onClick={() => {setShowAuthModal(false); setAuthStatus(null);}} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors">
+            <X size={32} />
+          </button>
+          
+          <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3">
+            {isLoginMode ? <LogIn className="text-purple-500" size={36} /> : <UserPlus className="text-purple-500" size={36} />}
+            {isLoginMode ? "Giriş Yap" : "Kayıt Ol"}
+          </h2>
+
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-500 mb-1 font-bold">E-posta</label>
+              <input 
+                type="email" 
+                required
+                value={authEmail} 
+                onChange={(e) => setAuthEmail(e.target.value)} 
+                className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-500 mb-1 font-bold">Şifre</label>
+              <input 
+                type="password" 
+                required
+                minLength="6"
+                value={authPassword} 
+                onChange={(e) => setAuthPassword(e.target.value)} 
+                className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
+              />
+            </div>
+            
+            {authStatus && (
+              <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${authStatus.type === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : authStatus.type === 'info' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+                {authStatus.type === 'success' ? <Check size={20} /> : <Info size={20} />}
+                {authStatus.msg}
+              </div>
+            )}
+
+            <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-2">
+              {isLoginMode ? "GİRİŞ YAP" : "KAYIT OL"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center border-t border-gray-100 pt-4">
+            <p className="text-gray-500 text-sm font-bold">
+              {isLoginMode ? "Hesabınız yok mu?" : "Zaten bir hesabınız var mı?"}
+            </p>
+            <button 
+              type="button"
+              onClick={() => { setIsLoginMode(!isLoginMode); setAuthStatus(null); }}
+              className="text-purple-600 hover:text-purple-800 font-black mt-1 transition-colors"
+            >
+              {isLoginMode ? "Yeni Hesap Oluştur" : "Mevcut Hesaba Giriş Yap"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   /* ==========================================
@@ -1354,18 +1434,15 @@ export default function Deme() {
                 className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-4 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               />
               
-              {/* Üst Çizgi */}
               <div className="w-32 h-[2px] bg-white/30 mb-3 rounded-full"></div>
               
               <p className="text-white/90 text-lg md:text-xl mb-3 text-center max-w-md font-medium">
                 Yasaklı kelimeleri kullanmadan takım arkadaşlarına kelimeyi anlat!
               </p>
 
-              {/* Alt Çizgi */}
               <div className="w-32 h-[2px] bg-white/30 mb-8 rounded-full"></div>
               
               <div className="flex flex-col items-center gap-4">
-                {/* HATA MESAJI GÖSTERİMİ */}
                 {dbError && (
                   <div className="bg-red-500/90 text-white p-4 rounded-xl shadow-lg border-2 border-red-300 text-sm max-w-md text-center mb-2 animate-pulse flex flex-col items-center gap-2">
                     <Info size={24} />
@@ -1382,13 +1459,31 @@ export default function Deme() {
                 </button>
 
                 <div className="flex items-center gap-4 mt-2">
-                  <button
-                    onClick={() => setShowSuggestionModal(true)}
-                    className="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-full text-sm font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 border border-white/30"
-                  >
-                    <MessageSquarePlus size={18} />
-                    Kelime Öner
-                  </button>
+                  {(!user || user.isAnonymous) ? (
+                    <button
+                      onClick={() => { setShowAuthModal(true); setIsLoginMode(true); }}
+                      className="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white rounded-full text-sm font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 border border-white/30"
+                    >
+                      <User size={18} /> Giriş Yap / Kayıt
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowSuggestionModal(true)}
+                        className="px-5 py-2.5 bg-green-500/80 hover:bg-green-500 text-white rounded-full text-sm font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 border border-green-400/50"
+                      >
+                        <MessageSquarePlus size={18} />
+                        Kelime Öner
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="p-2.5 bg-red-500/80 hover:bg-red-500 text-white rounded-full transition-all shadow-md hover:scale-105 border border-red-400/50"
+                        title="Çıkış Yap"
+                      >
+                        <LogOut size={18} />
+                      </button>
+                    </div>
+                  )}
                   
                   <button
                     onClick={() => setShowAdmin(true)}
