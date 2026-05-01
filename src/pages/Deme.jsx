@@ -2172,7 +2172,7 @@ export default function Deme() {
 
               <div className="w-32 h-[2px] bg-white/30 mb-8 rounded-full"></div>
               
-              <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col items-center gap-4 w-full">
                 {dbError && (
                   <div className="bg-red-500/90 text-white p-4 rounded-xl shadow-lg border-2 border-red-300 text-sm max-w-md text-center mb-2 animate-pulse flex flex-col items-center gap-2">
                     <Info size={24} />
@@ -2188,21 +2188,22 @@ export default function Deme() {
                   OYNA
                 </button>
 
-                <div className="flex flex-col items-center gap-4 mt-2">
+                <div className="flex flex-col items-center gap-4 mt-2 w-full max-w-[320px]">
                   {(!user || user.isAnonymous) ? (
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center gap-2 w-full">
                       <button
                         onClick={() => { setShowAuthModal(true); setIsLoginMode(true); }}
-                        className="px-6 py-3 bg-white text-purple-700 font-bold rounded-xl shadow-lg hover:bg-gray-100 transition-all flex items-center gap-2 hover:scale-105"
+                        className="flex-1 px-4 py-3.5 bg-white text-purple-700 font-bold rounded-xl shadow-lg hover:bg-gray-100 transition-all flex items-center justify-center gap-2 hover:scale-105 whitespace-nowrap text-sm sm:text-base"
                       >
                         <User size={20} /> Giriş Yap / Kayıt Ol
                       </button>
                       
                       <button
                         onClick={() => setShowAdmin(true)}
-                        className="px-5 py-3 bg-transparent hover:bg-white/10 text-white/80 hover:text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2 border border-white/30"
+                        className="p-3.5 bg-transparent hover:bg-white/10 text-white/80 hover:text-white rounded-xl transition-colors flex items-center justify-center border border-white/30 shadow-sm hover:scale-105 flex-shrink-0"
+                        title="Yönetici Girişi"
                       >
-                        <Lock size={18} /> Yönetici
+                        <Lock size={20} />
                       </button>
                     </div>
                   ) : (
