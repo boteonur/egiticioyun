@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Users } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import emailjs from '@emailjs/browser';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
@@ -227,31 +227,99 @@ const playTimeUpSound = () => {
    ALT BİLEŞENLER
 ============================================= */
 
-// --- Yeni: Oyunlarım Modalı (Kullanıcı Kendi Oyununu Ekler) ---
-const MyGamesModal = ({ onClose, user }) => {
+// --- Yeni: Oyunlarım Modalı (Kullanıcı Kendi Oyunlarını Yönetir) ---
+const MyGamesModal = ({ onClose, user, myGames }) => {
+  const [view, setView] = useState('list'); // 'list', 'add', 'view', 'edit'
+  const [selectedGame, setSelectedGame] = useState(null);
+
+  // Form State'leri
   const [categoryName, setCategoryName] = useState("");
-  const [visibility, setVisibility] = useState("public"); // "public" veya "private"
+  const [visibility, setVisibility] = useState("public");
   const [word, setWord] = useState("");
   const [forbidden, setForbidden] = useState(["", "", "", "", ""]);
   const [addedWords, setAddedWords] = useState([]);
   const [status, setStatus] = useState(null);
-  const [isSuccess, setIsSuccess] = useState(false);
+  
+  // Düzenleme / Silme State'leri
+  const [editingWordIndex, setEditingWordIndex] = useState(null);
+  const [confirmDeleteGame, setConfirmDeleteGame] = useState(false);
 
-  const handleAddWord = () => {
+  const resetForm = () => {
+    setCategoryName("");
+    setVisibility("public");
+    setWord("");
+    setForbidden(["", "", "", "", ""]);
+    setAddedWords([]);
+    setEditingWordIndex(null);
+    setStatus(null);
+    setConfirmDeleteGame(false);
+  };
+
+  const openAdd = () => {
+    resetForm();
+    setView('add');
+  };
+
+  const openView = (game) => {
+    setSelectedGame(game);
+    setView('view');
+  };
+
+  const openEdit = (game) => {
+    setSelectedGame(game);
+    setCategoryName(game.name);
+    setVisibility(game.type || 'public');
+    setAddedWords(game.words || []);
+    setWord("");
+    setForbidden(["", "", "", "", ""]);
+    setEditingWordIndex(null);
+    setStatus(null);
+    setConfirmDeleteGame(false);
+    setView('edit');
+  };
+
+  const handleAddOrUpdateWord = () => {
     if (!word.trim() || forbidden.some(f => !f.trim())) {
       setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" });
       return;
     }
     
-    setAddedWords([...addedWords, {
+    const newWordObj = {
       word: word.trim().toLocaleUpperCase('tr-TR'),
       forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR'))
-    }]);
+    };
+
+    if (editingWordIndex !== null) {
+      const updatedList = [...addedWords];
+      updatedList[editingWordIndex] = newWordObj;
+      setAddedWords(updatedList);
+      setEditingWordIndex(null);
+      setStatus({ type: 'success', msg: "Kelime güncellendi!" });
+    } else {
+      setAddedWords([newWordObj, ...addedWords]);
+      setStatus({ type: 'success', msg: "Kelime eklendi!" });
+    }
     
     setWord("");
     setForbidden(["", "", "", "", ""]);
-    setStatus({ type: 'success', msg: "Kelime başarıyla eklendi! Yenisini girebilirsiniz." });
-    setTimeout(() => setStatus(null), 2500);
+    setTimeout(() => setStatus(null), 2000);
+  };
+
+  const handleEditWordClick = (index) => {
+    const w = addedWords[index];
+    setWord(w.word);
+    setForbidden([...w.forbidden]);
+    setEditingWordIndex(index);
+    setStatus({ type: 'info', msg: "Kelimeyi düzenliyorsunuz..." });
+  };
+
+  const handleDeleteWordClick = (index) => {
+    setAddedWords(addedWords.filter((_, i) => i !== index));
+    if (editingWordIndex === index) {
+      setWord("");
+      setForbidden(["", "", "", "", ""]);
+      setEditingWordIndex(null);
+    }
   };
 
   const handleFinish = async () => {
@@ -260,141 +328,271 @@ const MyGamesModal = ({ onClose, user }) => {
       return;
     }
     if (addedWords.length === 0) {
-      setStatus({ type: 'error', msg: "Kategorinize henüz hiç kelime eklemediniz! En az 1 kelime eklemelisiniz." });
+      setStatus({ type: 'error', msg: "Oyununuza henüz hiç kelime eklemediniz!" });
       return;
     }
 
     try {
-      setStatus({ type: 'info', msg: "Oyununuz kaydediliyor, lütfen bekleyin..." });
+      setStatus({ type: 'info', msg: "Kaydediliyor..." });
       const gameData = {
         name: categoryName.trim(),
         words: addedWords,
         ownerId: user.uid,
         ownerEmail: user.email || "Üye",
         visibility: visibility,
-        createdAt: Date.now()
+        updatedAt: Date.now()
       };
 
-      if (visibility === 'public') {
-        // Herkese açık koleksiyona ekle
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'customGames'), gameData);
-      } else {
-        // Sadece bana özel koleksiyona ekle
-        await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'customGames'), gameData);
-      }
+      if (view === 'edit') {
+        gameData.createdAt = selectedGame.createdAt || Date.now();
+        const oldColl = selectedGame.type === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
+        const newColl = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
 
-      setIsSuccess(true);
-      setStatus(null);
+        if (oldColl !== newColl) {
+          // Görünürlük değiştiyse eskisini sil, yeni yere ekle
+          await deleteDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id));
+          await setDoc(doc(db, 'artifacts', appId, ...newColl.split('/'), selectedGame.id), gameData);
+        } else {
+          // Aynı klasörde güncelle
+          await setDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id), gameData);
+        }
+        setStatus({ type: 'success', msg: "Değişiklikler başarıyla kaydedildi!" });
+      } else {
+        // Yeni oyun ekle
+        gameData.createdAt = Date.now();
+        const coll = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
+        await addDoc(collection(db, 'artifacts', appId, ...coll.split('/')), gameData);
+        setStatus({ type: 'success', msg: "Oyun başarıyla oluşturuldu!" });
+      }
+      
+      setTimeout(() => {
+        setStatus(null);
+        setView('list');
+      }, 1500);
     } catch (e) {
-      setStatus({ type: 'error', msg: "Kaydedilirken bir hata oluştu: " + e.message });
+      setStatus({ type: 'error', msg: "Hata: " + e.message });
     }
   };
 
-  if (isSuccess) {
-    return (
-      <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative border-4 border-blue-200 flex flex-col items-center text-center animate-fade-in">
-          <Gamepad2 size={80} className="text-blue-500 mb-6 animate-bounce" />
-          <h2 className="text-3xl font-black text-gray-800 mb-2">Oyun Oluşturuldu!</h2>
-          <p className="text-gray-600 mb-8 font-medium">Kendi özel oyununuz başarıyla kaydedildi. Kategori seçim ekranından hemen oynamaya başlayabilirsiniz.</p>
-          
-          <button onClick={onClose} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(59,130,246)] hover:translate-y-1 hover:shadow-none transition-all">
-            ANASAYFAYA DÖN
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const handleDeleteGame = async () => {
+    try {
+      setStatus({ type: 'info', msg: "Oyun siliniyor..." });
+      const coll = selectedGame.type === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
+      await deleteDoc(doc(db, 'artifacts', appId, ...coll.split('/'), selectedGame.id));
+      setStatus({ type: 'success', msg: "Oyun silindi!" });
+      setTimeout(() => {
+        setStatus(null);
+        setConfirmDeleteGame(false);
+        setView('list');
+      }, 1500);
+    } catch (e) {
+      setStatus({ type: 'error', msg: "Silinirken hata oluştu: " + e.message });
+    }
+  };
 
   return (
-    <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-lg shadow-2xl relative border-4 border-blue-300 my-auto">
-        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors">
+    <div className="fixed inset-0 w-full h-screen bg-gray-900/95 flex items-center justify-center p-4 z-50 backdrop-blur-md overflow-y-auto">
+      <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-2xl shadow-2xl relative border-4 border-blue-300 my-auto">
+        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors z-10">
           <X size={32} />
         </button>
         
-        <h2 className="text-3xl font-black text-blue-600 mb-6 flex items-center gap-3">
-          <Gamepad2 size={36} />
-          Oyunlarım (Yeni)
-        </h2>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-gray-700 font-bold mb-2">Kategori (Oyun) Adı</label>
-            <input 
-              value={categoryName} 
-              onChange={(e) => setCategoryName(e.target.value)} 
-              placeholder="Örn: 90'lar Pop" 
-              className="w-full border-2 border-blue-200 bg-blue-50 rounded-xl p-3 font-bold text-gray-800 focus:border-blue-500 outline-none" 
-            />
-          </div>
-
-          <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 shadow-sm mt-4">
-            <label className="block text-gray-700 font-bold mb-2">Anlatılacak Kelime:</label>
-            <input 
-              value={word} 
-              onChange={(e) => setWord(e.target.value)} 
-              placeholder="Anlatılacak Kelime" 
-              className="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-xl text-gray-800 focus:border-blue-500 outline-none uppercase shadow-inner" 
-            />
-
-            <label className="block text-red-500 font-bold mb-2 mt-4 flex items-center gap-2">
-              <X size={18} /> Deme Kelimeleri (5 Adet)
-            </label>
-            <div className="space-y-2">
-              {forbidden.map((fw, i) => (
-                <input 
-                  key={i} 
-                  value={fw} 
-                  onChange={(e) => {
-                    const newF = [...forbidden];
-                    newF[i] = e.target.value;
-                    setForbidden(newF);
-                  }} 
-                  placeholder={`${i + 1}. Yasaklı Kelime`} 
-                  className="w-full border-2 border-red-100 bg-white rounded-xl p-2 font-bold text-gray-700 focus:border-red-400 outline-none capitalize shadow-sm" 
-                />
-              ))}
-            </div>
-
+        {/* --- LİSTE GÖRÜNÜMÜ --- */}
+        {view === 'list' && (
+          <div className="animate-fade-in">
+            <h2 className="text-3xl font-black text-blue-600 mb-6 flex items-center gap-3">
+              <Gamepad2 size={36} /> Oyunlarım
+            </h2>
+            
             <button 
-              onClick={handleAddWord} 
-              className="w-full mt-4 bg-blue-500 hover:bg-blue-600 text-white font-black text-lg py-3 rounded-xl shadow-[0_4px_0_rgb(37,99,235)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2"
+              onClick={openAdd} 
+              className="w-full mb-6 bg-blue-50 border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-600 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
             >
-              <Plus size={22} /> KELİME EKLE
+              <Plus size={24} /> Yeni Oyun Ekle
             </button>
 
-            {addedWords.length > 0 && (
-              <div className="mt-3 text-center text-sm font-bold text-green-600 bg-green-50 p-2 rounded-lg border border-green-200">
-                Bu kategoriye şu an {addedWords.length} kelime eklendi.
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-4 mt-2">
-            <label className={`flex-1 p-3 rounded-xl border-2 flex items-center justify-center gap-2 cursor-pointer transition-all ${visibility === 'public' ? 'border-blue-500 bg-blue-50 shadow-inner' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-              <input type="radio" checked={visibility === 'public'} onChange={() => setVisibility('public')} className="hidden" />
-              <Globe size={20} className={visibility === 'public' ? 'text-blue-500' : 'text-gray-400'} />
-              <span className={`font-bold ${visibility === 'public' ? 'text-blue-700' : 'text-gray-500'}`}>Herkese Açık</span>
-            </label>
-            <label className={`flex-1 p-3 rounded-xl border-2 flex items-center justify-center gap-2 cursor-pointer transition-all ${visibility === 'private' ? 'border-purple-500 bg-purple-50 shadow-inner' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-              <input type="radio" checked={visibility === 'private'} onChange={() => setVisibility('private')} className="hidden" />
-              <Lock size={20} className={visibility === 'private' ? 'text-purple-500' : 'text-gray-400'} />
-              <span className={`font-bold ${visibility === 'private' ? 'text-purple-700' : 'text-gray-500'}`}>Bana Özel</span>
-            </label>
-          </div>
-
-          {status && (
-            <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-              {status.type === 'success' ? <Check size={20} /> : <Info size={20} />}
-              {status.msg}
+            <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+              {myGames.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 font-medium">
+                  Henüz bir oyun eklemediniz.
+                </div>
+              ) : (
+                myGames.map(game => (
+                  <div key={game.id} className="bg-white border-2 border-gray-100 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-blue-200 transition-all">
+                    <div>
+                      <h3 className="font-black text-xl text-gray-800">{game.name}</h3>
+                      <div className="flex gap-2 mt-2">
+                        <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">{game.words?.length || 0} Kelime</span>
+                        <span className={`text-xs font-bold px-2 py-1 rounded-md ${game.type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                          {game.type === 'public' ? 'Herkese Açık' : 'Bana Özel'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => openView(game)} 
+                        className="flex-1 md:flex-none px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Eye size={18} /> Görüntüle
+                      </button>
+                      <button 
+                        onClick={() => openEdit(game)} 
+                        className="flex-1 md:flex-none px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Edit2 size={18} /> Düzenle
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          <button onClick={handleFinish} className="w-full bg-green-500 hover:bg-green-600 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all mt-2">
-            BİTTİ
-          </button>
-        </div>
+        {/* --- GÖRÜNTÜLEME GÖRÜNÜMÜ --- */}
+        {view === 'view' && selectedGame && (
+          <div className="animate-fade-in">
+            <div className="flex items-center gap-4 mb-6">
+              <button onClick={() => setView('list')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors">
+                <ArrowLeft size={24} />
+              </button>
+              <h2 className="text-3xl font-black text-gray-800">{selectedGame.name}</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {selectedGame.words.map((w, idx) => (
+                <div key={idx} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <h4 className="font-black text-lg text-blue-700 mb-2 border-b border-blue-100 pb-2">{w.word}</h4>
+                  <ul className="text-sm font-semibold text-red-500 space-y-1">
+                    {w.forbidden.map((f, i) => <li key={i}>- {f}</li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* --- EKLE / DÜZENLE GÖRÜNÜMÜ --- */}
+        {(view === 'add' || view === 'edit') && (
+          <div className="animate-fade-in flex flex-col max-h-[80vh]">
+            <div className="flex items-center gap-4 mb-4 flex-shrink-0">
+              <button onClick={() => setView('list')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors">
+                <ArrowLeft size={24} />
+              </button>
+              <h2 className="text-2xl font-black text-blue-600">
+                {view === 'edit' ? 'Oyunu Düzenle' : 'Yeni Oyun Oluştur'}
+              </h2>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
+              <div>
+                <label className="block text-gray-700 font-bold mb-2">Oyun Adı</label>
+                <input 
+                  value={categoryName} 
+                  onChange={(e) => setCategoryName(e.target.value)} 
+                  placeholder="Örn: 90'lar Pop" 
+                  className="w-full border-2 border-blue-200 bg-blue-50 rounded-xl p-3 font-bold text-gray-800 focus:border-blue-500 outline-none" 
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm">
+                <label className="block text-gray-700 font-bold mb-2">Anlatılacak Kelime:</label>
+                <input 
+                  value={word} 
+                  onChange={(e) => setWord(e.target.value)} 
+                  placeholder="Anlatılacak Kelime" 
+                  className="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-xl text-gray-800 focus:border-blue-500 outline-none uppercase shadow-inner" 
+                />
+
+                <label className="block text-red-500 font-bold mb-2 mt-4 flex items-center gap-2">
+                  <X size={18} /> Deme Kelimeleri (5 Adet)
+                </label>
+                <div className="space-y-2">
+                  {forbidden.map((fw, i) => (
+                    <input 
+                      key={i} 
+                      value={fw} 
+                      onChange={(e) => {
+                        const newF = [...forbidden];
+                        newF[i] = e.target.value;
+                        setForbidden(newF);
+                      }} 
+                      placeholder={`${i + 1}. Yasaklı Kelime`} 
+                      className="w-full border-2 border-red-100 bg-white rounded-xl p-2 font-bold text-gray-700 focus:border-red-400 outline-none capitalize shadow-sm" 
+                    />
+                  ))}
+                </div>
+
+                <button 
+                  onClick={handleAddOrUpdateWord} 
+                  className={`w-full mt-4 text-white font-black text-lg py-3 rounded-xl hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2 ${editingWordIndex !== null ? 'bg-amber-500 hover:bg-amber-600 shadow-[0_4px_0_rgb(217,119,6)]' : 'bg-blue-500 hover:bg-blue-600 shadow-[0_4px_0_rgb(37,99,235)]'}`}
+                >
+                  {editingWordIndex !== null ? <><Check size={22} /> KELİMEYİ GÜNCELLE</> : <><Plus size={22} /> KELİME EKLE</>}
+                </button>
+              </div>
+
+              {addedWords.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-2xl p-4">
+                  <h4 className="font-bold text-gray-600 mb-3 text-sm">Eklenen Kelimeler ({addedWords.length})</h4>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {addedWords.map((aw, idx) => (
+                      <div key={idx} className={`flex items-center justify-between p-2 md:p-3 rounded-lg border ${editingWordIndex === idx ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100 hover:bg-blue-50 hover:border-blue-100'} transition-colors`}>
+                        <span className="font-black text-gray-800">{aw.word}</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleEditWordClick(idx)} className="p-2 bg-white rounded-md text-blue-600 hover:bg-blue-100 shadow-sm border border-gray-200">
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteWordClick(idx)} className="p-2 bg-white rounded-md text-red-600 hover:bg-red-100 shadow-sm border border-gray-200">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <label className={`flex-1 p-3 rounded-xl border-2 flex items-center justify-center gap-2 cursor-pointer transition-all ${visibility === 'public' ? 'border-blue-500 bg-blue-50 shadow-inner' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
+                  <input type="radio" checked={visibility === 'public'} onChange={() => setVisibility('public')} className="hidden" />
+                  <Globe size={20} className={visibility === 'public' ? 'text-blue-500' : 'text-gray-400'} />
+                  <span className={`font-bold text-sm md:text-base ${visibility === 'public' ? 'text-blue-700' : 'text-gray-500'}`}>Herkese Açık</span>
+                </label>
+                <label className={`flex-1 p-3 rounded-xl border-2 flex items-center justify-center gap-2 cursor-pointer transition-all ${visibility === 'private' ? 'border-purple-500 bg-purple-50 shadow-inner' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
+                  <input type="radio" checked={visibility === 'private'} onChange={() => setVisibility('private')} className="hidden" />
+                  <Lock size={20} className={visibility === 'private' ? 'text-purple-500' : 'text-gray-400'} />
+                  <span className={`font-bold text-sm md:text-base ${visibility === 'private' ? 'text-purple-700' : 'text-gray-500'}`}>Bana Özel</span>
+                </label>
+              </div>
+
+              {status && (
+                <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
+                  {status.type === 'success' ? <Check size={20} /> : <Info size={20} />}
+                  {status.msg}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-gray-100 flex flex-col md:flex-row gap-3 flex-shrink-0">
+              {view === 'edit' && (
+                confirmDeleteGame ? (
+                  <div className="flex-1 flex gap-2">
+                    <button onClick={handleDeleteGame} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl">Eminim, Sil</button>
+                    <button onClick={() => setConfirmDeleteGame(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl">İptal</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmDeleteGame(true)} className="md:w-1/3 bg-red-100 hover:bg-red-200 text-red-600 font-black text-lg py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <Trash2 size={20} /> SİL
+                  </button>
+                )
+              )}
+              
+              <button onClick={handleFinish} className="flex-1 bg-green-500 hover:bg-green-600 text-white font-black text-xl py-3 rounded-xl shadow-[0_5px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all">
+                {view === 'edit' ? 'KAYDET' : 'BİTTİ'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1189,7 +1387,7 @@ export default function Deme() {
   // Modals
   const [showAdmin, setShowAdmin] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
-  const [showMyGamesModal, setShowMyGamesModal] = useState(false); // Yeni Modal State'i
+  const [showMyGamesModal, setShowMyGamesModal] = useState(false);
 
   const [setupStep, setSetupStep] = useState(0); 
 
@@ -1542,8 +1740,11 @@ export default function Deme() {
     return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
   }
 
+  // --- OYUNLARIM BÖLÜMÜNÜN FİLTRELENMESİ ---
+  const myGames = [...customPublicGames, ...customPrivateGames].filter(g => g.ownerId === user?.uid);
+
   if (showMyGamesModal) {
-    return <MyGamesModal onClose={() => setShowMyGamesModal(false)} user={user} />;
+    return <MyGamesModal onClose={() => setShowMyGamesModal(false)} user={user} myGames={myGames} />;
   }
 
   if (showAuthModal) {
@@ -1583,7 +1784,7 @@ export default function Deme() {
             </div>
             
             {authStatus && (
-              <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${authStatus.type === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : authStatus.type === 'info' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+              <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${authStatus.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : authStatus.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
                 {authStatus.type === 'success' ? <Check size={20} /> : <Info size={20} />}
                 {authStatus.msg}
               </div>
@@ -1914,7 +2115,7 @@ export default function Deme() {
               {customCategoriesList.length > 0 && (
                 <div className="w-full">
                   <div className="flex items-center gap-3 mb-6 border-b border-white/20 pb-3">
-                    <Users className="text-blue-300" size={28} />
+                    <User className="text-blue-300" size={28} />
                     <h3 className="text-2xl md:text-3xl font-bold text-white/90 text-left">Üyelerden</h3>
                   </div>
 
