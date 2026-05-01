@@ -1833,14 +1833,14 @@ export default function Deme() {
       }
     };
     
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      // Eğer kullanıcı yoksa (ilk açılışta veya çıkış yapıldığında), anonim giriş yap
       if (!currentUser) {
         initAuth();
       }
     });
     
-    initAuth();
     return () => unsubscribe();
   }, []);
 
