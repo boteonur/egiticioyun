@@ -1252,7 +1252,8 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
 
   // Güvenli filtreleme için fallback listesi
   const safePublicGames = customPublicGames || [];
-  const pendingGames = safePublicGames.filter(g => g.status !== 'approved');
+  const pendingGames = safePublicGames.filter(g => g.status === 'pending');
+  const approvedGames = safePublicGames.filter(g => g.status === 'approved');
 
   // Şu an bakılan kategorinin kelime listesi
   const currentWordList = selectedCat ? (selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])) : [];
@@ -1325,6 +1326,29 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
                   ))}
                 </div>
 
+                {/* YENİ: Onaylı Üye Oyunları */}
+                <h3 className="font-bold text-blue-500 uppercase tracking-widest text-sm mb-3 mt-6">Üyelerden (Onaylı)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+                  {approvedGames.length === 0 ? (
+                    <div className="col-span-2 text-center py-6 text-gray-400 font-medium">Onaylı üye oyunu yok.</div>
+                  ) : (
+                    approvedGames.map(game => (
+                      <div key={game.id} className="bg-blue-50 border-2 border-blue-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-blue-300 transition-colors">
+                        <div>
+                          <div className="font-black text-lg text-blue-800">{game.name}</div>
+                          <div className="flex gap-2 mt-1">
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-200 px-2 py-0.5 rounded">{game.words?.length || 0} Kelime</span>
+                            <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
+                          </div>
+                        </div>
+                        <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-bold flex items-center gap-2 shadow-sm">
+                          <Edit2 size={16} /> Düzenle
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
                 <h3 className="font-bold text-orange-500 uppercase tracking-widest text-sm mb-3">Onay Bekleyen Oyunlar (Üyelerden)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {pendingGames.length === 0 ? (
@@ -1358,9 +1382,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
                       <input 
                         value={editCatName} 
                         onChange={e => setEditCatName(e.target.value)} 
-                        className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full"
+                        className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full md:w-auto"
                       />
-                      <button onClick={handleRenameCat} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors flex-shrink-0 whitespace-nowrap">İsmi Kaydet</button>
+                      <button onClick={handleRenameCat} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold text-sm transition-colors flex-shrink-0 whitespace-nowrap">İsmi Kaydet</button>
                     </div>
                   </div>
                   
@@ -1376,7 +1400,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
                   )}
                 </div>
 
-                {/* YENİ: ÇOKLU SEÇİM ÜST BARI */}
+                {/* ÇOKLU SEÇİM ÜST BARI */}
                 <div className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl mb-3 flex-shrink-0">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-purple-900 select-none">
                     <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} className="w-5 h-5 accent-purple-600 cursor-pointer" />
@@ -1402,7 +1426,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
                   ))}
                 </div>
 
-                {selectedCat.type === 'custom' && (
+                {selectedCat.type === 'custom' && selectedCat.data.status === 'pending' && (
                   <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3 flex-shrink-0">
                     <button onClick={() => handleApproveCustomGame(selectedCat.data.id)} className="flex-1 bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">
                       <Check size={24} /> ONAYLA (HERKESE AÇ)
@@ -2224,7 +2248,6 @@ export default function Deme() {
                         Oyunlarım
                       </button>
 
-                      {/* Giriş yapıldıysa yönetici butonunu gizledik, çıkış butonunu bıraktık */}
                       <button
                         onClick={handleLogout}
                         className="p-3 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-all shadow-md hover:scale-105 border border-red-400/50"
@@ -2314,7 +2337,7 @@ export default function Deme() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-red-50 p-5 rounded-2xl border border-red-100 shadow-sm">
-                    <label className="block text-lg font-bold text-red-900 mb-3">Tabu Cezası</label>
+                    <label className="block text-lg font-bold text-red-900 mb-3">Dedim Cezası</label>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4].map(val => (
                         <button
@@ -2396,7 +2419,6 @@ export default function Deme() {
               İLERİ <ArrowRight size={18} strokeWidth={3} />
             </button>
           </div>
-
           {/* STEP 4: KATEGORİ SEÇİMİ */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-16 md:p-6 md:pt-24 pb-20 relative overflow-y-auto">
             <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
@@ -2555,9 +2577,12 @@ export default function Deme() {
           <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">
             {currentTeamName} Oynuyor
           </div>
-          <div className="flex gap-2 md:gap-4 font-bold text-gray-500 text-sm md:text-base">
+          <div className="flex gap-2 md:gap-4 font-bold text-gray-500 text-sm md:text-base items-center">
             <div className="flex flex-col md:flex-row items-center md:gap-1"><span>Doğru:</span> <span className="text-green-600">{turnStats.correct}</span></div>
-            <div className="flex flex-col md:flex-row items-center md:gap-1"><span>Tabu:</span> <span className="text-red-500">{turnStats.taboo}</span></div>
+            <div className="flex flex-col md:flex-row items-center md:gap-1"><span>Dedim:</span> <span className="text-red-500">{turnStats.taboo}</span></div>
+            <button onClick={() => setGameState('gameOver')} className="ml-1 md:ml-3 p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors" title="Oyunu Sonlandır">
+              <LogOut size={20} className="w-5 h-5 md:w-6 md:h-6" />
+            </button>
           </div>
         </div>
 
@@ -2587,7 +2612,7 @@ export default function Deme() {
             onClick={() => handleAction('taboo')}
             className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] md:shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
           >
-            <X size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">TABU (-{settings.penalty})</span><span className="hidden md:inline">TABU (-{settings.penalty})</span>
+            <X size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DEDİM (-{settings.penalty})</span><span className="hidden md:inline">DEDİM (-{settings.penalty})</span>
           </button>
           
           <button 
@@ -2620,7 +2645,7 @@ export default function Deme() {
             <span className="font-black text-green-400">+{turnStats.correct} Puan</span>
           </div>
           <div className="flex justify-between items-center mb-6 text-2xl">
-            <span className="font-bold flex items-center gap-2"><X className="text-red-400"/> Tabu:</span>
+            <span className="font-bold flex items-center gap-2"><X className="text-red-400"/> Dedim:</span>
             <span className="font-black text-red-400">-{turnStats.taboo * settings.penalty} Puan</span>
           </div>
           <div className="w-full h-px bg-white/20 mb-6"></div>
