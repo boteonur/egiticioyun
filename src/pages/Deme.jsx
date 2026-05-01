@@ -450,10 +450,10 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
 
       // BURADAKİ BİLGİLERİ KENDİ EMAILJS HESABINIZDAN ALDIKLARINIZLA DEĞİŞTİRİN
       emailjs.send(
-        'SERVICE_ID_BURAYA',    
-        'TEMPLATE_ID_BURAYA',   
+        service_cw4u7yi,    
+        template_578qx5p,   
         templateParams,
-        'PUBLIC_KEY_BURAYA'     
+        BF8KlO7uXh462AIYf     
       )
       .then((response) => {
         setStatus({ type: 'success', msg: "Şifreniz boteonur@gmail.com adresine başarıyla gönderildi!" });
