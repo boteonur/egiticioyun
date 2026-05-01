@@ -731,7 +731,7 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
 };
 
 // --- Yönetici İçin Kelime Düzenleme Satırı ---
-const AdminWordRow = ({ wordObj, onSave, onDelete }) => {
+const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [word, setWord] = useState(wordObj.word);
   const [forbidden, setForbidden] = useState([...wordObj.forbidden]);
@@ -743,7 +743,7 @@ const AdminWordRow = ({ wordObj, onSave, onDelete }) => {
 
   if (isEditing) {
     return (
-      <div className="bg-white p-4 rounded-xl border-2 border-blue-200 shadow-sm mb-3 animate-fade-in">
+      <div className="bg-white p-4 rounded-xl border-2 border-blue-200 shadow-sm mb-3 animate-fade-in ml-8">
         <input value={word} onChange={e=>setWord(e.target.value.toLocaleUpperCase('tr-TR'))} className="font-black text-lg w-full mb-2 p-2 border border-gray-200 rounded focus:outline-none focus:border-blue-400" placeholder="Kelime" />
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
           {forbidden.map((fw, i) => (
@@ -759,12 +759,20 @@ const AdminWordRow = ({ wordObj, onSave, onDelete }) => {
   }
 
   return (
-    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 mb-3 hover:border-blue-200 transition-colors">
-      <div className="flex-1">
-        <span className="font-black text-lg text-gray-800">{wordObj.word}</span>
-        <div className="text-sm text-red-500 font-medium">{wordObj.forbidden.join(', ')}</div>
+    <div className={`bg-gray-50 p-3 rounded-xl border flex flex-col md:flex-row justify-between items-center gap-4 mb-3 transition-colors ${isSelected ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-blue-200'}`}>
+      <div className="flex items-center gap-3 flex-1 w-full">
+        <input 
+          type="checkbox" 
+          checked={isSelected} 
+          onChange={onToggleSelect} 
+          className="w-5 h-5 cursor-pointer accent-purple-600 flex-shrink-0" 
+        />
+        <div className="flex-1">
+          <span className="font-black text-lg text-gray-800">{wordObj.word}</span>
+          <div className="text-sm text-red-500 font-medium">{wordObj.forbidden.join(', ')}</div>
+        </div>
       </div>
-      <div className="flex gap-2 w-full md:w-auto">
+      <div className="flex gap-2 w-full md:w-auto ml-8 md:ml-0">
         <button onClick={() => setIsEditing(true)} className="flex-1 md:flex-none p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex justify-center"><Edit2 size={18} /></button>
         <button onClick={onDelete} className="flex-1 md:flex-none p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 flex justify-center"><Trash2 size={18} /></button>
       </div>
@@ -845,7 +853,8 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
 
   const [selectedCat, setSelectedCat] = useState(null);
   const [editCatName, setEditCatName] = useState("");
-  const [confirmDeleteCat, setConfirmDeleteCat] = useState(false); // Yeni silme durumu
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState(false);
+  const [selectedWords, setSelectedWords] = useState([]); // Yeni: Kelime Çoklu Seçim State'i
 
   const handleLogin = () => {
     if (password === "admin123") {
@@ -1014,6 +1023,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
     setSelectedCat({ type, data });
     setEditCatName(type === 'official' ? data : data.name);
     setConfirmDeleteCat(false);
+    setSelectedWords([]); // Her kategori açılışında seçimi temizle
   };
 
   const handleRenameCat = async () => {
@@ -1072,9 +1082,56 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: newWords });
         setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: newWords } });
       }
+      // Silinen kelime seçim listesinde varsa oradan da çıkar
+      setSelectedWords(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i));
       setStatus({ type: 'success', msg: "Kelime silindi!" });
       setTimeout(() => setStatus(null), 2000);
     } catch(e) { setStatus({ type: 'error', msg: e.message }); }
+  };
+
+  // --- YENİ: Toplu Seçim ve Silme Fonksiyonları ---
+  const handleSelectAll = (e) => {
+    const currentList = selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || []);
+    if (e.target.checked) {
+      setSelectedWords(currentList.map((_, i) => i));
+    } else {
+      setSelectedWords([]);
+    }
+  };
+
+  const handleSelectWord = (index) => {
+    if (selectedWords.includes(index)) {
+      setSelectedWords(selectedWords.filter(i => i !== index));
+    } else {
+      setSelectedWords([...selectedWords, index]);
+    }
+  };
+
+  const handleDeleteSelectedWords = async () => {
+    if (selectedWords.length === 0) return;
+    
+    // Diziyi bozulmadan silebilmek için indeksleri büyükten küçüğe sıralıyoruz
+    const sortedIndices = [...selectedWords].sort((a, b) => b - a);
+
+    try {
+      if (selectedCat.type === 'official') {
+        const catName = selectedCat.data;
+        const newWords = [...wordDatabase[catName]];
+        sortedIndices.forEach(idx => newWords.splice(idx, 1));
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: newWords });
+      } else {
+        const gameId = selectedCat.data.id;
+        const newWords = [...selectedCat.data.words];
+        sortedIndices.forEach(idx => newWords.splice(idx, 1));
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: newWords });
+        setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: newWords } });
+      }
+      setStatus({ type: 'success', msg: `${selectedWords.length} kelime başarıyla silindi!` });
+      setSelectedWords([]);
+      setTimeout(() => setStatus(null), 2000);
+    } catch(e) {
+      setStatus({ type: 'error', msg: e.message });
+    }
   };
 
   const handleApproveCustomGame = async (gameId) => {
@@ -1197,6 +1254,10 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
   const safePublicGames = customPublicGames || [];
   const pendingGames = safePublicGames.filter(g => g.status !== 'approved');
 
+  // Şu an bakılan kategorinin kelime listesi
+  const currentWordList = selectedCat ? (selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])) : [];
+  const isAllSelected = currentWordList.length > 0 && selectedWords.length === currentWordList.length;
+
   return (
     <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-4xl shadow-2xl relative border-4 border-purple-200 my-auto min-h-[60vh]">
@@ -1288,9 +1349,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
               </div>
             ) : (
               <div className="flex flex-col h-full">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-shrink-0">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-shrink-0">
                   <div className="flex items-center gap-3 w-full">
-                    <button onClick={() => {setSelectedCat(null); setStatus(null); setConfirmDeleteCat(false);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200 flex-shrink-0">
+                    <button onClick={() => {setSelectedCat(null); setStatus(null); setConfirmDeleteCat(false); setSelectedWords([]);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200 flex-shrink-0">
                       <ArrowLeft size={24} />
                     </button>
                     <div className="flex-1 flex flex-col md:flex-row md:items-center gap-3">
@@ -1315,11 +1376,26 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
                   )}
                 </div>
 
+                {/* YENİ: ÇOKLU SEÇİM ÜST BARI */}
+                <div className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl mb-3 flex-shrink-0">
+                  <label className="flex items-center gap-2 cursor-pointer font-bold text-purple-900 select-none">
+                    <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} className="w-5 h-5 accent-purple-600 cursor-pointer" />
+                    Tümünü Seç ({currentWordList.length})
+                  </label>
+                  {selectedWords.length > 0 && (
+                    <button onClick={handleDeleteSelectedWords} className="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
+                      <Trash2 size={16} /> Seçilenleri Sil ({selectedWords.length})
+                    </button>
+                  )}
+                </div>
+
                 <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
-                  {(selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])).map((w, idx) => (
+                  {currentWordList.map((w, idx) => (
                     <AdminWordRow 
                       key={idx} 
                       wordObj={w} 
+                      isSelected={selectedWords.includes(idx)}
+                      onToggleSelect={() => handleSelectWord(idx)}
                       onSave={(newObj) => handleSaveWord(idx, newObj)} 
                       onDelete={() => handleDeleteWord(idx)} 
                     />
@@ -2147,6 +2223,7 @@ export default function Deme() {
                         Oyunlarım
                       </button>
 
+                      {/* Giriş yapıldıysa yönetici butonunu gizledik, çıkış butonunu bıraktık */}
                       <button
                         onClick={handleLogout}
                         className="p-3 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-all shadow-md hover:scale-105 border border-red-400/50"
