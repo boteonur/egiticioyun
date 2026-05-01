@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import emailjs from '@emailjs/browser';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 // ==========================================
 // 🔴 FIREBASE AYARLARI BURAYA GELECEK 🔴
@@ -77,7 +77,7 @@ const DEFAULT_WORD_DATABASE = {
     { word: "MÜZE", forbidden: ["Eser", "Tarihi", "Sergi", "Eski", "Gezmek"] },
     { word: "PİRAMİT", forbidden: ["Mısır", "Firavun", "Mezar", "Çöl", "Üçgen"] }
   ],
-  "Çocuk modu": [
+  "Çocuk": [
     { word: "KÖPEK", forbidden: ["Havlamak", "Kemik", "Hayvan", "Kedi", "Evcil"] },
     { word: "ELMA", forbidden: ["Meyve", "Kırmızı", "Ağaç", "Yemek", "Tatlı"] },
     { word: "GÜNEŞ", forbidden: ["Sıcak", "Gökyüzü", "Sarı", "Yaz", "Işık"] }
@@ -95,7 +95,7 @@ const CATEGORY_LIST = [
   { name: "Sinema", icon: Film, color: "text-purple-500", gradient: "from-purple-100 to-purple-200" },
   { name: "Teknoloji", icon: Cpu, color: "text-slate-700", gradient: "from-slate-100 to-slate-200" },
   { name: "Tarih", icon: Landmark, color: "text-amber-700", gradient: "from-amber-100 to-amber-200" },
-  { name: "Çocuk modu", icon: Smile, color: "text-pink-500", gradient: "from-pink-100 to-pink-200" }
+  { name: "Çocuk", icon: Smile, color: "text-pink-500", gradient: "from-pink-100 to-pink-200" }
 ];
 
 // --- SES EFEKTLERİ SİSTEMİ ---
@@ -345,21 +345,22 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
 
       if (view === 'edit') {
         gameData.createdAt = selectedGame.createdAt || Date.now();
+        if (visibility === 'public') gameData.status = selectedGame.status || 'pending';
+
         const oldColl = selectedGame.type === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
         const newColl = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
 
         if (oldColl !== newColl) {
-          // Görünürlük değiştiyse eskisini sil, yeni yere ekle
           await deleteDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id));
           await setDoc(doc(db, 'artifacts', appId, ...newColl.split('/'), selectedGame.id), gameData);
         } else {
-          // Aynı klasörde güncelle
           await setDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id), gameData);
         }
         setStatus({ type: 'success', msg: "Değişiklikler başarıyla kaydedildi!" });
       } else {
-        // Yeni oyun ekle
         gameData.createdAt = Date.now();
+        if (visibility === 'public') gameData.status = 'pending';
+        
         const coll = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
         await addDoc(collection(db, 'artifacts', appId, ...coll.split('/')), gameData);
         setStatus({ type: 'success', msg: "Oyun başarıyla oluşturuldu!" });
@@ -424,7 +425,7 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
                       <div className="flex gap-2 mt-2">
                         <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">{game.words?.length || 0} Kelime</span>
                         <span className={`text-xs font-bold px-2 py-1 rounded-md ${game.type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                          {game.type === 'public' ? 'Herkese Açık' : 'Bana Özel'}
+                          {game.type === 'public' ? (game.status === 'pending' ? 'Onay Bekliyor' : 'Herkese Açık') : 'Bana Özel'}
                         </span>
                       </div>
                     </div>
@@ -743,6 +744,49 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   );
 };
 
+// --- YENİ: Yönetici İçin Kelime Düzenleme Satırı ---
+const AdminWordRow = ({ wordObj, onSave, onDelete }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [word, setWord] = useState(wordObj.word);
+  const [forbidden, setForbidden] = useState([...wordObj.forbidden]);
+
+  const handleSave = () => {
+    onSave({ word, forbidden });
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="bg-white p-4 rounded-xl border-2 border-blue-200 shadow-sm mb-3 animate-fade-in">
+        <input value={word} onChange={e=>setWord(e.target.value.toLocaleUpperCase('tr-TR'))} className="font-black text-lg w-full mb-2 p-2 border border-gray-200 rounded focus:outline-none focus:border-blue-400" placeholder="Kelime" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+          {forbidden.map((fw, i) => (
+            <input key={i} value={fw} onChange={e => { const nf = [...forbidden]; nf[i] = e.target.value; setForbidden(nf); }} className="p-2 border border-gray-200 rounded text-sm capitalize focus:outline-none focus:border-blue-400" placeholder={`${i+1}. Yasaklı`} />
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <button onClick={handleSave} className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-600 transition-colors">Kaydet</button>
+          <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition-colors">İptal</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 flex flex-col md:flex-row justify-between items-center gap-4 mb-3 hover:border-blue-200 transition-colors">
+      <div className="flex-1">
+        <span className="font-black text-lg text-gray-800">{wordObj.word}</span>
+        <div className="text-sm text-red-500 font-medium">{wordObj.forbidden.join(', ')}</div>
+      </div>
+      <div className="flex gap-2 w-full md:w-auto">
+        <button onClick={() => setIsEditing(true)} className="flex-1 md:flex-none p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 flex justify-center"><Edit2 size={18} /></button>
+        <button onClick={onDelete} className="flex-1 md:flex-none p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 flex justify-center"><Trash2 size={18} /></button>
+      </div>
+    </div>
+  );
+};
+
+
 // --- Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
   const [word, setWord] = useState(suggestion.word || "");
@@ -799,12 +843,12 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
   );
 }
 
-// Admin (Kelime Ekleme ve Öneriler) Modal Bileşeni
-const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
+// Admin (Kelime Ekleme, Öneriler ve Kategoriler) Modal Bileşeni
+const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(null);
-  const [activeTab, setActiveTab] = useState('add');
+  const [activeTab, setActiveTab] = useState('categories'); // Varsayılan olarak Kategoriler gelsin
 
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -812,6 +856,10 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
   const [category, setCategory] = useState("Genel");
   const [word, setWord] = useState("");
   const [forbidden, setForbidden] = useState(["", "", "", "", ""]);
+
+  // --- KATEGORİ YÖNETİMİ STATE'LERİ ---
+  const [selectedCat, setSelectedCat] = useState(null);
+  const [editCatName, setEditCatName] = useState("");
 
   const handleLogin = () => {
     if (password === "admin123") {
@@ -859,7 +907,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
       } catch (err) {
         setStatus({ type: 'error', msg: "E-posta gönderilemedi. Lütfen bağlantınızı kontrol edin." });
       }
-
     } else {
       setStatus({ type: 'error', msg: "Böyle bir yönetici e-posta adresi bulunamadı!" });
     }
@@ -936,12 +983,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
     reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result);
-        
-        if (!Array.isArray(data)) {
-          throw new Error("Dosya içeriği geçerli bir dizi (array) formatında değil. Örnek formata bakın.");
-        }
+        if (!Array.isArray(data)) throw new Error("Geçersiz format.");
 
-        setStatus({ type: 'info', msg: "Yükleniyor, lütfen bekleyin..." });
+        setStatus({ type: 'info', msg: "Yükleniyor..." });
 
         const groupedWords = {};
         let validWordCount = 0;
@@ -950,7 +994,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           if (item.category && item.word && Array.isArray(item.forbidden) && item.forbidden.length > 0) {
             const cat = item.category.trim();
             if (!groupedWords[cat]) groupedWords[cat] = [];
-            
             groupedWords[cat].push({
               word: item.word.trim().toLocaleUpperCase('tr-TR'),
               forbidden: item.forbidden.map(f => f.trim())
@@ -959,14 +1002,11 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           }
         });
 
-        if (validWordCount === 0) {
-          throw new Error("Dosyada geçerli formatta hiç kelime bulunamadı.");
-        }
+        if (validWordCount === 0) throw new Error("Geçerli kelime bulunamadı.");
 
         for (const [catName, newWords] of Object.entries(groupedWords)) {
           const currentWords = wordDatabase[catName] || [];
           const updatedWords = [...currentWords, ...newWords];
-          
           const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName);
           await setDoc(catRef, { words: updatedWords });
         }
@@ -981,6 +1021,90 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
       }
     };
     reader.readAsText(file);
+  };
+
+  // --- KATEGORİ YÖNETİMİ FONKSİYONLARI ---
+  const handleOpenCat = (type, data) => {
+    setSelectedCat({ type, data });
+    setEditCatName(type === 'official' ? data : data.name);
+  };
+
+  const handleRenameCat = async () => {
+    if (!editCatName.trim()) return;
+    try {
+      if (selectedCat.type === 'official') {
+        const oldName = selectedCat.data;
+        if (oldName !== editCatName) {
+          const data = wordDatabase[oldName];
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', editCatName), { words: data });
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', oldName));
+          setSelectedCat({ type: 'official', data: editCatName });
+          setStatus({ type: 'success', msg: "Kategori adı güncellendi!" });
+        }
+      } else {
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', selectedCat.data.id), { name: editCatName });
+        setSelectedCat({ type: 'custom', data: { ...selectedCat.data, name: editCatName } });
+        setStatus({ type: 'success', msg: "Oyun adı güncellendi!" });
+      }
+      setTimeout(() => setStatus(null), 2000);
+    } catch (e) {
+      setStatus({ type: 'error', msg: e.message });
+    }
+  };
+
+  const handleSaveWord = async (index, newWordObj) => {
+    try {
+      if (selectedCat.type === 'official') {
+        const catName = selectedCat.data;
+        const newWords = [...wordDatabase[catName]];
+        newWords[index] = newWordObj;
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: newWords });
+      } else {
+        const gameId = selectedCat.data.id;
+        const newWords = [...selectedCat.data.words];
+        newWords[index] = newWordObj;
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: newWords });
+        setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: newWords } });
+      }
+      setStatus({ type: 'success', msg: "Kelime güncellendi!" });
+      setTimeout(() => setStatus(null), 2000);
+    } catch(e) { setStatus({ type: 'error', msg: e.message }); }
+  };
+
+  const handleDeleteWord = async (index) => {
+    try {
+      if (selectedCat.type === 'official') {
+        const catName = selectedCat.data;
+        const newWords = [...wordDatabase[catName]];
+        newWords.splice(index, 1);
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: newWords });
+      } else {
+        const gameId = selectedCat.data.id;
+        const newWords = [...selectedCat.data.words];
+        newWords.splice(index, 1);
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: newWords });
+        setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: newWords } });
+      }
+      setStatus({ type: 'success', msg: "Kelime silindi!" });
+      setTimeout(() => setStatus(null), 2000);
+    } catch(e) { setStatus({ type: 'error', msg: e.message }); }
+  };
+
+  const handleApproveCustomGame = async (gameId) => {
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { status: 'approved' });
+      setStatus({ type: 'success', msg: "Oyun başarıyla onaylandı ve herkese açıldı!" });
+      setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
+    } catch (e) { setStatus({ type: 'error', msg: e.message }); }
+  };
+
+  const handleRejectCustomGame = async (game) => {
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'users', game.ownerId, 'customGames', game.id), { ...game, visibility: 'private', status: 'rejected' });
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', game.id));
+      setStatus({ type: 'success', msg: "Oyun reddedildi ve sadece kullanıcısına özel yapıldı." });
+      setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
+    } catch (e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
   if (!isAuthenticated) {
@@ -1066,7 +1190,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
 
   return (
     <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-2xl shadow-2xl relative border-4 border-purple-200 my-auto">
+      <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-4xl shadow-2xl relative border-4 border-purple-200 my-auto min-h-[60vh]">
         <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors z-10">
           <X size={32} />
         </button>
@@ -1076,7 +1200,20 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           Yönetici Paneli
         </h2>
 
-        <div className="flex flex-wrap md:flex-nowrap gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
+        <div className="flex flex-wrap gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
+          <button 
+            onClick={() => {setActiveTab('categories'); setSelectedCat(null); setStatus(null);}}
+            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
+          >
+            <FolderTree size={18} /> Kategoriler
+          </button>
+          <button 
+            onClick={() => setActiveTab('review')}
+            className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
+          >
+            <ListTodo size={18} /> Öneriler
+            {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{suggestions.length}</span>}
+          </button>
           <button 
             onClick={() => setActiveTab('add')}
             className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
@@ -1089,13 +1226,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           >
             <Upload size={18} /> Toplu Yükle
           </button>
-          <button 
-            onClick={() => setActiveTab('review')}
-            className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <ListTodo size={18} /> Öneriler
-            {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{suggestions.length}</span>}
-          </button>
         </div>
 
         {status && (
@@ -1105,6 +1235,91 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           </div>
         )}
 
+        {/* --- YENİ: KATEGORİLER SEKMSİ --- */}
+        {activeTab === 'categories' && (
+          <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
+            {!selectedCat ? (
+              <div className="overflow-y-auto pr-2 custom-scrollbar">
+                <h3 className="font-bold text-gray-500 uppercase tracking-widest text-sm mb-3">Mevcut Kategoriler (Resmi)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+                  {Object.keys(wordDatabase).map(catName => (
+                    <div key={catName} className="bg-white border-2 border-gray-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-purple-200 transition-colors">
+                      <div>
+                        <div className="font-black text-lg text-gray-800">{catName}</div>
+                        <div className="text-xs font-bold text-gray-500">{wordDatabase[catName].length} Kelime</div>
+                      </div>
+                      <button onClick={() => handleOpenCat('official', catName)} className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 font-bold flex items-center gap-2">
+                        <Edit2 size={16} /> Düzenle
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <h3 className="font-bold text-orange-500 uppercase tracking-widest text-sm mb-3">Onay Bekleyen Oyunlar (Üyelerden)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {customPublicGames.filter(g => g.status === 'pending').length === 0 ? (
+                    <div className="col-span-2 text-center py-6 text-gray-400 font-medium">Onay bekleyen oyun yok.</div>
+                  ) : (
+                    customPublicGames.filter(g => g.status === 'pending').map(game => (
+                      <div key={game.id} className="bg-orange-50 border-2 border-orange-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-orange-300 transition-colors">
+                        <div>
+                          <div className="font-black text-lg text-orange-800">{game.name}</div>
+                          <div className="flex gap-2 mt-1">
+                            <span className="text-[10px] font-bold text-orange-600 bg-orange-200 px-2 py-0.5 rounded">{game.words.length} Kelime</span>
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
+                          </div>
+                        </div>
+                        <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-bold flex items-center gap-2 shadow-sm">
+                          <Eye size={16} /> İncele
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col h-full">
+                <div className="flex items-center gap-4 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-shrink-0">
+                  <button onClick={() => {setSelectedCat(null); setStatus(null);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200">
+                    <ArrowLeft size={24} />
+                  </button>
+                  <div className="flex-1 flex flex-col md:flex-row md:items-center gap-3">
+                    <input 
+                      value={editCatName} 
+                      onChange={e => setEditCatName(e.target.value)} 
+                      className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full md:w-auto"
+                    />
+                    <button onClick={handleRenameCat} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold text-sm transition-colors">İsmi Kaydet</button>
+                  </div>
+                </div>
+
+                <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
+                  {(selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : selectedCat.data.words).map((w, idx) => (
+                    <AdminWordRow 
+                      key={idx} 
+                      wordObj={w} 
+                      onSave={(newObj) => handleSaveWord(idx, newObj)} 
+                      onDelete={() => handleDeleteWord(idx)} 
+                    />
+                  ))}
+                </div>
+
+                {selectedCat.type === 'custom' && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3 flex-shrink-0">
+                    <button onClick={() => handleApproveCustomGame(selectedCat.data.id)} className="flex-1 bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">
+                      <Check size={24} /> ONAYLA (HERKESE AÇ)
+                    </button>
+                    <button onClick={() => handleRejectCustomGame(selectedCat.data)} className="flex-1 bg-red-100 hover:bg-red-200 text-red-600 font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                      <Lock size={20} /> ÖZEL YAP (REDDET)
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sekme 2: Direkt Kelime Ekle */}
         {activeTab === 'add' && (
           <div className="space-y-4 animate-fade-in">
             <div>
@@ -1148,8 +1363,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           </div>
         )}
 
+        {/* Sekme 3: Toplu Yükle */}
         {activeTab === 'import' && (
-          <div className="space-y-6 animate-fade-in">
+          <div className="space-y-6 animate-fade-in max-h-[60vh] overflow-y-auto pr-2">
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
               <h3 className="text-blue-800 font-bold mb-2 flex items-center gap-2">
                 <FileJson size={20} /> Nasıl Yüklenir?
@@ -1192,6 +1408,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
           </div>
         )}
 
+        {/* Sekme 4: Öneriler */}
         {activeTab === 'review' && (
           <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {suggestions.length === 0 ? (
@@ -1740,7 +1957,7 @@ export default function Deme() {
 
   // Render Modals
   if (showAdmin) {
-    return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} />;
+    return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} />;
   }
   
   if (showSuggestionModal) {
@@ -1823,8 +2040,9 @@ export default function Deme() {
      RENDER BÖLÜMÜ - KURULUM AKIŞI (SLIDER)
   ============================================= */
   
-  // Custom Oyunları Tek Bir Listede Birleştirme
-  const customCategoriesList = [...customPublicGames, ...customPrivateGames];
+  // Sadece onaylanmış public oyunlar (ya da kendi eklediği pending/approved public oyunlar) ve kendi private oyunları listelenir
+  const visiblePublicGames = customPublicGames.filter(g => g.status === 'approved' || g.ownerId === user?.uid);
+  const customCategoriesList = [...visiblePublicGames, ...customPrivateGames];
 
   if (gameState === 'setup') {
     return (
@@ -1905,6 +2123,7 @@ export default function Deme() {
                         Oyunlarım
                       </button>
 
+                      {/* Giriş yapıldıysa yönetici butonunu gizledik, çıkış butonunu bıraktık */}
                       <button
                         onClick={handleLogout}
                         className="p-3 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-all shadow-md hover:scale-105 border border-red-400/50"
@@ -2096,21 +2315,25 @@ export default function Deme() {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
-                  {CATEGORY_LIST.map((cat) => {
-                    const Icon = cat.icon;
+                  {Object.keys(wordDatabase).map((catName) => {
+                    const defaultCat = CATEGORY_LIST.find(c => c.name === catName);
+                    const Icon = defaultCat ? defaultCat.icon : Database;
+                    const color = defaultCat ? defaultCat.color : "text-blue-500";
+                    const gradient = defaultCat ? defaultCat.gradient : "from-blue-100 to-blue-200";
+
                     return (
                       <button
-                        key={cat.name} onClick={() => startGameFlow(cat.name, cat.name, wordDatabase[cat.name] || [])}
+                        key={catName} onClick={() => startGameFlow(catName, catName, wordDatabase[catName] || [])}
                         className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-[2.5rem] p-8 md:p-10 flex flex-col items-center justify-center gap-6 shadow-[0_15px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] hover:-translate-y-3 transition-all duration-300 group border-4 border-white/40"
                       >
-                        <Icon className={`absolute -bottom-8 -right-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-500 ${cat.color}`} size={180} />
-                        <div className={`w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br ${cat.gradient} rounded-[2rem] flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner relative z-10 border-4 border-white`}>
-                          <Icon className={`${cat.color} drop-shadow-md`} size={48} strokeWidth={2.5} />
+                        <Icon className={`absolute -bottom-8 -right-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-500 ${color}`} size={180} />
+                        <div className={`w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br ${gradient} rounded-[2rem] flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner relative z-10 border-4 border-white`}>
+                          <Icon className={`${color} drop-shadow-md`} size={48} strokeWidth={2.5} />
                         </div>
-                        <span className="text-2xl md:text-3xl font-black tracking-wide relative z-10">{cat.name}</span>
+                        <span className="text-2xl md:text-3xl font-black tracking-wide relative z-10">{catName}</span>
                         
                         <span className="absolute top-4 right-4 bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-full shadow-inner border border-gray-200">
-                          {wordDatabase[cat.name] ? wordDatabase[cat.name].length : 0} Kelime
+                          {wordDatabase[catName] ? wordDatabase[catName].length : 0} Kelime
                         </span>
                       </button>
                     );
@@ -2122,8 +2345,8 @@ export default function Deme() {
               {customCategoriesList.length > 0 && (
                 <div className="w-full">
                   <div className="flex items-center gap-3 mb-6 border-b border-white/20 pb-3">
-                    <User className="text-blue-300" size={28} />
-                    <h3 className="text-2xl md:text-3xl font-bold text-white/90 text-left">Üyelerden</h3>
+                    <Users className="text-blue-300" size={28} />
+                    <h3 className="text-2xl md:text-3xl font-bold text-white/90 text-left">Üyelerden & Oyunlarım</h3>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
@@ -2149,6 +2372,11 @@ export default function Deme() {
                           {custom.type === 'private' && (
                             <span className="text-[11px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
                               Bana Özel
+                            </span>
+                          )}
+                          {custom.type === 'public' && custom.status === 'pending' && (
+                            <span className="text-[11px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 mt-1">
+                              Onay Bekliyor
                             </span>
                           )}
                         </div>
