@@ -845,6 +845,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
 
   const [selectedCat, setSelectedCat] = useState(null);
   const [editCatName, setEditCatName] = useState("");
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState(false); // Yeni silme durumu
 
   const handleLogin = () => {
     if (password === "admin123") {
@@ -1012,6 +1013,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
   const handleOpenCat = (type, data) => {
     setSelectedCat({ type, data });
     setEditCatName(type === 'official' ? data : data.name);
+    setConfirmDeleteCat(false);
   };
 
   const handleRenameCat = async () => {
@@ -1090,6 +1092,24 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
       setStatus({ type: 'success', msg: "Oyun reddedildi ve sadece kullanıcısına özel yapıldı." });
       setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
     } catch (e) { setStatus({ type: 'error', msg: e.message }); }
+  };
+
+  const handleDeleteCategory = async () => {
+    try {
+      if (selectedCat.type === 'official') {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', selectedCat.data));
+      } else {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', selectedCat.data.id));
+      }
+      setStatus({ type: 'success', msg: "Kategori başarıyla silindi!" });
+      setTimeout(() => {
+        setStatus(null);
+        setSelectedCat(null);
+        setConfirmDeleteCat(false);
+      }, 2000);
+    } catch (e) {
+      setStatus({ type: 'error', msg: e.message });
+    }
   };
 
   if (!isAuthenticated) {
@@ -1268,18 +1288,31 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
               </div>
             ) : (
               <div className="flex flex-col h-full">
-                <div className="flex items-center gap-4 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-shrink-0">
-                  <button onClick={() => {setSelectedCat(null); setStatus(null);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200">
-                    <ArrowLeft size={24} />
-                  </button>
-                  <div className="flex-1 flex flex-col md:flex-row md:items-center gap-3">
-                    <input 
-                      value={editCatName} 
-                      onChange={e => setEditCatName(e.target.value)} 
-                      className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full md:w-auto"
-                    />
-                    <button onClick={handleRenameCat} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold text-sm transition-colors">İsmi Kaydet</button>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-shrink-0">
+                  <div className="flex items-center gap-3 w-full">
+                    <button onClick={() => {setSelectedCat(null); setStatus(null); setConfirmDeleteCat(false);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200 flex-shrink-0">
+                      <ArrowLeft size={24} />
+                    </button>
+                    <div className="flex-1 flex flex-col md:flex-row md:items-center gap-3">
+                      <input 
+                        value={editCatName} 
+                        onChange={e => setEditCatName(e.target.value)} 
+                        className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full"
+                      />
+                      <button onClick={handleRenameCat} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors flex-shrink-0 whitespace-nowrap">İsmi Kaydet</button>
+                    </div>
                   </div>
+                  
+                  {confirmDeleteCat ? (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button onClick={handleDeleteCategory} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors whitespace-nowrap">Eminim, Sil</button>
+                      <button onClick={() => setConfirmDeleteCat(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">İptal</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteCat(true)} className="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-1 flex-shrink-0 whitespace-nowrap border border-red-200">
+                      <Trash2 size={16} /> Kategoriyi Sil
+                    </button>
+                  )}
                 </div>
 
                 <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
