@@ -449,11 +449,11 @@ const AdminModal = ({ onClose, wordDatabase, suggestions }) => {
       };
 
       // BURADAKİ BİLGİLERİ KENDİ EMAILJS HESABINIZDAN ALDIKLARINIZLA DEĞİŞTİRİN
-      emailjs.send(
-        service_cw4u7yi,    
-        template_578qx5p,   
+     emailjs.send(
+        'service_cw4u7yi',
+        'template_578qx5p',
         templateParams,
-        BF8KlO7uXh462AIYf     
+        'BF8KlO7uXh462AIYf'
       )
       .then((response) => {
         setStatus({ type: 'success', msg: "Şifreniz boteonur@gmail.com adresine başarıyla gönderildi!" });
