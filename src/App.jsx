@@ -1,5 +1,7 @@
-git add .import React from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+// Dosya isimleriyle birebir aynı olmalı (Büyük/küçük harf duyarlı)
 import AnaSayfa from './pages/AnaSayfa';
 import Deme from './pages/Deme';
 import Lockedchecker from './pages/Lockedchecker';
