@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 /* global __initial_auth_token */
 import { signInAnonymously, onAuthStateChanged, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, doc, setDoc, updateDoc, onSnapshot, getDocs, deleteDoc } from 'firebase/firestore';
-import { auth, db, appId } from './config/firebase.js';
-import { ADMIN_EMAILS, generateRoomId, createInitialBoard, getCellColor, getGenitiveSuffix } from './utils/gameUtils.js';
-import AuthModal from './pages/lc_components/AuthModal.jsx';
-import UserProfileModal from './pages/lc_components/UserProfileModal.jsx';
-import { AudioEngine } from './audio/AudioEngine.js';
-import { translations } from './locales/translations.js';
+import { auth, db, appId } from '../config/firebase.js';
+import { ADMIN_EMAILS, generateRoomId, createInitialBoard, getCellColor, getGenitiveSuffix } from '../utils/gameUtils.js';
+import AuthModal from '../components/AuthModal.jsx';
+import UserProfileModal from '../components/UserProfileModal.jsx';
+import { AudioEngine } from '../audio/AudioEngine.js';
+import { translations } from '../locales/translations.js';
 
-export default function Lockedchecker() {
+export default function Lockedchecker({ onNavigateHome }) {
   const [language, setLanguage] = useState(() => localStorage.getItem('locked_checker_lang') || 'tr');
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem('locked_checker_sound');
