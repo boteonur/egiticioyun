@@ -1,20 +1,20 @@
-/* global __firebase_config, __app_id */
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-const firebaseConfig = typeof __firebase_config !== 'undefined' 
-  ? JSON.parse(__firebase_config) 
-  : {
-      apiKey: "AIzaSyALmt8PoygwEVNlCynENz8a-xgpiUBgqVI",
-      authDomain: "lockedchecker.firebaseapp.com",
-      projectId: "lockedchecker",
-      storageBucket: "lockedchecker.firebasestorage.app",
-      messagingSenderId: "307635237653",
-      appId: "1:307635237653:web:51f212a42b64be6db66f1c"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyB1gHSr2fpZZvXRLBi8CUEXhRRjXLCyfhw",
+  authDomain: "egiticioyuntr.firebaseapp.com",
+  projectId: "egiticioyuntr",
+  storageBucket: "egiticioyuntr.firebasestorage.app",
+  messagingSenderId: "470830059463",
+  appId: "1:470830059463:web:4afeae2b894fe4d83953e2"
+};
 
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const appId = typeof __app_id !== 'undefined' ? __app_id : "locked-checker";
+// BURASI ÇOK ÖNEMLİ: Eğer uygulama zaten başlatılmışsa yenisini açmaz, çakışmayı önler
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = "deme-oyunu-v1";
+
+export { auth, db, appId, app };

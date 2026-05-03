@@ -23,14 +23,16 @@ let isUsingUserFirebase = false;
 
 try {
   if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "SİZİN_API_KEY" && firebaseConfig.projectId === "egiticioyuntr") {
-    app = initializeApp(firebaseConfig);
+    // BURASI DEĞİŞTİ: Firebase zaten başlatılmışsa var olanı kullan
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
     db = getFirestore(app);
     appId = "deme-oyunu-v1";
     isUsingUserFirebase = true;
   } else if (typeof __firebase_config !== 'undefined') {
     const config = JSON.parse(__firebase_config);
-    app = initializeApp(config);
+    // BURASI DEĞİŞTİ:
+    app = !getApps().length ? initializeApp(config) : getApp();
     auth = getAuth(app);
     db = getFirestore(app);
     appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
