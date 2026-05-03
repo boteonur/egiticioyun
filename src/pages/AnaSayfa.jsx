@@ -1,20 +1,17 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 export default function AnaSayfa() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Deme Oyunu Butonu */}
-        <Link to="/deme" className="bg-white p-6 rounded-3xl shadow-xl hover:scale-105 transition-transform flex flex-col items-center">
-          <img src="/logo.png"/>
+      <h1 className="text-5xl font-black text-purple-600 mb-12">egiticioyun.tr</h1>
+      <div className="flex gap-8">
+        <Link to="/deme" className="bg-white p-8 rounded-3xl shadow-xl hover:scale-105 text-center">
+          <h2 className="text-3xl font-bold text-gray-800">Deme!</h2>
         </Link>
-        
-        {/* Locked Checker Butonu */}
-        <Link to="/lockedchecker" className="bg-white p-6 rounded-3xl shadow-xl hover:scale-105 transition-transform flex flex-col items-center">
-          <img src="/logo2.png"/>
+        <Link to="/lockedchecker" className="bg-white p-8 rounded-3xl shadow-xl hover:scale-105 text-center">
+          <h2 className="text-3xl font-bold text-gray-800">Locked Checker</h2>
         </Link>
-
       </div>
     </div>
   );
