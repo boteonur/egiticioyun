@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 export default function AnaSayfa() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-8">
-      <h1 className="text-5xl font-black text-purple-600 mb-12">egiticioyun.tr</h1>
       <div className="flex gap-8">
         
         {/* Deme Oyunu Butonu ve Logosu */}
