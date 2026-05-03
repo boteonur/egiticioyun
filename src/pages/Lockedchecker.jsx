@@ -210,7 +210,7 @@ export default function Lockedchecker() {
     return () => unsub();
   }, [user]);
 
-  // YÖNETİCİ PANELİ İÇİN KULLANICILARI ÇEKME
+  // YÖNETİCİ PANELİ İÇİN KULLANICILARI ÇEKME.
   useEffect(() => {
       if (appView === 'admin') {
           const fetchAdminUsers = async () => {
