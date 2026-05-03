@@ -2185,7 +2185,7 @@ export default function Deme() {
             <div className="bg-white/20 p-8 rounded-[3rem] backdrop-blur-sm border border-white/30 shadow-2xl flex flex-col items-center">
               
               <img 
-                src="/logo.png" 
+                src="/deme_logo.png" 
                 alt="Oyun Logosu" 
                 className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-4 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               />

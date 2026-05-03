@@ -1361,7 +1361,7 @@ export default function Lockedchecker({ onNavigateHome }) {
                 <button onClick={() => setLobbyMessage('')} className="text-amber-500 hover:text-amber-800 px-2 py-0.5 rounded-lg bg-amber-100">✖</button>
             </div>
         )}
-        <img src="logo.png" alt="Locked Checker" className="h-36 sm:h-48 md:h-56 object-contain drop-shadow-2xl hover:scale-105 transition-transform" onError={(e) => { e.target.style.display = 'none'; }} />
+        <img src="lc_logo.png" alt="Locked Checker" className="h-36 sm:h-48 md:h-56 object-contain drop-shadow-2xl hover:scale-105 transition-transform" onError={(e) => { e.target.style.display = 'none'; }} />
         
         <div className="w-full flex flex-col gap-4 sm:gap-5">
             <button onClick={() => {
@@ -1412,7 +1412,7 @@ const renderAbout = () => (
         </div>
 
         <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-neutral-200 text-center flex flex-col items-center w-full">
-            <img src="logo.png" alt="Locked Checker Logo" className="h-20 sm:h-24 object-contain drop-shadow-md mb-4" onError={(e) => { e.target.style.display = 'none'; }} />
+            <img src="lc_logo.png" alt="Locked Checker Logo" className="h-20 sm:h-24 object-contain drop-shadow-md mb-4" onError={(e) => { e.target.style.display = 'none'; }} />
             <h3 className="text-2xl sm:text-3xl font-black text-neutral-800 mb-1">Locked Checker</h3>
             <p className="text-sm font-bold text-neutral-500 mb-8">Version 1.0.0</p>
 
@@ -2160,7 +2160,7 @@ const renderProfile = () => {
                 {/* Sol Sütun - Nasıl Oynanır? */}
                 <div className="w-full md:w-[55%] p-4 sm:p-8 overflow-y-auto border-b-2 md:border-b-0 md:border-r-2 border-neutral-200 bg-neutral-50/50 custom-scrollbar">
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-4 sm:mb-6 border-b-2 border-neutral-200 pb-4">
-                        <img src="logo.png" alt="Locked Checker Logo" className="h-12 sm:h-16 object-contain drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; }} />
+                        <img src="lc_logo.png" alt="Locked Checker Logo" className="h-12 sm:h-16 object-contain drop-shadow-md" onError={(e) => { e.target.style.display = 'none'; }} />
                         <h2 className="text-2xl sm:text-3xl font-black text-neutral-800 text-center sm:text-left">{t('howToPlay')}</h2>
                     </div>
                     <ul className="list-disc pl-4 sm:pl-5 space-y-2 sm:space-y-3 text-neutral-700 text-xs sm:text-sm leading-relaxed">
