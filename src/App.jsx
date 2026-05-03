@@ -1,4 +1,4 @@
-import React from 'react';
+git add .import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AnaSayfa from './pages/AnaSayfa';
 import Deme from './pages/Deme';
