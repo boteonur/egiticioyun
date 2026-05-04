@@ -1,47 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
 import emailjs from '@emailjs/browser';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
-// ==========================================
-// 🔴 FIREBASE AYARLARI BURAYA GELECEK 🔴
-// ==========================================
-const firebaseConfig = {
-  apiKey: "AIzaSyB1gHSr2fpZZvXRLBi8CUEXhRRjXLCyfhw",
-  authDomain: "egiticioyuntr.firebaseapp.com",
-  projectId: "egiticioyuntr",
-  storageBucket: "egiticioyuntr.firebasestorage.app",
-  messagingSenderId: "470830059463",
-  appId: "1:470830059463:web:4afeae2b894fe4d83953e2"
-};
+// 🔴 ÇAKIŞMAYI ÖNLEYEN KISIM: Firebase'i kendi başına başlatmak yerine ortak dosyadan çekiyoruz
+import { auth, db, app, appId } from '../config/firebase.js';
 
-// Firebase'i Başlat
-let app, auth, db, appId;
-let isUsingUserFirebase = false;
-
-try {
-  if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "SİZİN_API_KEY" && firebaseConfig.projectId === "egiticioyuntr") {
-    // BURASI DEĞİŞTİ: Firebase zaten başlatılmışsa var olanı kullan
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
-    appId = "deme-oyunu-v1";
-    isUsingUserFirebase = true;
-  } else if (typeof __firebase_config !== 'undefined') {
-    const config = JSON.parse(__firebase_config);
-    // BURASI DEĞİŞTİ:
-    app = !getApps().length ? initializeApp(config) : getApp();
-    auth = getAuth(app);
-    db = getFirestore(app);
-    appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-  } else {
-    console.warn("Firebase ayarları henüz girilmedi, oyun varsayılan kelimelerle çalışacak.");
-  }
-} catch (e) {
-  console.error("Firebase başlatılamadı. Lütfen config ayarlarını kontrol edin.", e);
-}
+let isUsingUserFirebase = true;
 
 /* ==========================================
    VERİTABANI (VARSAYILAN SEED VERİSİ)
