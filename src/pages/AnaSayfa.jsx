@@ -11,7 +11,6 @@ function AnaSayfaContent() {
         alt="Eğitici Oyunlar Ana Sayfa" 
         className="w-48 sm:w-64 md:w-80 object-contain mb-12 drop-shadow-xl rounded-3xl" 
       />
-
       {/* Container: Mobilde alt alta (flex-col), bilgisayarda yan yana (md:flex-row) */}
       <div className="flex flex-col md:flex-row gap-8 w-full max-w-4xl justify-center items-center">
         
