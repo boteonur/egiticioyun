@@ -1355,6 +1355,13 @@ export default function Lockedchecker({ onNavigateHome }) {
 
   const renderHome = () => (
     <div className="flex flex-col items-center justify-center min-h-[85vh] w-full max-w-md mx-auto gap-4 sm:gap-5 px-4 py-8 relative">
+        <Link to="/" className="mb-4 hover:scale-105 transition-transform z-[100]" title="Ana Sayfaya Dön">
+            <img 
+              src="/anasayfa.png" 
+              alt="Eğitici Oyunlar" 
+              className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" 
+            />
+        </Link>
         {lobbyMessage && (
             <div className="w-full bg-amber-50 text-amber-700 border border-amber-200 p-3 rounded-xl mb-2 text-sm font-bold text-center flex justify-between items-center shadow-sm">
                 <span>{lobbyMessage}</span>
