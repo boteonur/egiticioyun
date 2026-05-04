@@ -1,4 +1,4 @@
-export const ADMIN_EMAILS = ['admin@lockedchecker.com', 'onursahinbt@gmail.com', 'boteonur@hotmail.com';]
+export const ADMIN_EMAILS = ['admin@lockedchecker.com', 'onursahinbt@gmail.com';]
 
 export const generateRoomId = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
