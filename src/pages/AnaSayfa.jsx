@@ -43,7 +43,6 @@ function AnaSayfaContent() {
     </div>
   );
 }
-
 export default function AnaSayfa() {
   // Önizleme (Canvas) ortamında sayfa tek başına açıldığında <Link> bileşeninin çökmesini
   // önlemek için bir Router bağlamında olup olmadığımızı kontrol ediyoruz.
