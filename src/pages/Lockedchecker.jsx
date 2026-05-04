@@ -1355,6 +1355,8 @@ export default function Lockedchecker({ onNavigateHome }) {
 
   const renderHome = () => (
     <div className="flex flex-col items-center justify-center min-h-[85vh] w-full max-w-md mx-auto gap-4 sm:gap-5 px-4 py-8 relative">
+        
+        {/* ANA SAYFA İLE BİREBİR AYNI ÖLÇÜLERDEKİ LOGO (Geri Dönüş İçin) */}
         <Link to="/" className="mb-4 hover:scale-105 transition-transform z-[100]" title="Ana Sayfaya Dön">
             <img 
               src="/anasayfa.png" 
@@ -1362,12 +1364,15 @@ export default function Lockedchecker({ onNavigateHome }) {
               className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" 
             />
         </Link>
+
         {lobbyMessage && (
             <div className="w-full bg-amber-50 text-amber-700 border border-amber-200 p-3 rounded-xl mb-2 text-sm font-bold text-center flex justify-between items-center shadow-sm">
                 <span>{lobbyMessage}</span>
                 <button onClick={() => setLobbyMessage('')} className="text-amber-500 hover:text-amber-800 px-2 py-0.5 rounded-lg bg-amber-100">✖</button>
             </div>
         )}
+        
+        {/* LOCKED CHECKER OYUN LOGOSU */}
         <img src="lc_logo.png" alt="Locked Checker" className="h-36 sm:h-48 md:h-56 object-contain drop-shadow-2xl hover:scale-105 transition-transform" onError={(e) => { e.target.style.display = 'none'; }} />
         
         <div className="w-full flex flex-col gap-4 sm:gap-5">
@@ -1381,14 +1386,17 @@ export default function Lockedchecker({ onNavigateHome }) {
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 {t('play')}
             </button>
+            
             <button onClick={() => setAppView('profile')} className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black py-4 sm:py-5 px-6 rounded-2xl shadow-lg transition-all transform hover:scale-[1.03] text-xl sm:text-2xl flex items-center justify-center gap-3 border-b-4 border-indigo-800">
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 {t('profile')}
             </button>
+            
             <button onClick={() => setAppView('leaderboard')} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black py-4 sm:py-5 px-6 rounded-2xl shadow-lg transition-all transform hover:scale-[1.03] text-xl sm:text-2xl flex items-center justify-center gap-3 border-b-4 border-orange-800">
                 <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-8"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path><path d="M2 20h20"></path></svg>
                 {t('leaderboard')}
             </button>
+            
             <button onClick={() => setAppView('settings')} className="w-full bg-gradient-to-r from-neutral-600 to-neutral-800 hover:from-neutral-700 hover:to-neutral-900 text-white font-black py-4 sm:py-5 px-6 rounded-2xl shadow-lg transition-all transform hover:scale-[1.03] text-xl sm:text-2xl flex items-center justify-center gap-3 border-b-4 border-neutral-900">
               <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                  <circle cx="12" cy="12" r="3"></circle>
