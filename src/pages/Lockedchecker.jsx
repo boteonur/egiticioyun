@@ -8,7 +8,7 @@ import AuthModal from '../components/AuthModal.jsx';
 import UserProfileModal from '../components/UserProfileModal.jsx';
 import { AudioEngine } from '../audio/AudioEngine.js';
 import { translations } from '../locales/translations.js';
-
+import { Link } from 'react-router-dom';
 export default function Lockedchecker({ onNavigateHome }) {
   const [language, setLanguage] = useState(() => localStorage.getItem('locked_checker_lang') || 'tr');
   const [soundEnabled, setSoundEnabled] = useState(() => {

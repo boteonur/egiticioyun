@@ -3,7 +3,7 @@ import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipFo
 import emailjs from '@emailjs/browser';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
-
+import { Link } from 'react-router-dom';
 // 🔴 ÇAKIŞMAYI ÖNLEYEN KISIM: Firebase'i kendi başına başlatmak yerine ortak dosyadan çekiyoruz
 import { auth, db, app, appId } from '../config/firebase.js';
 
@@ -2146,6 +2146,9 @@ export default function Deme() {
         >
           {/* STEP 0: ANA EKRAN */}
           <div className="min-w-full h-full flex flex-col items-center justify-center p-6 relative">
+            <Link to="/" className="absolute top-4 right-4 sm:top-6 sm:right-6 z-[100] hover:scale-110 transition-transform" title="Ana Sayfaya Dön">
+                <img src="/anasayfa.png" alt="Ana Sayfa" className="w-12 h-12 sm:w-16 sm:h-16 object-contain rounded-2xl shadow-lg border-2 border-white/60 bg-white" />
+            </Link>
             <div className="bg-white/20 p-8 rounded-[3rem] backdrop-blur-sm border border-white/30 shadow-2xl flex flex-col items-center">
               
               <img 
