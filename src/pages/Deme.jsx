@@ -1778,29 +1778,27 @@ export default function Deme() {
   const [authPassword, setAuthPassword] = useState("");
   const [authStatus, setAuthStatus] = useState(null);
 
+// GİRİŞ YAPMA FONKSİYONU
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
-    setAuthStatus({ type: 'info', msg: "İşlem yapılıyor..." });
+    if (!authEmail || !authPassword) {
+      setAuthStatus({ type: 'error', msg: "Lütfen e-posta ve şifre girin." });
+      return;
+    }
     try {
       if (isLoginMode) {
         await signInWithEmailAndPassword(auth, authEmail, authPassword);
-        setAuthStatus({ type: 'success', msg: "Başarıyla giriş yapıldı!" });
       } else {
         await createUserWithEmailAndPassword(auth, authEmail, authPassword);
-        setAuthStatus({ type: 'success', msg: "Kayıt başarılı, giriş yapıldı!" });
       }
+      setAuthStatus({ type: 'success', msg: "Giriş Başarılı!" });
       setTimeout(() => {
         setShowAuthModal(false);
         setAuthStatus(null);
-        setAuthEmail("");
-        setAuthPassword("");
-      }, 1500);
+      }, 1000);
     } catch (error) {
-      let errorMsg = "Bir hata oluştu.";
-      if (error.code === 'auth/email-already-in-use') errorMsg = "Bu e-posta zaten kullanımda.";
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') errorMsg = "E-posta veya şifre hatalı.";
-      if (error.code === 'auth/weak-password') errorMsg = "Şifre en az 6 karakter olmalıdır.";
-      setAuthStatus({ type: 'error', msg: errorMsg });
+      console.error("Firebase Giriş Hatası:", error);
+      setAuthStatus({ type: 'error', msg: "Hata: " + error.message });
     }
   };
 
