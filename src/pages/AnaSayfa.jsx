@@ -7,7 +7,7 @@ function AnaSayfaContent() {
       
       {/* SİTE ANA LOGOSU (anasayfa.jpg) BURAYA EKLENDİ */}
       <img 
-        src="/anasayfa.jpg" 
+        src="/anasayfa.png" 
         alt="Eğitici Oyunlar Ana Sayfa" 
         className="w-48 sm:w-64 md:w-80 object-contain mb-12 drop-shadow-xl rounded-3xl" 
       />
