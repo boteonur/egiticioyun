@@ -2357,7 +2357,6 @@ export default function Deme() {
                   <h3 className="text-xl md:text-3xl font-bold text-white/90 text-left">Resmi Kategoriler</h3>
                 </div>
                 
-                {/* BURASI DEĞİŞTİ: grid-cols-2 yapıldı ve boşluklar daraltıldı */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
                   {Object.keys(wordDatabase).map((catName) => {
                     const defaultCat = CATEGORY_LIST.find(c => c.name === catName);
@@ -2376,11 +2375,13 @@ export default function Deme() {
                           <Icon className={`${color} drop-shadow-md w-6 h-6 md:w-16 md:h-16`} strokeWidth={2.5} />
                         </div>
                         
-                        <span className="text-base md:text-3xl font-black tracking-wide relative z-10 text-center leading-tight">{catName}</span>
-                        
-                        <span className="absolute top-2 right-2 md:top-4 md:right-4 bg-gray-100 text-gray-500 text-[9px] md:text-xs font-bold px-2 py-0.5 md:px-3 md:py-1 rounded-full shadow-inner border border-gray-200">
-                          {wordDatabase[catName] ? wordDatabase[catName].length : 0} Kelime
-                        </span>
+                        {/* DEĞİŞEN KISIM: İsim ve kelime sayısı alt alta, gruplu halde */}
+                        <div className="flex flex-col items-center relative z-10">
+                          <span className="text-base md:text-3xl font-black tracking-wide text-center leading-tight">{catName}</span>
+                          <span className="text-[11px] md:text-sm font-bold text-gray-500 mt-1">
+                            ({wordDatabase[catName] ? wordDatabase[catName].length : 0} Kelime)
+                          </span>
+                        </div>
                       </button>
                     );
                   })}
@@ -2395,7 +2396,6 @@ export default function Deme() {
                     <h3 className="text-xl md:text-3xl font-bold text-white/90 text-left">Üyelerden & Oyunlarım</h3>
                   </div>
 
-                  {/* BURASI DEĞİŞTİ: grid-cols-2 yapıldı ve boşluklar daraltıldı */}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
                     {customCategoriesList.map((custom) => (
                       <button
@@ -2406,12 +2406,16 @@ export default function Deme() {
                           {custom.type === 'private' ? <Lock className="text-purple-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" /> : <Gamepad2 className="text-blue-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" />}
                         </div>
                         
-                        <span className="text-sm md:text-2xl font-black tracking-wide text-center leading-tight mt-1 md:mt-2">{custom.name}</span>
+                        {/* DEĞİŞEN KISIM: İsim ve kelime sayısı alt alta, gruplu halde */}
+                        <div className="flex flex-col items-center mt-1 md:mt-2">
+                          <span className="text-sm md:text-2xl font-black tracking-wide text-center leading-tight">{custom.name}</span>
+                          <span className="text-[10px] md:text-sm font-bold text-gray-500 mt-1">
+                            ({custom.words?.length || 0} Kelime)
+                          </span>
+                        </div>
                         
                         <div className="flex flex-col items-center gap-1 mt-1">
-                          <span className="text-[9px] md:text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 md:px-3 md:py-1 rounded-full border border-gray-200">
-                            {custom.words?.length || 0} Kelime
-                          </span>
+                          {/* Kelime sayısını sildik, diğer bilgilendirme rozetleri kaldı */}
                           {custom.type === 'public' && custom.ownerEmail && (
                             <span className="text-[9px] md:text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
                               @{custom.ownerEmail.split('@')[0]}
