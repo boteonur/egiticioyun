@@ -2088,25 +2088,27 @@ export default function Deme() {
           onTouchEnd={handleTouchEnd}
         >
           {/* STEP 0: ANA EKRAN */}
-          <div className="min-w-full h-full flex flex-col items-center justify-center p-6 relative">
-            <Link to="/" className="mb-8 hover:scale-105 transition-transform" title="Ana Sayfaya Dön">
+          {/* DEĞİŞİKLİK: Mobilde justify-start ve pt-10 eklendi, böylece logo üste yapışır */}
+          <div className="min-w-full h-full flex flex-col items-center justify-start pt-10 md:justify-center md:pt-6 p-6 relative overflow-y-auto">
+            
+            {/* DEĞİŞİKLİK: mb-8 değeri mb-5'e düşürüldü ki oyun kartı ile logo arası daralsın */}
+            <Link to="/" className="mb-5 md:mb-8 hover:scale-105 transition-transform z-[100] shrink-0" title="Ana Sayfaya Dön">
                 <img 
-                    src="/anasayfa.png" 
-                    alt="Eğitici Oyunlar" 
-                    className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" 
+                  src="/anasayfa.png" 
+                  alt="Eğitici Oyunlar" 
+                  className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" 
                 />
             </Link>
-            <div className="bg-white/20 p-8 rounded-[3rem] backdrop-blur-sm border border-white/30 shadow-2xl flex flex-col items-center">
+
+            <div className="bg-white/20 p-6 md:p-8 rounded-[3rem] backdrop-blur-sm border border-white/30 shadow-2xl flex flex-col items-center shrink-0 w-full max-w-[90%] md:max-w-md">
               
               <img 
                 src="/deme_logo.png" 
                 alt="Oyun Logosu" 
-                className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-4 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+                className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
               />
               
-              <div className="w-32 h-[2px] bg-white/30 mb-3 rounded-full"></div>
-              
-              <p className="text-white/90 text-lg md:text-xl mb-3 text-center max-w-md font-medium">
+              <p className="text-white/90 text-xl md:text-2xl mb-8 md:mb-12 text-center font-medium">
                 Yasaklı kelimeleri kullanmadan takım arkadaşlarına kelimeyi anlat!
               </p>
 
