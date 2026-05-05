@@ -1602,7 +1602,14 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
           <ChevronLeft className="w-5 h-5 md:w-7 md:h-7" />
         </button>
         
-        <input type="text" value={teamName} onChange={(e) => setTeamName(e.target.value)} className={`flex-1 min-w-0 text-center text-lg md:text-2xl font-black py-2 px-1 md:py-3 md:px-2 rounded-xl md:rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`} placeholder="Takım Adı" />
+        <input 
+          type="text" 
+          value={teamName} 
+          onChange={(e) => setTeamName(e.target.value)} 
+          onFocus={(e) => e.target.select()} /* <-- KUTUYA TIKLANINCA METNİ SEÇİLİ HALE GETİRİR */
+          className={`flex-1 min-w-0 text-center text-lg md:text-2xl font-black py-2 px-1 md:py-3 md:px-2 rounded-xl md:rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`} 
+          placeholder="Takım Adı" 
+        />
         
         <button onClick={handleRight} className={`p-2 md:p-3 rounded-full flex-shrink-0 ${colors.text} ${colors.buttonGradient} ${colors.buttonHover} shadow-md transition-all duration-200 ${animClassRight}`}>
           <ChevronRight className="w-5 h-5 md:w-7 md:h-7" />
