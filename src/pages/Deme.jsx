@@ -2188,16 +2188,17 @@ export default function Deme() {
           </div>
 
           {/* STEP 1: TAKIM ADLARI */}
-          <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-16 md:p-6 md:pt-24 pb-20 relative overflow-y-auto">
-            <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
+          <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-20 relative overflow-y-auto">
+            {/* DEĞİŞİKLİK: top-4 yerine top-3 yapıldı (Geri butonu daha üstte) */}
+            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
             
-            {/* ORTAK BAŞLIK */}
-            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-10 flex-shrink-0">
-              <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide text-center">Takımları Belirle</h2>
+            {/* ORTAK BAŞLIK (Hizalar ve boyutlar eşitlendi) */}
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
+              <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Takımları Belirle</h2>
             </div>
             
             <div className="w-full max-w-md flex flex-col gap-6 md:gap-12 mt-2 flex-shrink-0">
@@ -2230,17 +2231,18 @@ export default function Deme() {
           </div>
 
           {/* STEP 2: AYARLAR */}
-          <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-24 pb-24 md:p-6 md:pt-24 md:pb-24 relative overflow-y-auto">
-            <div className="absolute top-8 left-8 z-10">
+          <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-24 relative overflow-y-auto">
+            {/* DEĞİŞİKLİK: top-4 yerine top-3 yapıldı (Geri butonu daha üstte) */}
+            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
             
-            {/* ORTAK BAŞLIK */}
-            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-3 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-8 flex-shrink-0 flex items-center justify-center gap-3">
-              <Settings className="text-white" size={32} />
-              <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide text-center">Oyun Ayarları</h2>
+            {/* ORTAK BAŞLIK (Hizalar ve boyutlar eşitlendi) */}
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
+              <Settings className="text-white w-6 h-6 md:w-8 md:h-8" />
+              <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Oyun Ayarları</h2>
             </div>
             
             <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-3xl shadow-2xl flex-shrink-0">
@@ -2344,17 +2346,18 @@ export default function Deme() {
               İLERİ <ArrowRight size={18} strokeWidth={3} />
             </button>
           </div>
-{/* STEP 4: KATEGORİ SEÇİMİ */}
-          <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-16 md:p-6 md:pt-24 pb-20 relative overflow-y-auto">
-            <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
+{/* STEP 3: KATEGORİ SEÇİMİ */}
+          <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-20 relative overflow-y-auto">
+            {/* DEĞİŞİKLİK: top-4 yerine top-3 yapıldı (Geri butonu daha üstte) */}
+            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
             
-            {/* ORTAK BAŞLIK */}
-            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-10 flex-shrink-0">
-              <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide text-center">Kategori Seç</h2>
+            {/* ORTAK BAŞLIK (Hizalar ve boyutlar eşitlendi) */}
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
+              <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Kategori Seç</h2>
             </div>
             
             <div className="w-full max-w-5xl px-2 md:px-4 flex flex-col items-center">
