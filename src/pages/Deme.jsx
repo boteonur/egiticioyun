@@ -2335,7 +2335,7 @@ export default function Deme() {
               İLERİ <ArrowRight size={18} strokeWidth={3} />
             </button>
           </div>
-          {/* STEP 4: KATEGORİ SEÇİMİ */}
+{/* STEP 4: KATEGORİ SEÇİMİ */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-16 md:p-6 md:pt-24 pb-20 relative overflow-y-auto">
             <div className="absolute top-4 left-4 md:top-8 md:left-8 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
@@ -2348,16 +2348,17 @@ export default function Deme() {
               <h2 className="text-3xl md:text-4xl font-black text-white tracking-wide text-center">Kategori Seç</h2>
             </div>
             
-            <div className="w-full max-w-5xl px-4 flex flex-col items-center">
+            <div className="w-full max-w-5xl px-2 md:px-4 flex flex-col items-center">
               
               {/* RESMİ OYUNLAR */}
-              <div className="w-full mb-12">
-                <div className="flex items-center gap-3 mb-6 border-b border-white/20 pb-3">
-                  <Database className="text-yellow-400" size={28} />
-                  <h3 className="text-2xl md:text-3xl font-bold text-white/90 text-left">Resmi Kategoriler</h3>
+              <div className="w-full mb-8 md:mb-12">
+                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 border-b border-white/20 pb-2 md:pb-3">
+                  <Database className="text-yellow-400 w-6 h-6 md:w-7 md:h-7" />
+                  <h3 className="text-xl md:text-3xl font-bold text-white/90 text-left">Resmi Kategoriler</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+                {/* BURASI DEĞİŞTİ: grid-cols-2 yapıldı ve boşluklar daraltıldı */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
                   {Object.keys(wordDatabase).map((catName) => {
                     const defaultCat = CATEGORY_LIST.find(c => c.name === catName);
                     const Icon = defaultCat ? defaultCat.icon : Database;
@@ -2367,15 +2368,17 @@ export default function Deme() {
                     return (
                       <button
                         key={catName} onClick={() => startGameFlow(catName, catName, wordDatabase[catName] || [])}
-                        className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-[2.5rem] p-8 md:p-10 flex flex-col items-center justify-center gap-6 shadow-[0_15px_30px_rgba(0,0,0,0.15)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] hover:-translate-y-3 transition-all duration-300 group border-4 border-white/40"
+                        className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-2xl md:rounded-[2.5rem] p-4 md:p-10 flex flex-col items-center justify-center gap-3 md:gap-6 shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] hover:-translate-y-2 md:hover:-translate-y-3 transition-all duration-300 group border-2 md:border-4 border-white/40"
                       >
-                        <Icon className={`absolute -bottom-8 -right-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-500 ${color}`} size={180} />
-                        <div className={`w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br ${gradient} rounded-[2rem] flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner relative z-10 border-4 border-white`}>
-                          <Icon className={`${color} drop-shadow-md`} size={48} strokeWidth={2.5} />
-                        </div>
-                        <span className="text-2xl md:text-3xl font-black tracking-wide relative z-10">{catName}</span>
+                        <Icon className={`absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-500 ${color} w-24 h-24 md:w-48 md:h-48`} />
                         
-                        <span className="absolute top-4 right-4 bg-gray-100 text-gray-500 text-xs font-bold px-3 py-1 rounded-full shadow-inner border border-gray-200">
+                        <div className={`w-14 h-14 md:w-32 md:h-32 bg-gradient-to-br ${gradient} rounded-xl md:rounded-[2rem] flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner relative z-10 border-2 md:border-4 border-white`}>
+                          <Icon className={`${color} drop-shadow-md w-6 h-6 md:w-16 md:h-16`} strokeWidth={2.5} />
+                        </div>
+                        
+                        <span className="text-base md:text-3xl font-black tracking-wide relative z-10 text-center leading-tight">{catName}</span>
+                        
+                        <span className="absolute top-2 right-2 md:top-4 md:right-4 bg-gray-100 text-gray-500 text-[9px] md:text-xs font-bold px-2 py-0.5 md:px-3 md:py-1 rounded-full shadow-inner border border-gray-200">
                           {wordDatabase[catName] ? wordDatabase[catName].length : 0} Kelime
                         </span>
                       </button>
@@ -2387,38 +2390,40 @@ export default function Deme() {
               {/* ÜYELERDEN VE OYUNLARIM */}
               {customCategoriesList.length > 0 && (
                 <div className="w-full">
-                  <div className="flex items-center gap-3 mb-6 border-b border-white/20 pb-3">
-                    <Users className="text-blue-300" size={28} />
-                    <h3 className="text-2xl md:text-3xl font-bold text-white/90 text-left">Üyelerden & Oyunlarım</h3>
+                  <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 border-b border-white/20 pb-2 md:pb-3">
+                    <Users className="text-blue-300 w-6 h-6 md:w-7 md:h-7" />
+                    <h3 className="text-xl md:text-3xl font-bold text-white/90 text-left">Üyelerden & Oyunlarım</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
+                  {/* BURASI DEĞİŞTİ: grid-cols-2 yapıldı ve boşluklar daraltıldı */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
                     {customCategoriesList.map((custom) => (
                       <button
                         key={custom.id} onClick={() => startGameFlow(custom.id, custom.name, custom.words)}
-                        className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-[2.5rem] p-6 md:p-8 flex flex-col items-center justify-center gap-4 shadow-[0_10px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)] hover:-translate-y-2 transition-all duration-300 group border-4 border-white/40"
+                        className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-2xl md:rounded-[2.5rem] p-4 md:p-8 flex flex-col items-center justify-center gap-2 md:gap-4 shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)] hover:-translate-y-2 transition-all duration-300 group border-2 md:border-4 border-white/40"
                       >
-                        <div className={`w-20 h-20 bg-gradient-to-br ${custom.type === 'private' ? 'from-purple-100 to-purple-200' : 'from-blue-100 to-blue-200'} rounded-3xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-inner border-2 border-white`}>
-                          {custom.type === 'private' ? <Lock className="text-purple-500 drop-shadow-md" size={36} /> : <Gamepad2 className="text-blue-500 drop-shadow-md" size={36} />}
+                        <div className={`w-12 h-12 md:w-20 md:h-20 bg-gradient-to-br ${custom.type === 'private' ? 'from-purple-100 to-purple-200' : 'from-blue-100 to-blue-200'} rounded-xl md:rounded-3xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-inner border-2 border-white`}>
+                          {custom.type === 'private' ? <Lock className="text-purple-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" /> : <Gamepad2 className="text-blue-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" />}
                         </div>
-                        <span className="text-xl md:text-2xl font-black tracking-wide text-center leading-tight mt-2">{custom.name}</span>
+                        
+                        <span className="text-sm md:text-2xl font-black tracking-wide text-center leading-tight mt-1 md:mt-2">{custom.name}</span>
                         
                         <div className="flex flex-col items-center gap-1 mt-1">
-                          <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                          <span className="text-[9px] md:text-xs font-bold text-gray-500 bg-gray-100 px-2 py-0.5 md:px-3 md:py-1 rounded-full border border-gray-200">
                             {custom.words?.length || 0} Kelime
                           </span>
                           {custom.type === 'public' && custom.ownerEmail && (
-                            <span className="text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                            <span className="text-[9px] md:text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
                               @{custom.ownerEmail.split('@')[0]}
                             </span>
                           )}
                           {custom.type === 'private' && (
-                            <span className="text-[11px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
+                            <span className="text-[9px] md:text-[11px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
                               Bana Özel
                             </span>
                           )}
                           {custom.type === 'public' && custom.status === 'pending' && (
-                            <span className="text-[11px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 mt-1">
+                            <span className="text-[9px] md:text-[11px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 mt-0.5 md:mt-1">
                               Onay Bekliyor
                             </span>
                           )}
@@ -2428,6 +2433,9 @@ export default function Deme() {
                   </div>
                 </div>
               )}
+
+            </div>
+          </div>
 
             </div>
           </div>
