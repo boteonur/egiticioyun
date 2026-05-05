@@ -2348,7 +2348,7 @@ export default function Deme() {
                         className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0"
                       />
                       <div className="flex-1 flex flex-wrap items-center gap-x-2 gap-y-2 text-base md:text-lg">
-                        <span className="font-semibold text-gray-700 whitespace-nowrap">Her oyuncu</span>
+                        <span className="font-semibold text-gray-700 whitespace-nowrap">Her takım</span>
                         <select 
                           disabled={settings.endType !== 'rounds'}
                           value={settings.endRoundsValue}
