@@ -1525,7 +1525,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
   );
 };
 
-// Takım Kartı Bileşeni
+// Birleştirilmiş Şık Takım Kartı Bileşeni
 const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCount, theme = "orange", otherTeamName }) => {
   const [history, setHistory] = useState([teamName || "Takım"]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -1534,25 +1534,19 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
 
   const themeColors = {
     orange: {
-      text: 'text-orange-600',
-      badgeBg: 'bg-gradient-to-r from-orange-400 to-orange-500',
+      text: 'text-orange-600', badgeBg: 'bg-gradient-to-r from-orange-400 to-orange-500',
       buttonGradient: 'bg-[radial-gradient(circle,white_30%,#fdba74_130%)]',
       buttonHover: 'hover:bg-[radial-gradient(circle,white_10%,#fb923c_120%)]',
-      border: 'border-orange-200',
-      focusBorder: 'focus:border-orange-400',
-      divider: 'bg-orange-200',
-      iconHover: 'hover:bg-orange-100 text-orange-500 hover:text-orange-600',
+      border: 'border-orange-200', focusBorder: 'focus:border-orange-400',
+      divider: 'bg-orange-200', iconHover: 'hover:bg-orange-100 text-orange-500 hover:text-orange-600',
       glow: 'shadow-[0_0_20px_rgba(249,115,22,0.5)]'
     },
     turquoise: {
-      text: 'text-teal-600',
-      badgeBg: 'bg-gradient-to-r from-teal-400 to-teal-500',
+      text: 'text-teal-600', badgeBg: 'bg-gradient-to-r from-teal-400 to-teal-500',
       buttonGradient: 'bg-[radial-gradient(circle,white_30%,#5eead4_130%)]',
       buttonHover: 'hover:bg-[radial-gradient(circle,white_10%,#2dd4bf_120%)]',
-      border: 'border-teal-200',
-      focusBorder: 'focus:border-teal-400',
-      divider: 'bg-teal-200',
-      iconHover: 'hover:bg-teal-100 text-teal-500 hover:text-teal-600',
+      border: 'border-teal-200', focusBorder: 'focus:border-teal-400',
+      divider: 'bg-teal-200', iconHover: 'hover:bg-teal-100 text-teal-500 hover:text-teal-600',
       glow: 'shadow-[0_0_20px_rgba(20,184,166,0.5)]'
     }
   };
@@ -1565,118 +1559,67 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
       const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
       const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
       newName = `${adj} ${noun}`;
-    } while (
-      newName.toLowerCase() === (otherTeamName || "").toLowerCase() || 
-      newName.toLowerCase() === (teamName || "").toLowerCase()
-    );
+    } while (newName.toLowerCase() === (otherTeamName || "").toLowerCase() || newName.toLowerCase() === (teamName || "").toLowerCase());
     return newName;
   };
 
   const triggerAnim = (dir) => {
     playClickSound();
-    if (dir === 'right') {
-      setAnimClassRight(`scale-75 ${colors.glow}`);
-      setTimeout(() => setAnimClassRight('scale-100'), 150);
-    } else {
-      setAnimClassLeft(`scale-75 ${colors.glow}`);
-      setTimeout(() => setAnimClassLeft('scale-100'), 150);
-    }
+    if (dir === 'right') { setAnimClassRight(`scale-75 ${colors.glow}`); setTimeout(() => setAnimClassRight('scale-100'), 150); } 
+    else { setAnimClassLeft(`scale-75 ${colors.glow}`); setTimeout(() => setAnimClassLeft('scale-100'), 150); }
   };
 
   const handleRight = () => {
     triggerAnim('right');
     if (historyIndex < history.length - 1) {
-      const nextIndex = historyIndex + 1;
-      setHistoryIndex(nextIndex);
-      setTeamName(history[nextIndex]);
+      const nextIndex = historyIndex + 1; setHistoryIndex(nextIndex); setTeamName(history[nextIndex]);
     } else {
-      const newName = generateName();
-      const newHistory = [...history, newName];
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-      setTeamName(newName);
+      const newName = generateName(); const newHistory = [...history, newName];
+      setHistory(newHistory); setHistoryIndex(newHistory.length - 1); setTeamName(newName);
     }
   };
 
   const handleLeft = () => {
-    if (historyIndex > 0) {
-      triggerAnim('left');
-      const prevIndex = historyIndex - 1;
-      setHistoryIndex(prevIndex);
-      setTeamName(history[prevIndex]);
-    }
+    if (historyIndex > 0) { triggerAnim('left'); const prevIndex = historyIndex - 1; setHistoryIndex(prevIndex); setTeamName(history[prevIndex]); }
   };
 
   const handlePlayerChange = (increment) => {
     playClickSound();
     const newValue = playerCount + increment;
-    if (newValue >= 2 && newValue <= 10) {
-      setPlayerCount(newValue);
-    }
+    if (newValue >= 2 && newValue <= 10) setPlayerCount(newValue);
   };
 
   const isDuplicate = teamName.trim().toLowerCase() === (otherTeamName || "").trim().toLowerCase();
 
   return (
-    <div className={`relative bg-white/95 backdrop-blur-md rounded-[2rem] p-6 pt-10 border-4 ${isDuplicate ? 'border-red-500' : colors.border} flex flex-col gap-5 shadow-2xl w-full max-w-md transition-all hover:-translate-y-1 hover:shadow-3xl`}>
-      <div className={`absolute -top-5 left-1/2 -translate-x-1/2 px-8 py-2 rounded-full font-black text-white text-lg tracking-widest shadow-lg border-2 border-white/50 ${isDuplicate ? 'bg-red-500' : colors.badgeBg}`}>
+    <div className={`relative bg-white/95 backdrop-blur-md rounded-3xl md:rounded-[2rem] p-4 pt-8 md:p-6 md:pt-10 border-2 md:border-4 ${isDuplicate ? 'border-red-500' : colors.border} flex flex-col gap-4 md:gap-5 shadow-2xl w-full max-w-md transition-all hover:-translate-y-1 hover:shadow-3xl`}>
+      <div className={`absolute -top-4 md:-top-5 left-1/2 -translate-x-1/2 px-6 md:px-8 py-1 md:py-2 rounded-full font-black text-white text-sm md:text-lg tracking-widest shadow-lg border-2 border-white/50 ${isDuplicate ? 'bg-red-500' : colors.badgeBg}`}>
         {title}
       </div>
 
-      <div className="flex items-center justify-between space-x-3 w-full">
-        <button 
-          onClick={handleLeft}
-          disabled={historyIndex === 0}
-          className={`p-3 rounded-full transition-all duration-200 shadow-md flex-shrink-0 ${animClassLeft} 
-            ${historyIndex === 0 
-              ? 'bg-[radial-gradient(circle,white_40%,#e5e7eb_140%)] text-gray-400 cursor-not-allowed opacity-70' 
-              : `${colors.text} ${colors.buttonGradient} ${colors.buttonHover}`}`}
-        >
-          <ChevronLeft size={28} />
+      <div className="flex items-center justify-between space-x-2 md:space-x-3 w-full">
+        <button onClick={handleLeft} disabled={historyIndex === 0} className={`p-2 md:p-3 rounded-full transition-all duration-200 shadow-md flex-shrink-0 ${animClassLeft} ${historyIndex === 0 ? 'bg-[radial-gradient(circle,white_40%,#e5e7eb_140%)] text-gray-400 cursor-not-allowed opacity-70' : `${colors.text} ${colors.buttonGradient} ${colors.buttonHover}`}`}>
+          <ChevronLeft className="w-5 h-5 md:w-7 md:h-7" />
         </button>
         
-        <input 
-          type="text" 
-          value={teamName}
-          onChange={(e) => setTeamName(e.target.value)}
-          className={`flex-1 min-w-0 text-center text-sm sm:text-base md:text-xl lg:text-2xl font-black py-3 px-1 rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`}
-          placeholder="Takım Adı"
-        />
+        <input type="text" value={teamName} onChange={(e) => setTeamName(e.target.value)} className={`flex-1 min-w-0 text-center text-lg md:text-2xl font-black py-2 px-1 md:py-3 md:px-2 rounded-xl md:rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`} placeholder="Takım Adı" />
         
-        <button 
-          onClick={handleRight}
-          className={`p-3 rounded-full flex-shrink-0 ${colors.text} ${colors.buttonGradient} ${colors.buttonHover} shadow-md transition-all duration-200 ${animClassRight}`}
-        >
-          <ChevronRight size={28} />
+        <button onClick={handleRight} className={`p-2 md:p-3 rounded-full flex-shrink-0 ${colors.text} ${colors.buttonGradient} ${colors.buttonHover} shadow-md transition-all duration-200 ${animClassRight}`}>
+          <ChevronRight className="w-5 h-5 md:w-7 md:h-7" />
         </button>
       </div>
 
       <div className={`w-full h-px ${colors.divider} opacity-60 rounded-full`}></div>
 
-      <div className="flex items-center justify-between px-2">
-        <span className="text-gray-500 font-extrabold text-lg tracking-wide">
-          Kişi Sayısı
-        </span>
-        
-        <div className={`flex items-center gap-2 bg-gray-50/80 rounded-2xl p-1 border-2 ${colors.border}`}>
-          <button 
-            onClick={() => handlePlayerChange(-1)}
-            disabled={playerCount <= 2}
-            className={`p-2 rounded-xl transition-all ${playerCount <= 2 ? 'text-gray-300 cursor-not-allowed' : colors.iconHover}`}
-          >
-            <Minus size={22} strokeWidth={3} />
+      <div className="flex items-center justify-between px-1 md:px-2">
+        <span className="text-gray-500 font-extrabold text-sm md:text-lg tracking-wide">Kişi Sayısı</span>
+        <div className={`flex items-center gap-1 md:gap-2 bg-gray-50/80 rounded-xl md:rounded-2xl p-1 border-2 ${colors.border}`}>
+          <button onClick={() => handlePlayerChange(-1)} disabled={playerCount <= 2} className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all ${playerCount <= 2 ? 'text-gray-300 cursor-not-allowed' : colors.iconHover}`}>
+            <Minus className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} />
           </button>
-          
-          <span className={`font-black text-2xl w-8 text-center ${colors.text}`}>
-            {playerCount}
-          </span>
-          
-          <button 
-            onClick={() => handlePlayerChange(1)}
-            disabled={playerCount >= 10}
-            className={`p-2 rounded-xl transition-all ${playerCount >= 10 ? 'text-gray-300 cursor-not-allowed' : colors.iconHover}`}
-          >
-            <Plus size={22} strokeWidth={3} />
+          <span className={`font-black text-lg md:text-2xl w-6 md:w-8 text-center ${colors.text}`}>{playerCount}</span>
+          <button onClick={() => handlePlayerChange(1)} disabled={playerCount >= 10} className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all ${playerCount >= 10 ? 'text-gray-300 cursor-not-allowed' : colors.iconHover}`}>
+            <Plus className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} />
           </button>
         </div>
       </div>
