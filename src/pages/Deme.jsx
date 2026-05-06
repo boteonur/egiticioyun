@@ -337,13 +337,8 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
   };
 
 const copyToClipboard = () => {
-    // 1. Tarayıcının reklam/popup sanıp engellememesi için tıklama anında HEMEN sekmeyi açıyoruz
-    window.open('https://gemini.google.com/app', '_blank');
-
-    // 2. Ardından arka planda kopyalama işlemini yapıyoruz
     navigator.clipboard.writeText(aiPrompt).then(() => {
-      // Mobili de düşünerek Ctrl+V yanına "Basılı tut" ibaresini ekledim :)
-      setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmeye yapıştırabilirsiniz (Ctrl+V / Basılı Tut)." });
+      setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmede açılan Gemini'a yapıştırabilirsiniz (Basılı Tut / Ctrl+V)." });
       setTimeout(() => setStatus(null), 4000);
     }).catch(err => {
       setStatus({ type: 'error', msg: "Kopyalama başarısız oldu: " + err.message });
@@ -569,12 +564,15 @@ const copyToClipboard = () => {
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1.5">
                         Örnek Prompt
                       </p>
-                      <button 
+                     <a 
+                        href="https://gemini.google.com/app"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={copyToClipboard} 
-                        className="p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold shrink-0"
+                        className="p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold shrink-0 cursor-pointer no-underline"
                       >
                         <Copy size={16} /> Kopyala ve Git
-                      </button>
+                      </a>
                     </div>
 
                     {/* Alt Kısım: Tam Genişlikte Prompt Metni */}
