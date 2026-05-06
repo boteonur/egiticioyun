@@ -337,12 +337,26 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
   };
 
 const copyToClipboard = () => {
-    navigator.clipboard.writeText(aiPrompt).then(() => {
+    // Mobilde odak kaybı (focus) çakışmasını önlemek için anında (senkron) kopyalama taktiği:
+    const textArea = document.createElement("textarea");
+    textArea.value = aiPrompt;
+    
+    // Kullanıcının ekranında görünmemesi için sayfadan dışarı itiyoruz
+    textArea.style.position = "absolute";
+    textArea.style.left = "-999999px";
+    
+    document.body.appendChild(textArea);
+    textArea.select();
+    
+    try {
+      document.execCommand('copy'); // Kurşun geçirmez klasik kopyalama komutu
       setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmede açılan Gemini'a yapıştırabilirsiniz (Basılı Tut / Ctrl+V)." });
       setTimeout(() => setStatus(null), 4000);
-    }).catch(err => {
-      setStatus({ type: 'error', msg: "Kopyalama başarısız oldu: " + err.message });
-    });
+    } catch (err) {
+      setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." });
+    }
+    
+    document.body.removeChild(textArea);
   };
   const handleFinish = async () => {
     if (!categoryName.trim()) {
@@ -565,7 +579,7 @@ const copyToClipboard = () => {
                         Örnek Prompt
                       </p>
                      <a 
-                        href="https://gemini.google.com/app"
+                        href="https://gemini.google.com"
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={copyToClipboard} 
