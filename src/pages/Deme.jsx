@@ -336,21 +336,19 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
     reader.readAsText(file);
   };
 
-  const copyToClipboard = () => {
+const copyToClipboard = () => {
+    // 1. Tarayıcının reklam/popup sanıp engellememesi için tıklama anında HEMEN sekmeyi açıyoruz
+    window.open('https://gemini.google.com/app', '_blank');
+
+    // 2. Ardından arka planda kopyalama işlemini yapıyoruz
     navigator.clipboard.writeText(aiPrompt).then(() => {
-      // Önce kullanıcıya ne yapması gerektiğini anlatan bir mesaj gösterelim
-      setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmede açılan Gemini'a yapıştırabilirsiniz (Ctrl+V)." });
-      
-      // Mesajın ekranda biraz daha uzun kalması için süreyi 4 saniyeye çıkardım
+      // Mobili de düşünerek Ctrl+V yanına "Basılı tut" ibaresini ekledim :)
+      setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmeye yapıştırabilirsiniz (Ctrl+V / Basılı Tut)." });
       setTimeout(() => setStatus(null), 4000);
-      
-      // Hemen ardından yeni sekmede Gemini'ı açalım
-      window.open('https://gemini.google.com/app', '_blank');
     }).catch(err => {
       setStatus({ type: 'error', msg: "Kopyalama başarısız oldu: " + err.message });
     });
   };
-
   const handleFinish = async () => {
     if (!categoryName.trim()) {
       setStatus({ type: 'error', msg: "Lütfen bir kategori (oyun) ismi girin!" });
