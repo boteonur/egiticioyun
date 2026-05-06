@@ -338,8 +338,16 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(aiPrompt).then(() => {
-      setStatus({ type: 'success', msg: "Örnek prompt başarıyla kopyalandı!" });
-      setTimeout(() => setStatus(null), 2000);
+      // Önce kullanıcıya ne yapması gerektiğini anlatan bir mesaj gösterelim
+      setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmede açılan Gemini'a yapıştırabilirsiniz (Ctrl+V)." });
+      
+      // Mesajın ekranda biraz daha uzun kalması için süreyi 4 saniyeye çıkardım
+      setTimeout(() => setStatus(null), 4000);
+      
+      // Hemen ardından yeni sekmede Gemini'ı açalım
+      window.open('https://gemini.google.com/app', '_blank');
+    }).catch(err => {
+      setStatus({ type: 'error', msg: "Kopyalama başarısız oldu: " + err.message });
     });
   };
 
@@ -560,7 +568,7 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
                       onClick={copyToClipboard} 
                       className="absolute top-3 right-3 p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold"
                     >
-                      <Copy size={16} /> Kopyala
+                      <Copy size={16} /> Kopyala ve Git
                     </button>
                     <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Örnek Prompt</p>
                     <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap pr-20 leading-relaxed">
