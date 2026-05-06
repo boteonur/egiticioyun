@@ -561,17 +561,29 @@ const copyToClipboard = () => {
                     </p>
                   </div>
 
-                  <div className="relative bg-white border-2 border-purple-200 rounded-xl p-4 shadow-inner">
-                    <button 
-                      onClick={copyToClipboard} 
-                      className="absolute top-3 right-3 p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold"
-                    >
-                      <Copy size={16} /> Kopyala ve Git
-                    </button>
-                    <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Örnek Prompt</p>
-                    <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap pr-20 leading-relaxed">
-                      {aiPrompt}
-                    </pre>
+                  {/* YENİ VE DÜZELTİLMİŞ PROMPT KUTUSU */}
+                  <div className="bg-white border-2 border-purple-200 rounded-xl p-4 shadow-inner flex flex-col gap-3">
+                    
+                    {/* Üst Kısım: Başlık ve Buton Yan Yana */}
+                    <div className="flex justify-between items-start gap-2">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1.5">
+                        Örnek Prompt
+                      </p>
+                      <button 
+                        onClick={copyToClipboard} 
+                        className="p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold shrink-0"
+                      >
+                        <Copy size={16} /> Kopyala ve Git
+                      </button>
+                    </div>
+
+                    {/* Alt Kısım: Tam Genişlikte Prompt Metni */}
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap break-words leading-relaxed w-full">
+                        {aiPrompt}
+                      </pre>
+                    </div>
+
                   </div>
 
                   <div className="bg-white border-2 border-dashed border-purple-300 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-purple-50 transition-colors">
