@@ -202,7 +202,7 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
   const [editingWordIndex, setEditingWordIndex] = useState(null);
   const [confirmDeleteGame, setConfirmDeleteGame] = useState(false);
 
-  const aiPrompt = `Bir kelime anlatma oyununda kullanılmak üzere, <kategori adı giriniz> kategorisinde, 100 adet kelime ya da kelime grubu ve bunları anlatırken kullanılmaması gereken 5'er tane yasaklı kelimeyi içeren bir json dosyası hazırla ve indirilebilir link ver. İçeriği oluştururken dikkat etmen gereken kodlama dizimi şu şekildedir: 
+  const aiPrompt = `Bir kelime anlatma oyununda kullanılmak üzere, <kategori adı giriniz> kategorisinde, 200 adet kelime ya da kelime grubu ve bunları anlatırken kullanılmaması gereken 5'er tane yasaklı kelimeyi içeren bir json dosyası hazırla ve indirilebilir link ver. İçeriği oluştururken dikkat etmen gereken kodlama dizimi şu şekildedir: 
 [
   {
     "category": "Türkiye'm",
