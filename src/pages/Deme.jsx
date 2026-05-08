@@ -2091,7 +2091,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       </div>
     </div>
   );
-};
 
 // Birleştirilmiş Şık Takım Kartı Bileşeni
 const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCount, theme = "orange", otherTeamName }) => {
