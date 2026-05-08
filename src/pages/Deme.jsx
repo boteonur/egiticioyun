@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { auth, db, app, appId } from '../config/firebase.js';
@@ -991,51 +991,32 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const [confirmDeleteCat, setConfirmDeleteCat] = useState(false);
   const [selectedWords, setSelectedWords] = useState([]);
 
-  const handleLogin = () => {
-    if (password === "admin123") {
+  const handleLogin = async () => {
+    try {
+      setStatus({ type: 'info', msg: "Giriş yapılıyor..." });
+      // Hardcoded şifre yerine Firebase Auth ile gerçek ve güvenli giriş yapıyoruz
+      await signInWithEmailAndPassword(auth, "boteonur@gmail.com", password);
       setIsAuthenticated(true);
       setStatus(null);
-    } else {
+    } catch (error) {
       setStatus({ type: 'error', msg: "Hatalı şifre girdiniz!" });
     }
   };
 
   const handleResetPassword = async () => {
     if (resetEmail.trim() === "boteonur@gmail.com") {
-      setStatus({ type: 'info', msg: "E-posta gönderiliyor, lütfen bekleyin..." });
-
-      const templateParams = {
-        to_email: 'boteonur@gmail.com',
-        message: 'admin123',
-      };
-
+      setStatus({ type: 'info', msg: "Şifre sıfırlama bağlantısı gönderiliyor..." });
       try {
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            service_id: 'service_cw4u7yi',
-            template_id: 'template_578qx5p',
-            user_id: 'BF8KlO7uXh462AIYf',
-            template_params: templateParams
-          })
-        });
-
-        if (response.ok) {
-          setStatus({ type: 'success', msg: "Şifreniz boteonur@gmail.com adresine başarıyla gönderildi!" });
-          setTimeout(() => {
-            setIsForgotPassword(false);
-            setStatus(null);
-            setResetEmail("");
-          }, 4000);
-        } else {
-          const errText = await response.text();
-          setStatus({ type: 'error', msg: "E-posta gönderilemedi. Hata: " + errText });
-        }
+        // EmailJS yerine Firebase'in kendi şifre sıfırlama servisini kullanıyoruz
+        await sendPasswordResetEmail(auth, resetEmail.trim());
+        setStatus({ type: 'success', msg: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!" });
+        setTimeout(() => {
+          setIsForgotPassword(false);
+          setStatus(null);
+          setResetEmail("");
+        }, 4000);
       } catch (err) {
-        setStatus({ type: 'error', msg: "E-posta gönderilemedi. Lütfen bağlantınızı kontrol edin." });
+        setStatus({ type: 'error', msg: "Gönderilemedi. Lütfen bağlantınızı kontrol edin." });
       }
     } else {
       setStatus({ type: 'error', msg: "Böyle bir yönetici e-posta adresi bulunamadı!" });
