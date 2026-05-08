@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -83,7 +83,38 @@ const playClickSound = () => {
     oscillator.stop(audioCtx.currentTime + 0.1);
   } catch (e) {}
 };
+const [isFullscreen, setIsFullscreen] = useState(false);
+const gameRootRef = useRef(null); // Tam ekran yapılacak ana kapsayıcıyı referans alacağız
+// Tam ekran moduna geçme fonksiyonu
+const handleRequestFullscreen = () => {
+  const element = gameRootRef.current;
+  if (element && element.requestFullscreen) {
+    element.requestFullscreen().then(() => {
+      setIsFullscreen(true);
+    }).catch((err) => {
+      console.error(`Tam ekran hatası: ${err.message}`);
+    });
+  } else {
+    // Mobil veya bazı eski tarayıcılar için alternatif metodlar (web kit, moz, ms)
+    if (element.webkitRequestFullscreen) { element.webkitRequestFullscreen(); setIsFullscreen(true); }
+    else if (element.mozRequestFullScreen) { element.mozRequestFullScreen(); setIsFullscreen(true); }
+    else if (element.msRequestFullscreen) { element.msRequestFullscreen(); setIsFullscreen(true); }
+  }
+};
 
+// Tam ekran modundan çıkma fonksiyonu
+const handleExitFullscreen = () => {
+  if (document.exitFullscreen) {
+    document.exitFullscreen().then(() => {
+      setIsFullscreen(false);
+    });
+  } else {
+    // Alternatif metodlar
+    if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); setIsFullscreen(false); }
+    else if (document.mozCancelFullScreen) { document.mozCancelFullScreen(); setIsFullscreen(false); }
+    else if (document.msExitFullscreen) { document.msExitFullscreen(); setIsFullscreen(false); }
+  }
+};
 const playTickSound = (freq = 1000) => {
   try {
     const audioCtx = getAudioCtx();
@@ -2666,8 +2697,7 @@ const handleReportSubmit = async () => {
 
   if (gameState === 'playing' && currentWord) {
     return (
-      <div className="w-full h-screen bg-gray-50 flex flex-col font-sans relative">
-        {/* BİLDİRİM PENCERESİ (POPUP) */}
+      <div ref={gameRootRef} className="w-full h-[100dvh] bg-gray-50 flex flex-col font-sans relative">        {/* BİLDİRİM PENCERESİ (POPUP) */}
         {showReportModal && (
           <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl flex flex-col border-4 border-red-200">
@@ -2705,6 +2735,12 @@ const handleReportSubmit = async () => {
               {timeLeft}
             </div>
             <span className="font-bold text-gray-500 hidden md:block">Saniye Kaldı</span>
+            {/* YENİ TAM EKRAN YAP BUTONU BU GAP-3'ÜN İÇİNE GİRİYOR */}
+            {!isFullscreen && (
+               <button onClick={handleRequestFullscreen} className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center text-gray-600 hover:text-purple-600 hover:bg-purple-100 transition-colors shadow-sm" title="Tam Ekran">
+                <Maximize2 size={24} />
+              </button>
+            )}
           </div>
           <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">
             {currentTeamName} Oynuyor
@@ -2732,9 +2768,14 @@ const handleReportSubmit = async () => {
                 {currentWord.word}
               </h2>
             </div>
+            {/* YENİ TAM EKRANDAN ÇIK (X) BUTONU */}
+            {isFullscreen && (
+              <button onClick={handleExitFullscreen} className="absolute top-2 right-2 text-white hover:text-gray-900" title="Tam Ekrandan Çık">
+                <Minimize2 size={24} /> {/* veya sade bir <X size={24} /> ikonunu import edip kullanabilirsiniz */}
+              </button>
+            )}
             
-            <div className="flex-1 bg-white py-2 px-4 md:p-10 flex flex-col justify-center gap-2 md:gap-6 items-center overflow-y-auto">
-              {currentWord.forbidden.map((word, index) => (
+              <div className="bg-white px-3 py-6 md:px-8 md:py-10 flex flex-col justify-around gap-3 md:gap-5 items-center overflow-y-auto">                    {currentWord.forbidden.map((word, index) => (
                 <div key={index} className="w-full flex items-center justify-center relative">
                   <div className="absolute left-0 right-0 h-px bg-gray-200"></div>
                   <span className="relative bg-white px-4 md:px-6 text-xl md:text-3xl font-bold text-gray-700 capitalize">
