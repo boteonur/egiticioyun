@@ -1153,12 +1153,11 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     reader.readAsText(file);
   };
 
-  // --- KATEGORİ YÖNETİMİ FONKSİYONLARI ---
   const handleOpenCat = (type, data) => {
     setSelectedCat({ type, data });
     setEditCatName(type === 'official' ? data : data.name);
     setConfirmDeleteCat(false);
-    setSelectedWords([]); // Her kategori açılışında seçimi temizle
+    setSelectedWords([]);
   };
 
   const handleRenameCat = async () => {
@@ -1242,7 +1241,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
 
   const handleDeleteSelectedWords = async () => {
     if (selectedWords.length === 0) return;
-    
     const sortedIndices = [...selectedWords].sort((a, b) => b - a);
 
     try {
@@ -1301,7 +1299,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     }
   };
 
-  // YENİ: Bildirimi sadece listeden silme (kelime kalır)
+  // YENİ EKLENEN: Bildirimi Listeden Silme
   const handleDeleteReport = async (reportId) => {
     try {
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId));
@@ -1312,19 +1310,17 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     }
   };
 
-  // YENİ: Hem bildirimi hem de hatalı kelimeyi veritabanından kalıcı silme
+  // YENİ EKLENEN: Bildirilen Kelimeyi Veritabanından Komple Silme
   const handleDeleteReportedWord = async (report) => {
     try {
       setStatus({ type: 'info', msg: "Kelime siliniyor..." });
       
       if (!report.isCustomGame) {
-        // Resmi kategori kelimesi
         const catName = report.categoryName;
         const currentWords = wordDatabase[catName] || [];
         const newWords = currentWords.filter(w => w.word !== report.word);
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: newWords });
       } else {
-        // Üye oyunu kelimesi
         const gameId = report.categoryId;
         const game = customPublicGames.find(g => g.id === gameId);
         if (game) {
@@ -1335,9 +1331,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         }
       }
       
-      // Kelime silindikten sonra bildirimi de temizle
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', report.id));
-      
       setStatus({ type: 'success', msg: "Kelime başarıyla silindi ve bildirim kapatıldı!" });
       setTimeout(() => setStatus(null), 2000);
     } catch(e) {
@@ -1354,8 +1348,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
           </button>
           
           <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3">
-            <Lock className="text-purple-500" size={36} />
-            Yönetici Girişi
+            <Lock className="text-purple-500" size={36} /> Yönetici Girişi
           </h2>
 
           <div className="space-y-4">
@@ -1370,21 +1363,14 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                   placeholder="bo................@gmail.com" 
                   className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
                 />
-                
                 {status && (
                   <div className={`mt-4 p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-                    {status.type === 'success' ? <Check size={20} /> : <Info size={20} />}
-                    {status.msg}
+                    {status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}
                   </div>
                 )}
-
                 <div className="flex gap-3 mt-4">
-                  <button onClick={handleResetPassword} className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black py-4 rounded-xl shadow-[0_5px_0_rgb(2,132,199)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">
-                    GÖNDER
-                  </button>
-                  <button onClick={() => { setIsForgotPassword(false); setStatus(null); setResetEmail(""); }} className="px-5 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold rounded-xl shadow-[0_5px_0_rgb(209,213,219)] hover:translate-y-1 hover:shadow-none transition-all">
-                    İptal
-                  </button>
+                  <button onClick={handleResetPassword} className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black py-4 rounded-xl shadow-[0_5px_0_rgb(2,132,199)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">GÖNDER</button>
+                  <button onClick={() => { setIsForgotPassword(false); setStatus(null); setResetEmail(""); }} className="px-5 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold rounded-xl shadow-[0_5px_0_rgb(209,213,219)] hover:translate-y-1 hover:shadow-none transition-all">İptal</button>
                 </div>
               </div>
             ) : (
@@ -1398,25 +1384,18 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                   placeholder="Şifre" 
                   className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
                 />
-                
                 {status && (
                   <div className={`mt-4 p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-                    {status.type === 'success' ? <Check size={20} /> : <Info size={20} />}
-                    {status.msg}
+                    {status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}
                   </div>
                 )}
-
                 <div className="flex gap-3 mt-4">
-                  <button onClick={handleLogin} className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3">
-                    GİRİŞ YAP
-                  </button>
+                  <button onClick={handleLogin} className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3">GİRİŞ YAP</button>
                   <button 
                     onClick={() => { setIsForgotPassword(true); setStatus(null); }}
                     className="w-16 bg-gray-100 hover:bg-gray-200 flex items-center justify-center rounded-xl shadow-[0_5px_0_rgb(209,213,219)] hover:translate-y-1 hover:shadow-none transition-all text-3xl"
                     title="Şifremi Unuttum"
-                  >
-                    😔
-                  </button>
+                  >😔</button>
                 </div>
               </div>
             )}
@@ -1426,204 +1405,35 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     );
   }
 
-  const safePublicGames = customPublicGames || [];
-  const pendingGames = safePublicGames.filter(g => g.status === 'pending');
-  const approvedGames = safePublicGames.filter(g => g.status === 'approved');
-
   const currentWordList = selectedCat ? (selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])) : [];
   const isAllSelected = currentWordList.length > 0 && selectedWords.length === currentWordList.length;
 
   return (
     <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-4xl shadow-2xl relative border-4 border-purple-200 my-auto min-h-[60vh]">
-        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors z-10">
-          <X size={32} />
-        </button>
-        
-        <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3">
-          <Database className="text-purple-500" size={36} />
-          Yönetici Paneli
-        </h2>
+        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors z-10"><X size={32} /></button>
+        <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3"><Database className="text-purple-500" size={36} /> Yönetici Paneli</h2>
 
         <div className="flex flex-wrap gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
-          <button 
-            onClick={() => {setActiveTab('categories'); setSelectedCat(null); setStatus(null);}}
-            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <FolderTree size={18} /> Kategoriler
-          </button>
-          <button 
-            onClick={() => setActiveTab('review')}
-            className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <ListTodo size={18} /> Öneriler
-            {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{suggestions.length}</span>}
-          </button>
+          <button onClick={() => {setActiveTab('categories'); setSelectedCat(null); setStatus(null);}} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><FolderTree size={18} /> Kategoriler</button>
+          <button onClick={() => setActiveTab('review')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><ListTodo size={18} /> Öneriler {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{suggestions.length}</span>}</button>
           
-          {/* YENİ EKLENEN SEKME: BİLDİRİMLER */}
-          <button 
-            onClick={() => setActiveTab('reports')}
-            className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'reports' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <Flag size={18} /> Bildirimler
-            {reports && reports.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{reports.length}</span>}
+          {/* BİLDİRİMLER SEKMESİ */}
+          <button onClick={() => setActiveTab('reports')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'reports' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
+            <Flag size={18} /> Bildirimler {reports && reports.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{reports.length}</span>}
           </button>
 
-          <button 
-            onClick={() => setActiveTab('add')}
-            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <Edit3 size={18} /> Tek Ekle
-          </button>
-          <button 
-            onClick={() => setActiveTab('import')}
-            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <Upload size={18} /> Toplu Yükle
-          </button>
+          <button onClick={() => setActiveTab('add')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Edit3 size={18} /> Tek Ekle</button>
+          <button onClick={() => setActiveTab('import')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Upload size={18} /> Toplu Yükle</button>
         </div>
 
         {status && (
           <div className={`p-4 rounded-xl font-bold flex items-center gap-2 mb-4 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200 animate-pulse' : 'bg-red-100 text-red-700 border-red-200'}`}>
-            {status.type === 'success' ? <Check size={20} /> : status.type === 'info' ? <Upload size={20} /> : <Info size={20} />}
-            {status.msg}
+            {status.type === 'success' ? <Check size={20} /> : status.type === 'info' ? <Upload size={20} /> : <Info size={20} />} {status.msg}
           </div>
         )}
 
-        {/* --- KATEGORİLER SEKMESİ --- */}
-        {activeTab === 'categories' && (
-          <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
-            {!selectedCat ? (
-              <div className="overflow-y-auto pr-2 custom-scrollbar">
-                <h3 className="font-bold text-gray-500 uppercase tracking-widest text-sm mb-3">Mevcut Kategoriler (Resmi)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-                  {Object.keys(wordDatabase).map(catName => (
-                    <div key={catName} className="bg-white border-2 border-gray-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-purple-200 transition-colors">
-                      <div>
-                        <div className="font-black text-lg text-gray-800">{catName}</div>
-                        <div className="text-xs font-bold text-gray-500">{wordDatabase[catName].length} Kelime</div>
-                      </div>
-                      <button onClick={() => handleOpenCat('official', catName)} className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 font-bold flex items-center gap-2">
-                        <Edit2 size={16} /> Düzenle
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <h3 className="font-bold text-blue-500 uppercase tracking-widest text-sm mb-3 mt-6">Üyelerden (Onaylı)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-                  {approvedGames.length === 0 ? (
-                    <div className="col-span-2 text-center py-6 text-gray-400 font-medium">Onaylı üye oyunu yok.</div>
-                  ) : (
-                    approvedGames.map(game => (
-                      <div key={game.id} className="bg-blue-50 border-2 border-blue-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-blue-300 transition-colors">
-                        <div>
-                          <div className="font-black text-lg text-blue-800">{game.name}</div>
-                          <div className="flex gap-2 mt-1">
-                            <span className="text-[10px] font-bold text-blue-600 bg-blue-200 px-2 py-0.5 rounded">{game.words?.length || 0} Kelime</span>
-                            <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
-                          </div>
-                        </div>
-                        <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-bold flex items-center gap-2 shadow-sm">
-                          <Edit2 size={16} /> Düzenle
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <h3 className="font-bold text-orange-500 uppercase tracking-widest text-sm mb-3">Onay Bekleyen Oyunlar (Üyelerden)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {pendingGames.length === 0 ? (
-                    <div className="col-span-2 text-center py-6 text-gray-400 font-medium">Onay bekleyen oyun yok.</div>
-                  ) : (
-                    pendingGames.map(game => (
-                      <div key={game.id} className="bg-orange-50 border-2 border-orange-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-orange-300 transition-colors">
-                        <div>
-                          <div className="font-black text-lg text-orange-800">{game.name}</div>
-                          <div className="flex gap-2 mt-1">
-                            <span className="text-[10px] font-bold text-orange-600 bg-orange-200 px-2 py-0.5 rounded">{game.words?.length || 0} Kelime</span>
-                            <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
-                          </div>
-                        </div>
-                        <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-bold flex items-center gap-2 shadow-sm">
-                          <Eye size={16} /> İncele
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col h-full">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-shrink-0">
-                  <div className="flex items-center gap-3 w-full">
-                    <button onClick={() => {setSelectedCat(null); setStatus(null); setConfirmDeleteCat(false); setSelectedWords([]);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200 flex-shrink-0">
-                      <ArrowLeft size={24} />
-                    </button>
-                    <div className="flex-1 flex flex-col md:flex-row md:items-center gap-3">
-                      <input 
-                        value={editCatName} 
-                        onChange={e => setEditCatName(e.target.value)} 
-                        className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full md:w-auto"
-                      />
-                      <button onClick={handleRenameCat} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold text-sm transition-colors flex-shrink-0 whitespace-nowrap">İsmi Kaydet</button>
-                    </div>
-                  </div>
-                  
-                  {confirmDeleteCat ? (
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={handleDeleteCategory} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors whitespace-nowrap">Eminim, Sil</button>
-                      <button onClick={() => setConfirmDeleteCat(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">İptal</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmDeleteCat(true)} className="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-1 flex-shrink-0 whitespace-nowrap border border-red-200">
-                      <Trash2 size={16} /> Kategoriyi Sil
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl mb-3 flex-shrink-0">
-                  <label className="flex items-center gap-2 cursor-pointer font-bold text-purple-900 select-none">
-                    <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} className="w-5 h-5 accent-purple-600 cursor-pointer" />
-                    Tümünü Seç ({currentWordList.length})
-                  </label>
-                  {selectedWords.length > 0 && (
-                    <button onClick={handleDeleteSelectedWords} className="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
-                      <Trash2 size={16} /> Seçilenleri Sil ({selectedWords.length})
-                    </button>
-                  )}
-                </div>
-
-                <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
-                  {currentWordList.map((w, idx) => (
-                    <AdminWordRow 
-                      key={idx} 
-                      wordObj={w} 
-                      isSelected={selectedWords.includes(idx)}
-                      onToggleSelect={() => handleSelectWord(idx)}
-                      onSave={(newObj) => handleSaveWord(idx, newObj)} 
-                      onDelete={() => handleDeleteWord(idx)} 
-                    />
-                  ))}
-                </div>
-
-                {selectedCat.type === 'custom' && selectedCat.data.status === 'pending' && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3 flex-shrink-0">
-                    <button onClick={() => handleApproveCustomGame(selectedCat.data.id)} className="flex-1 bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">
-                      <Check size={24} /> ONAYLA (HERKESE AÇ)
-                    </button>
-                    <button onClick={() => handleRejectCustomGame(selectedCat.data)} className="flex-1 bg-red-100 hover:bg-red-200 text-red-600 font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                      <Lock size={20} /> ÖZEL YAP (REDDET)
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* --- YENİ EKLENEN SEKME: BİLDİRİMLER (REPORTS) --- */}
+        {/* BİLDİRİMLER İÇERİĞİ */}
         {activeTab === 'reports' && (
           <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {!reports || reports.length === 0 ? (
@@ -1634,8 +1444,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
             ) : (
               reports.map(report => (
                 <div key={report.id} className="bg-red-50 rounded-2xl p-4 border-2 border-red-100 mb-4 shadow-sm flex flex-col">
-                  
-                  {/* Başlık ve Kelime Alanı */}
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <span className="bg-red-200 text-red-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">{report.categoryName}</span>
@@ -1646,205 +1454,23 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                       <span className="text-[10px] font-bold text-red-400 mt-0.5">@{report.reportedBy?.split('@')[0]}</span>
                     </div>
                   </div>
-                  
-                  {/* Bildirim Sebebi */}
                   <div className="text-sm text-red-700 mb-3 bg-white p-3 rounded-lg border border-red-100 font-medium shadow-inner flex-1">
-                    <strong className="text-gray-500 block mb-1 text-xs uppercase tracking-wider">Bildirim Sebebi:</strong>
-                    {report.reason}
+                    <strong className="text-gray-500 block mb-1 text-xs uppercase tracking-wider">Bildirim Sebebi:</strong> {report.reason}
                   </div>
-                  
-                  {/* Yasaklı Kelimeler */}
                   <div className="text-xs text-gray-500 mb-4 font-medium">
                     <strong className="text-gray-400 uppercase tracking-wider">Yasaklı Kelimeler:</strong> {report.forbidden?.join(', ')}
                   </div>
-                  
-                  {/* Aksiyon Butonları */}
                   <div className="flex justify-end gap-2 pt-3 border-t border-red-200">
-                    <button onClick={() => handleDeleteReport(report.id)} className="px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-200">
-                      <Check size={18} /> Sorun Yok (Kapat)
-                    </button>
-                    <button onClick={() => handleDeleteReportedWord(report)} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md">
-                      <Trash2 size={18} /> Kelimeyi Sil
-                    </button>
+                    <button onClick={() => handleDeleteReport(report.id)} className="px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-200"><Check size={18} /> Sorun Yok (Kapat)</button>
+                    <button onClick={() => handleDeleteReportedWord(report)} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"><Trash2 size={18} /> Kelimeyi Sil</button>
                   </div>
-
                 </div>
               ))
             )}
           </div>
         )}
 
-        {/* Sekme 2: Direkt Kelime Ekle */}
-        {activeTab === 'add' && (
-          <div className="space-y-4 animate-fade-in">
-            <div>
-              <label className="block text-gray-700 font-bold mb-2">Kategori Seçimi</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border-2 border-purple-100 bg-purple-50 rounded-xl p-3 font-bold text-purple-900 focus:border-purple-500 outline-none cursor-pointer">
-                {Object.keys(wordDatabase).map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-gray-700 font-bold mb-2">Anlatılacak Kelime</label>
-              <input value={word} onChange={(e) => setWord(e.target.value)} placeholder="Örn: BİSİKLET" className="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-2xl text-gray-800 focus:border-purple-500 outline-none uppercase placeholder:text-gray-300 shadow-inner" />
-            </div>
-
-            <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-              <label className=" text-red-600 font-bold mb-3 flex items-center gap-2">
-                <X size={18} /> Yasaklı Kelimeler (5 Adet)
-              </label>
-              <div className="space-y-2">
-                {forbidden.map((fw, i) => (
-                  <input 
-                    key={i} 
-                    value={fw} 
-                    onChange={(e) => {
-                      const newF = [...forbidden];
-                      newF[i] = e.target.value;
-                      setForbidden(newF);
-                    }} 
-                    placeholder={`${i + 1}. Yasaklı Kelime`} 
-                    className="w-full border-2 border-red-200 bg-white rounded-xl p-3 font-bold text-gray-700 focus:border-red-500 outline-none capitalize shadow-sm" 
-                  />
-                ))}
-              </div>
-            </div>
-
-            <button onClick={handleDirectSave} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-4">
-              <Save size={24} /> KAYDET
-            </button>
-          </div>
-        )}
-
-        {/* Sekme 3: Toplu Yükle */}
-        {activeTab === 'import' && (
-          <div className="space-y-6 animate-fade-in max-h-[60vh] overflow-y-auto pr-2">
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-              <h3 className="text-blue-800 font-bold mb-2 flex items-center gap-2">
-                <FileJson size={20} /> Nasıl Yüklenir?
-              </h3>
-              <p className="text-sm text-blue-700 mb-4">
-                Yüzlerce kelimeyi tek seferde yüklemek için kelimelerinizi bir <strong>.json</strong> dosyası olarak hazırlayın. Dosyanızın içeriği aşağıdaki örnekteki gibi görünmelidir:
-              </p>
-              <pre className="bg-white p-4 rounded-xl text-xs font-mono text-gray-700 border border-blue-100 overflow-x-auto shadow-inner">
-{`[
-  {
-    "category": "Genel",
-    "word": "ASTRONOT",
-    "forbidden": ["Uzay", "Gemi", "Yıldız", "Gezegen", "Roket"]
-  },
-  {
-    "category": "Spor",
-    "word": "HALTER",
-    "forbidden": ["Ağırlık", "Kaldırmak", "Demir", "Kas", "Sporcu"]
-  }
-]`}
-              </pre>
-            </div>
-
-            <div className="bg-purple-50 p-6 rounded-2xl border-2 border-dashed border-purple-300 flex flex-col items-center justify-center text-center">
-              <Upload size={48} className="text-purple-400 mb-4" />
-              <p className="font-bold text-purple-900 mb-2">JSON Dosyanızı Seçin</p>
-              <p className="text-sm text-purple-600 mb-6 max-w-sm">
-                Hazırladığınız .json uzantılı dosyayı seçin. Kelimeler otomatik olarak ayrıştırılıp ait oldukları kategorilere eklenecektir.
-              </p>
-              <label className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl cursor-pointer transition-colors shadow-md">
-                <span>Dosya Seç ve Yükle</span>
-                <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
-              </label>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl text-amber-700 text-sm border border-amber-200">
-              <AlertTriangle size={24} className="flex-shrink-0" />
-              <p>Mevcut kategorilere ait (Örn: "Genel", "Spor") kelimeler direkt içine eklenir. Eğer json dosyasında yeni bir kategori ismi yazarsanız, sistem o kategoriyi otomatik olarak oluşturur.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Sekme 4: Öneriler */}
-        {activeTab === 'review' && (
-          <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-            {suggestions.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center">
-                <CheckCircle2 size={48} className="mb-4 text-gray-300" />
-                Şu an bekleyen hiçbir kelime önerisi yok.
-              </div>
-            ) : (
-              suggestions.map(sugg => (
-                <SuggestionItemRow 
-                  key={sugg.id} 
-                  suggestion={sugg} 
-                  wordDatabase={wordDatabase}
-                  onApprove={handleApproveSuggestion}
-                  onReject={handleRejectSuggestion}
-                />
-              ))
-            )}
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-};
-
-  const safePublicGames = customPublicGames || [];
-  const pendingGames = safePublicGames.filter(g => g.status === 'pending');
-  const approvedGames = safePublicGames.filter(g => g.status === 'approved');
-
-  const currentWordList = selectedCat ? (selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])) : [];
-  const isAllSelected = currentWordList.length > 0 && selectedWords.length === currentWordList.length;
-
-  return (
-    <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-4xl shadow-2xl relative border-4 border-purple-200 my-auto min-h-[60vh]">
-        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors z-10">
-          <X size={32} />
-        </button>
-        
-        <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3">
-          <Database className="text-purple-500" size={36} />
-          Yönetici Paneli
-        </h2>
-
-        <div className="flex flex-wrap gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
-          <button 
-            onClick={() => {setActiveTab('categories'); setSelectedCat(null); setStatus(null);}}
-            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <FolderTree size={18} /> Kategoriler
-          </button>
-          <button 
-            onClick={() => setActiveTab('review')}
-            className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <ListTodo size={18} /> Öneriler
-            {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{suggestions.length}</span>}
-          </button>
-          <button 
-            onClick={() => setActiveTab('add')}
-            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <Edit3 size={18} /> Tek Ekle
-          </button>
-          <button 
-            onClick={() => setActiveTab('import')}
-            className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}
-          >
-            <Upload size={18} /> Toplu Yükle
-          </button>
-        </div>
-
-        {status && (
-          <div className={`p-4 rounded-xl font-bold flex items-center gap-2 mb-4 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200 animate-pulse' : 'bg-red-100 text-red-700 border-red-200'}`}>
-            {status.type === 'success' ? <Check size={20} /> : status.type === 'info' ? <Upload size={20} /> : <Info size={20} />}
-            {status.msg}
-          </div>
-        )}
-
-        {/* --- KATEGORİLER SEKMESİ --- */}
+        {/* DİĞER SEKMELER */}
         {activeTab === 'categories' && (
           <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
             {!selectedCat ? (
@@ -1857,19 +1483,16 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                         <div className="font-black text-lg text-gray-800">{catName}</div>
                         <div className="text-xs font-bold text-gray-500">{wordDatabase[catName].length} Kelime</div>
                       </div>
-                      <button onClick={() => handleOpenCat('official', catName)} className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 font-bold flex items-center gap-2">
-                        <Edit2 size={16} /> Düzenle
-                      </button>
+                      <button onClick={() => handleOpenCat('official', catName)} className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 font-bold flex items-center gap-2"><Edit2 size={16} /> Düzenle</button>
                     </div>
                   ))}
                 </div>
-
                 <h3 className="font-bold text-blue-500 uppercase tracking-widest text-sm mb-3 mt-6">Üyelerden (Onaylı)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-                  {approvedGames.length === 0 ? (
+                  {customPublicGames.filter(g => g.status === 'approved').length === 0 ? (
                     <div className="col-span-2 text-center py-6 text-gray-400 font-medium">Onaylı üye oyunu yok.</div>
                   ) : (
-                    approvedGames.map(game => (
+                    customPublicGames.filter(g => g.status === 'approved').map(game => (
                       <div key={game.id} className="bg-blue-50 border-2 border-blue-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-blue-300 transition-colors">
                         <div>
                           <div className="font-black text-lg text-blue-800">{game.name}</div>
@@ -1878,20 +1501,17 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                             <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
                           </div>
                         </div>
-                        <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-bold flex items-center gap-2 shadow-sm">
-                          <Edit2 size={16} /> Düzenle
-                        </button>
+                        <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-bold flex items-center gap-2 shadow-sm"><Edit2 size={16} /> Düzenle</button>
                       </div>
                     ))
                   )}
                 </div>
-
                 <h3 className="font-bold text-orange-500 uppercase tracking-widest text-sm mb-3">Onay Bekleyen Oyunlar (Üyelerden)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {pendingGames.length === 0 ? (
+                  {customPublicGames.filter(g => g.status === 'pending').length === 0 ? (
                     <div className="col-span-2 text-center py-6 text-gray-400 font-medium">Onay bekleyen oyun yok.</div>
                   ) : (
-                    pendingGames.map(game => (
+                    customPublicGames.filter(g => g.status === 'pending').map(game => (
                       <div key={game.id} className="bg-orange-50 border-2 border-orange-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-orange-300 transition-colors">
                         <div>
                           <div className="font-black text-lg text-orange-800">{game.name}</div>
@@ -1900,9 +1520,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                             <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
                           </div>
                         </div>
-                        <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-bold flex items-center gap-2 shadow-sm">
-                          <Eye size={16} /> İncele
-                        </button>
+                        <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-bold flex items-center gap-2 shadow-sm"><Eye size={16} /> İncele</button>
                       </div>
                     ))
                   )}
@@ -1912,64 +1530,38 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
               <div className="flex flex-col h-full">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-shrink-0">
                   <div className="flex items-center gap-3 w-full">
-                    <button onClick={() => {setSelectedCat(null); setStatus(null); setConfirmDeleteCat(false); setSelectedWords([]);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200 flex-shrink-0">
-                      <ArrowLeft size={24} />
-                    </button>
+                    <button onClick={() => {setSelectedCat(null); setStatus(null); setConfirmDeleteCat(false); setSelectedWords([]);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200 flex-shrink-0"><ArrowLeft size={24} /></button>
                     <div className="flex-1 flex flex-col md:flex-row md:items-center gap-3">
-                      <input 
-                        value={editCatName} 
-                        onChange={e => setEditCatName(e.target.value)} 
-                        className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full md:w-auto"
-                      />
+                      <input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full md:w-auto" />
                       <button onClick={handleRenameCat} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold text-sm transition-colors flex-shrink-0 whitespace-nowrap">İsmi Kaydet</button>
                     </div>
                   </div>
-                  
                   {confirmDeleteCat ? (
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button onClick={handleDeleteCategory} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors whitespace-nowrap">Eminim, Sil</button>
                       <button onClick={() => setConfirmDeleteCat(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">İptal</button>
                     </div>
                   ) : (
-                    <button onClick={() => setConfirmDeleteCat(true)} className="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-1 flex-shrink-0 whitespace-nowrap border border-red-200">
-                      <Trash2 size={16} /> Kategoriyi Sil
-                    </button>
+                    <button onClick={() => setConfirmDeleteCat(true)} className="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-1 flex-shrink-0 whitespace-nowrap border border-red-200"><Trash2 size={16} /> Kategoriyi Sil</button>
                   )}
                 </div>
-
                 <div className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl mb-3 flex-shrink-0">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-purple-900 select-none">
-                    <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} className="w-5 h-5 accent-purple-600 cursor-pointer" />
-                    Tümünü Seç ({currentWordList.length})
+                    <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} className="w-5 h-5 accent-purple-600 cursor-pointer" /> Tümünü Seç ({currentWordList.length})
                   </label>
                   {selectedWords.length > 0 && (
-                    <button onClick={handleDeleteSelectedWords} className="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
-                      <Trash2 size={16} /> Seçilenleri Sil ({selectedWords.length})
-                    </button>
+                    <button onClick={handleDeleteSelectedWords} className="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm"><Trash2 size={16} /> Seçilenleri Sil ({selectedWords.length})</button>
                   )}
                 </div>
-
                 <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
                   {currentWordList.map((w, idx) => (
-                    <AdminWordRow 
-                      key={idx} 
-                      wordObj={w} 
-                      isSelected={selectedWords.includes(idx)}
-                      onToggleSelect={() => handleSelectWord(idx)}
-                      onSave={(newObj) => handleSaveWord(idx, newObj)} 
-                      onDelete={() => handleDeleteWord(idx)} 
-                    />
+                    <AdminWordRow key={idx} wordObj={w} isSelected={selectedWords.includes(idx)} onToggleSelect={() => handleSelectWord(idx)} onSave={(newObj) => handleSaveWord(idx, newObj)} onDelete={() => handleDeleteWord(idx)} />
                   ))}
                 </div>
-
                 {selectedCat.type === 'custom' && selectedCat.data.status === 'pending' && (
                   <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3 flex-shrink-0">
-                    <button onClick={() => handleApproveCustomGame(selectedCat.data.id)} className="flex-1 bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">
-                      <Check size={24} /> ONAYLA (HERKESE AÇ)
-                    </button>
-                    <button onClick={() => handleRejectCustomGame(selectedCat.data)} className="flex-1 bg-red-100 hover:bg-red-200 text-red-600 font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                      <Lock size={20} /> ÖZEL YAP (REDDET)
-                    </button>
+                    <button onClick={() => handleApproveCustomGame(selectedCat.data.id)} className="flex-1 bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-[0_4px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2"><Check size={24} /> ONAYLA (HERKESE AÇ)</button>
+                    <button onClick={() => handleRejectCustomGame(selectedCat.data)} className="flex-1 bg-red-100 hover:bg-red-200 text-red-600 font-black py-4 rounded-xl transition-all flex items-center justify-center gap-2"><Lock size={20} /> ÖZEL YAP (REDDET)</button>
                   </div>
                 )}
               </div>
@@ -1977,120 +1569,71 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
           </div>
         )}
 
-        {/* Sekme 2: Direkt Kelime Ekle */}
         {activeTab === 'add' && (
           <div className="space-y-4 animate-fade-in">
             <div>
               <label className="block text-gray-700 font-bold mb-2">Kategori Seçimi</label>
               <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border-2 border-purple-100 bg-purple-50 rounded-xl p-3 font-bold text-purple-900 focus:border-purple-500 outline-none cursor-pointer">
-                {Object.keys(wordDatabase).map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
+                {Object.keys(wordDatabase).map(cat => (<option key={cat} value={cat}>{cat}</option>))}
               </select>
             </div>
-
             <div>
               <label className="block text-gray-700 font-bold mb-2">Anlatılacak Kelime</label>
               <input value={word} onChange={(e) => setWord(e.target.value)} placeholder="Örn: BİSİKLET" className="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-2xl text-gray-800 focus:border-purple-500 outline-none uppercase placeholder:text-gray-300 shadow-inner" />
             </div>
-
             <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-              <label className=" text-red-600 font-bold mb-3 flex items-center gap-2">
-                <X size={18} /> Yasaklı Kelimeler (5 Adet)
-              </label>
+              <label className=" text-red-600 font-bold mb-3 flex items-center gap-2"><X size={18} /> Yasaklı Kelimeler (5 Adet)</label>
               <div className="space-y-2">
                 {forbidden.map((fw, i) => (
-                  <input 
-                    key={i} 
-                    value={fw} 
-                    onChange={(e) => {
-                      const newF = [...forbidden];
-                      newF[i] = e.target.value;
-                      setForbidden(newF);
-                    }} 
-                    placeholder={`${i + 1}. Yasaklı Kelime`} 
-                    className="w-full border-2 border-red-200 bg-white rounded-xl p-3 font-bold text-gray-700 focus:border-red-500 outline-none capitalize shadow-sm" 
-                  />
+                  <input key={i} value={fw} onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} placeholder={`${i + 1}. Yasaklı Kelime`} className="w-full border-2 border-red-200 bg-white rounded-xl p-3 font-bold text-gray-700 focus:border-red-500 outline-none capitalize shadow-sm" />
                 ))}
               </div>
             </div>
-
-            <button onClick={handleDirectSave} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-4">
-              <Save size={24} /> KAYDET
-            </button>
+            <button onClick={handleDirectSave} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-4"><Save size={24} /> KAYDET</button>
           </div>
         )}
 
-        {/* Sekme 3: Toplu Yükle */}
         {activeTab === 'import' && (
           <div className="space-y-6 animate-fade-in max-h-[60vh] overflow-y-auto pr-2">
             <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-              <h3 className="text-blue-800 font-bold mb-2 flex items-center gap-2">
-                <FileJson size={20} /> Nasıl Yüklenir?
-              </h3>
-              <p className="text-sm text-blue-700 mb-4">
-                Yüzlerce kelimeyi tek seferde yüklemek için kelimelerinizi bir <strong>.json</strong> dosyası olarak hazırlayın. Dosyanızın içeriği aşağıdaki örnekteki gibi görünmelidir:
-              </p>
+              <h3 className="text-blue-800 font-bold mb-2 flex items-center gap-2"><FileJson size={20} /> Nasıl Yüklenir?</h3>
+              <p className="text-sm text-blue-700 mb-4">Yüzlerce kelimeyi tek seferde yüklemek için kelimelerinizi bir <strong>.json</strong> dosyası olarak hazırlayın. Dosyanızın içeriği aşağıdaki örnekteki gibi görünmelidir:</p>
               <pre className="bg-white p-4 rounded-xl text-xs font-mono text-gray-700 border border-blue-100 overflow-x-auto shadow-inner">
 {`[
-  {
-    "category": "Genel",
-    "word": "ASTRONOT",
-    "forbidden": ["Uzay", "Gemi", "Yıldız", "Gezegen", "Roket"]
-  },
-  {
-    "category": "Spor",
-    "word": "HALTER",
-    "forbidden": ["Ağırlık", "Kaldırmak", "Demir", "Kas", "Sporcu"]
-  }
+  { "category": "Genel", "word": "ASTRONOT", "forbidden": ["Uzay", "Gemi", "Yıldız", "Gezegen", "Roket"] }
 ]`}
               </pre>
             </div>
-
             <div className="bg-purple-50 p-6 rounded-2xl border-2 border-dashed border-purple-300 flex flex-col items-center justify-center text-center">
               <Upload size={48} className="text-purple-400 mb-4" />
               <p className="font-bold text-purple-900 mb-2">JSON Dosyanızı Seçin</p>
-              <p className="text-sm text-purple-600 mb-6 max-w-sm">
-                Hazırladığınız .json uzantılı dosyayı seçin. Kelimeler otomatik olarak ayrıştırılıp ait oldukları kategorilere eklenecektir.
-              </p>
               <label className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl cursor-pointer transition-colors shadow-md">
                 <span>Dosya Seç ve Yükle</span>
                 <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
               </label>
             </div>
-
             <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl text-amber-700 text-sm border border-amber-200">
               <AlertTriangle size={24} className="flex-shrink-0" />
-              <p>Mevcut kategorilere ait (Örn: "Genel", "Spor") kelimeler direkt içine eklenir. Eğer json dosyasında yeni bir kategori ismi yazarsanız, sistem o kategoriyi otomatik olarak oluşturur.</p>
+              <p>Mevcut kategorilere ait kelimeler direkt içine eklenir. Eğer json dosyasında yeni bir kategori ismi yazarsanız, sistem o kategoriyi otomatik olarak oluşturur.</p>
             </div>
           </div>
         )}
 
-        {/* Sekme 4: Öneriler */}
         {activeTab === 'review' && (
           <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {suggestions.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center">
-                <CheckCircle2 size={48} className="mb-4 text-gray-300" />
-                Şu an bekleyen hiçbir kelime önerisi yok.
-              </div>
+              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center"><CheckCircle2 size={48} className="mb-4 text-gray-300" /> Şu an bekleyen hiçbir kelime önerisi yok.</div>
             ) : (
               suggestions.map(sugg => (
-                <SuggestionItemRow 
-                  key={sugg.id} 
-                  suggestion={sugg} 
-                  wordDatabase={wordDatabase}
-                  onApprove={handleApproveSuggestion}
-                  onReject={handleRejectSuggestion}
-                />
+                <SuggestionItemRow key={sugg.id} suggestion={sugg} wordDatabase={wordDatabase} onApprove={handleApproveSuggestion} onReject={handleRejectSuggestion} />
               ))
             )}
           </div>
         )}
-
       </div>
     </div>
   );
+};
 
 // Birleştirilmiş Şık Takım Kartı Bileşeni
 const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCount, theme = "orange", otherTeamName }) => {
@@ -2513,7 +2056,7 @@ useEffect(() => {
   };
 
   const handleAction = (type) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || showReportModal) return;
 
     let pointsChange = 0;
     const newStats = { ...turnStats };
