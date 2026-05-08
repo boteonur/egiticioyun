@@ -2734,7 +2734,7 @@ const handleReportSubmit = async () => {
               </h2>
             </div>
             
-            <div className="flex-1 bg-white p-4 md:p-10 flex flex-col justify-center gap-3 md:gap-6 items-center overflow-y-auto">
+            <div className="flex-1 bg-white py-2 px-4 md:p-10 flex flex-col justify-center gap-2 md:gap-6 items-center overflow-y-auto">
               {currentWord.forbidden.map((word, index) => (
                 <div key={index} className="w-full flex items-center justify-center relative">
                   <div className="absolute left-0 right-0 h-px bg-gray-200"></div>
