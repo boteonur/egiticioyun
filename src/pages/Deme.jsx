@@ -2744,10 +2744,19 @@ const handleReportSubmit = async () => {
           <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">
             {currentTeamName} Oynuyor
           </div>
-          <div className="flex gap-2 md:gap-4 font-bold text-gray-500 text-sm md:text-base items-center">
-            <div className="flex flex-col md:flex-row items-center md:gap-1"><span>Doğru:</span> <span className="text-green-600">{turnStats.correct}</span></div>
-            <div className="flex flex-col md:flex-row items-center md:gap-1"><span>Dedim:</span> <span className="text-red-500">{turnStats.taboo}</span></div>
-            <button onClick={() => setGameState('gameOver')} className="ml-1 md:ml-3 p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors" title="Oyunu Sonlandır">
+          <div className="flex gap-2 items-center">
+            {/* TAM EKRAN AÇ / KAPAT BUTONLARI */}
+            {!isFullscreen ? (
+              <button onClick={handleRequestFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekran">
+                <Maximize2 size={20} className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+            ) : (
+              <button onClick={handleExitFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekrandan Çık">
+                <Minimize2 size={20} className="w-5 h-5 md:w-6 md:h-6" />
+              </button>
+            )}
+            {/* OYUNDAN ÇIKIŞ BUTONU */}
+            <button onClick={() => setGameState('gameOver')} className="p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Oyunu Sonlandır">
               <LogOut size={20} className="w-5 h-5 md:w-6 md:h-6" />
             </button>
           </div>
@@ -2767,13 +2776,7 @@ const handleReportSubmit = async () => {
                 {currentWord.word}
               </h2>
             </div>
-            {/* YENİ TAM EKRANDAN ÇIK (X) BUTONU */}
-            {isFullscreen && (
-              <button onClick={handleExitFullscreen} className="absolute top-2 right-2 text-white hover:text-gray-900" title="Tam Ekrandan Çık">
-                <Minimize2 size={24} /> {/* veya sade bir <X size={24} /> ikonunu import edip kullanabilirsiniz */}
-              </button>
-            )}
-            
+                      
               <div className="bg-white px-3 py-6 md:px-8 md:py-10 flex flex-col justify-around gap-3 md:gap-5 items-center overflow-y-auto">                    {currentWord.forbidden.map((word, index) => (
                 <div key={index} className="w-full flex items-center justify-center relative">
                   <div className="absolute left-0 right-0 h-px bg-gray-200"></div>
@@ -2785,7 +2788,15 @@ const handleReportSubmit = async () => {
             </div>
           </div>
         </div>
-
+        {/* YENİ EKLENEN: SKORLAR (Kartın Altı) */}
+        <div className="flex justify-center gap-6 md:gap-12 mb-2 flex-shrink-0 font-bold text-sm md:text-xl">
+          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-gray-500">
+            Doğru: <span className="text-green-600 font-black text-lg md:text-2xl">{turnStats.correct}</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-gray-500">
+            Dedim: <span className="text-red-500 font-black text-lg md:text-2xl">{turnStats.taboo}</span>
+          </div>
+        </div>
         <div className="bg-white p-3 md:p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-3 md:gap-6 flex-shrink-0">
           <button 
             onClick={() => handleAction('taboo')}
