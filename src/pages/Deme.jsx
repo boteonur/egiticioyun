@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2 } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
