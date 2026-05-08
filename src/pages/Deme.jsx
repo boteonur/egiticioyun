@@ -50,13 +50,45 @@ const DEFAULT_WORD_DATABASE = {
 const ADJECTIVES = ["Cesur", "Uçan", "Gizemli", "Hızlı", "Zeki", "Korkusuz", "Muhteşem", "Çılgın", "Efsanevi", "Yenilmez", "Kızgın", "Süper", "Görünmez", "Komik"];
 const NOUNS = ["Aslanlar", "Kartallar", "Ejderhalar", "Kaplanlar", "Büyücüler", "Savaşçılar", "Dahiler", "Ninjalar", "Korsanlar", "Şövalyeler", "Robotlar", "Zombiler"];
 
+// Emojilerin Lucide ikonları gibi her ekranda kusursuz büyüyüp küçülebilmesi için özel SVG hilesi (ÖNCEKİ ADIMDAN AYNEN KORUNAN):
+const ScalableEmoji = ({ emoji, className }) => (
+  <svg viewBox="0 0 100 100" className={className} style={{ overflow: 'visible' }}>
+    <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fontSize="75" style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.15))' }}>
+      {emoji}
+    </text>
+  </svg>
+);
+
+// Yeni Seçilen Emojilerimiz (Descriptive background colors are defined below based on these choices)
+const GenelEmoji = (props) => <ScalableEmoji emoji="⭐" {...props} />;     // Yıldız (Genel Bilgi/Parlaklık için)
+const SporEmoji = (props) => <ScalableEmoji emoji="🏆" {...props} />;      // Kupa (Başarı/Spor için)
+const SinemaEmoji = (props) => <ScalableEmoji emoji="🎥" {...props} />;    // Film Kamerası (Sinema için)
+const TeknolojiEmoji = (props) => <ScalableEmoji emoji="🤖" {...props} />; // Robot (Teknoloji için)
+const TarihEmoji = (props) => <ScalableEmoji emoji="📜" {...props} />;     // Parşömen/Rulo Kağıt (Tarih için)
+
+// Önceki Adımda Tanımlanan Emojiler (Bütünlük İçin Buraya da Eklendi)
+const BookEmoji = (props) => <ScalableEmoji emoji="📖" {...props} />;
+const HandshakeEmoji = (props) => <ScalableEmoji emoji="🤝" {...props} />;
+const MusicEmoji = (props) => <ScalableEmoji emoji="🎵" {...props} />;
+const BeakerEmoji = (props) => <ScalableEmoji emoji="🧪" {...props} />;
+const WolfEmoji = (props) => <ScalableEmoji emoji="🐺" {...props} />;
+const ChildEmoji = (props) => <ScalableEmoji emoji="🧒" {...props} />;
+
 const CATEGORY_LIST = [
-  { name: "Genel", icon: Globe, color: "text-blue-500", gradient: "from-blue-100 to-blue-200" },
-  { name: "Spor", icon: Medal, color: "text-orange-500", gradient: "from-orange-100 to-orange-200" },
-  { name: "Sinema", icon: Film, color: "text-purple-500", gradient: "from-purple-100 to-purple-200" },
-  { name: "Teknoloji", icon: Cpu, color: "text-slate-700", gradient: "from-slate-100 to-slate-200" },
-  { name: "Tarih", icon: Landmark, color: "text-amber-700", gradient: "from-amber-100 to-amber-200" },
-  { name: "Çocuk", icon: Smile, color: "text-pink-500", gradient: "from-pink-100 to-pink-200" }
+  // Emojili Kategoriler (Tümü Güncellendi ve Eklendi, renkler de emojilere uygun olarak belirlendi)
+  { name: "Genel", icon: GenelEmoji, color: "text-blue-500", gradient: "from-blue-100 to-blue-200" }, // Yıldız için parlak renk
+  { name: "Spor", icon: SporEmoji, color: "text-orange-500", gradient: "from-orange-100 to-orange-200" }, // Kupa için enerjik renk
+  { name: "Sinema", icon: SinemaEmoji, color: "text-purple-500", gradient: "from-purple-100 to-purple-200" }, // Mor/Sinema teması
+  { name: "Teknoloji", icon: TeknolojiEmoji, color: "text-slate-700", gradient: "from-slate-100 to-slate-200" }, // Nötr/Tekno renk
+  { name: "Tarih", icon: TarihEmoji, color: "text-amber-700", gradient: "from-amber-100 to-amber-200" }, // Parşömen gibi sıcak renk
+  
+  // Önceki Adımda Emojileri ve Renkleri Tanımlanan Kategoriler (Aynen Korundu)
+  { name: "Çocuk", icon: ChildEmoji, color: "text-pink-500", gradient: "from-pink-100 to-pink-200" }, // Pink (çocuksu) renk geçişi
+  { name: "Eski Türkçe", icon: BookEmoji, color: "text-stone-600", gradient: "from-stone-100 to-stone-200" }, // Taş/Eski kitap renk geçişi
+  { name: "Hayat Bilgisi", icon: HandshakeEmoji, color: "text-emerald-600", gradient: "from-emerald-100 to-emerald-200" }, // Zümrüt/Büyüme renk geçişi
+  { name: "Müzik", icon: MusicEmoji, color: "text-rose-500", gradient: "from-rose-100 to-rose-200" }, // Gül/Pembe müzik renk geçişi
+  { name: "Ortaokul Fen Bilimleri", icon: BeakerEmoji, color: "text-cyan-600", gradient: "from-cyan-100 to-cyan-200" }, // Siyan/Mavi fen renk geçişi
+  { name: "Türkiye'm", icon: WolfEmoji, color: "text-red-600", gradient: "from-red-100 to-red-200" } // Kırmızı renk geçişi
 ];
 
 const getAudioCtx = () => {
