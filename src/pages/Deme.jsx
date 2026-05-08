@@ -1947,7 +1947,9 @@ const handleRequestFullscreen = () => {
     else if (element.msRequestFullscreen) { element.msRequestFullscreen(); setIsFullscreen(true); }
   }
 };
-
+useEffect(() => {
+    document.title = "Deme";
+  }, []);
 // Tam ekran modundan çıkma fonksiyonu
 const handleExitFullscreen = () => {
   if (document.exitFullscreen) {
