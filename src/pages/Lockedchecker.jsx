@@ -1440,7 +1440,7 @@ const renderAbout = () => (
                 <p className="text-xs sm:text-sm text-neutral-700 font-medium leading-relaxed text-justify mb-4">
                     {t('copyrightText')}
                     <span className="block mt-4 text-center sm:text-left text-neutral-800 font-bold">
-                        {t('contactFor')} <a href="mailto:onursahinbt@gmail.com" className="transition-opacity hover:opacity-70">onursahinbt@gmail.com</a>
+                        {t('contactFor')} <a href="mailto:egiticioyun.tr@gmail.com" className="transition-opacity hover:opacity-70">egiticioyun.tr@gmail.com</a>
                     </span>
                 </p>
                 <div className="w-full bg-white/60 p-3 rounded-xl border border-red-100 font-bold text-[10px] sm:text-xs text-red-800/80">
