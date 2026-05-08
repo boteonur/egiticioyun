@@ -147,13 +147,18 @@ export default function Lockedchecker({ onNavigateHome }) {
 
   useEffect(() => {
     document.title = "Locked Checker"; 
-    let link = document.querySelector("link[rel~='icon']");
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'icon';
-      document.head.appendChild(link);
+    useEffect(() => {
+    document.title = "Locked Checker";
+    
+    let metaTag = document.querySelector('meta[name="robots"]');
+    if (!metaTag) {
+      metaTag = document.createElement('meta');
+      metaTag.name = "robots";
+      document.head.appendChild(metaTag);
     }
-    link.href = 'lc_favicon.png'; 
+    // DÜZELTME: Arama motorlarının indekslemesine izin ver (SEO)
+    metaTag.content = "index, follow";
+  }, []);
     
     let metaTag = document.querySelector('meta[name="robots"]');
     if (!metaTag) {
