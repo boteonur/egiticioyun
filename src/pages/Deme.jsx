@@ -4,7 +4,6 @@ import emailjs from '@emailjs/browser';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
-// 🔴 ÇAKIŞMAYI ÖNLEYEN KISIM: Firebase'i kendi başına başlatmak yerine ortak dosyadan çekiyoruz
 import { auth, db, app, appId } from '../config/firebase.js';
 
 let isUsingUserFirebase = true;
@@ -189,7 +188,7 @@ const playTimeUpSound = () => {
 // --- Oyunlarım Modalı ---
 const MyGamesModal = ({ onClose, user, myGames }) => {
   const [view, setView] = useState('list'); 
-  const [addMode, setAddMode] = useState('single'); // Yeni: Ekleme modu (single veya bulk)
+  const [addMode, setAddMode] = useState('single');
   const [selectedGame, setSelectedGame] = useState(null);
 
   const [categoryName, setCategoryName] = useState("");
@@ -337,11 +336,9 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
   };
 
 const copyToClipboard = () => {
-    // Mobilde odak kaybı (focus) çakışmasını önlemek için anında (senkron) kopyalama taktiği:
     const textArea = document.createElement("textarea");
     textArea.value = aiPrompt;
     
-    // Kullanıcının ekranında görünmemesi için sayfadan dışarı itiyoruz
     textArea.style.position = "absolute";
     textArea.style.left = "-999999px";
     
@@ -349,7 +346,7 @@ const copyToClipboard = () => {
     textArea.select();
     
     try {
-      document.execCommand('copy'); // Kurşun geçirmez klasik kopyalama komutu
+      document.execCommand('copy');
       setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmede açılan Gemini'a yapıştırabilirsiniz (Basılı Tut / Ctrl+V)." });
       setTimeout(() => setStatus(null), 4000);
     } catch (err) {
@@ -358,6 +355,7 @@ const copyToClipboard = () => {
     
     document.body.removeChild(textArea);
   };
+
   const handleFinish = async () => {
     if (!categoryName.trim()) {
       setStatus({ type: 'error', msg: "Lütfen bir kategori (oyun) ismi girin!" });
@@ -991,7 +989,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
   const [selectedCat, setSelectedCat] = useState(null);
   const [editCatName, setEditCatName] = useState("");
   const [confirmDeleteCat, setConfirmDeleteCat] = useState(false);
-  const [selectedWords, setSelectedWords] = useState([]); // Yeni: Kelime Çoklu Seçim State'i
+  const [selectedWords, setSelectedWords] = useState([]);
 
   const handleLogin = () => {
     if (password === "admin123") {
@@ -1219,14 +1217,12 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: newWords });
         setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: newWords } });
       }
-      // Silinen kelime seçim listesinde varsa oradan da çıkar
       setSelectedWords(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i));
       setStatus({ type: 'success', msg: "Kelime silindi!" });
       setTimeout(() => setStatus(null), 2000);
     } catch(e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
-  // --- YENİ: Toplu Seçim ve Silme Fonksiyonları ---
   const handleSelectAll = (e) => {
     const currentList = selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || []);
     if (e.target.checked) {
@@ -1247,7 +1243,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
   const handleDeleteSelectedWords = async () => {
     if (selectedWords.length === 0) return;
     
-    // Diziyi bozulmadan silebilmek için indeksleri büyükten küçüğe sıralıyoruz
     const sortedIndices = [...selectedWords].sort((a, b) => b - a);
 
     try {
@@ -1387,12 +1382,10 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
     );
   }
 
-  // Güvenli filtreleme için fallback listesi
   const safePublicGames = customPublicGames || [];
   const pendingGames = safePublicGames.filter(g => g.status === 'pending');
   const approvedGames = safePublicGames.filter(g => g.status === 'approved');
 
-  // Şu an bakılan kategorinin kelime listesi
   const currentWordList = selectedCat ? (selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])) : [];
   const isAllSelected = currentWordList.length > 0 && selectedWords.length === currentWordList.length;
 
@@ -1463,7 +1456,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
                   ))}
                 </div>
 
-                {/* YENİ: Onaylı Üye Oyunları */}
                 <h3 className="font-bold text-blue-500 uppercase tracking-widest text-sm mb-3 mt-6">Üyelerden (Onaylı)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
                   {approvedGames.length === 0 ? (
@@ -1537,7 +1529,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames }) =
                   )}
                 </div>
 
-                {/* ÇOKLU SEÇİM ÜST BARI */}
                 <div className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl mb-3 flex-shrink-0">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-purple-900 select-none">
                     <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} className="w-5 h-5 accent-purple-600 cursor-pointer" />
@@ -1848,7 +1839,7 @@ export default function Deme() {
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0); 
   const [scores, setScores] = useState([0, 0]);
   const [roundsPlayed, setRoundsPlayed] = useState([0, 0]); 
-  
+  const [outOfWords, setOutOfWords] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [countdown, setCountdown] = useState(3);
   const [currentWord, setCurrentWord] = useState(null);
@@ -2029,6 +2020,7 @@ export default function Deme() {
     setScores([0, 0]);
     setRoundsPlayed([0, 0]);
     setUsedWords([]);
+    setOutOfWords(false); // YENİ OYUNDA UYARIYI SIFIRLA
   };
 
   const startTurn = () => {
@@ -2089,9 +2081,11 @@ export default function Deme() {
                             
     const availableWords = categoryWords.filter(w => !usedWords.includes(w.word));
     
+    // HAVUZDA KELİME KALMADIYSA OYUNU ZORLA BİTİR
     if (availableWords.length === 0) {
-      setUsedWords([]);
-      setCurrentWord(categoryWords[Math.floor(Math.random() * categoryWords.length)]);
+      setOutOfWords(true);
+      setGameState('gameOver');
+      return; 
     } else {
       const randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
       setCurrentWord(randomWord);
@@ -2109,28 +2103,37 @@ export default function Deme() {
       playCorrectSound();
       pointsChange = 1;
       newStats.correct++;
+      
+      // Skorları hemen güncelleyip ardından kelime çekiyoruz
+      const newScores = [...scores];
+      newScores[currentTeamIndex] += pointsChange;
+      setScores(newScores);
+      setTurnStats(newStats);
+      
       pickNextWord();
     } else if (type === 'taboo') {
       playTabooSound();
       pointsChange = -settings.penalty;
       newStats.taboo++;
+      
+      const newScores = [...scores];
+      newScores[currentTeamIndex] += pointsChange;
+      setScores(newScores);
+      setTurnStats(newStats);
+      
       pickNextWord();
     } else if (type === 'pass') {
       if (passesLeft > 0 || settings.passLimit === 999) {
         playPassSound();
         newStats.pass++;
         if (settings.passLimit !== 999) setPassesLeft(prev => prev - 1);
+        
+        setTurnStats(newStats);
         pickNextWord();
       } else {
         return; 
       }
     }
-
-    setTurnStats(newStats);
-    
-    const newScores = [...scores];
-    newScores[currentTeamIndex] += pointsChange;
-    setScores(newScores);
   };
 
   const endTurn = () => {
@@ -2162,6 +2165,7 @@ export default function Deme() {
   const returnToMainMenu = () => {
     setGameState('setup');
     setSetupStep(0);
+    setOutOfWords(false); // UYARIYI SIFIRLA
   };
 
   // Render Modals
@@ -2777,20 +2781,32 @@ export default function Deme() {
     const winnerName = scores[0] > scores[1] ? team1Name : team2Name;
 
     return (
-      <div className="w-full h-screen bg-gradient-to-t from-yellow-600 via-yellow-500 to-orange-500 flex flex-col items-center justify-center p-6 text-center text-white">
-        <Trophy size={100} className="mb-6 drop-shadow-2xl text-yellow-100 animate-bounce" />
+      <div className="w-full h-screen bg-gradient-to-t from-yellow-600 via-yellow-500 to-orange-500 flex flex-col items-center justify-center p-6 text-center text-white overflow-y-auto">
         
-        <h1 className="text-6xl md:text-8xl font-black mb-4 drop-shadow-lg">
+        {/* EKLENEN KISIM: KELİME BİTTİ UYARISI */}
+        {outOfWords && (
+          <div className="bg-red-500 text-white px-6 py-4 rounded-2xl shadow-lg border-2 border-white/40 flex flex-col items-center gap-2 mb-6 mt-4 w-full max-w-md text-center animate-pulse shrink-0">
+            <AlertTriangle size={36} />
+            <h3 className="font-black text-xl">KELİMELER TÜKENDİ!</h3>
+            <p className="font-medium text-red-100 text-sm md:text-base">
+              Kategorideki tüm kelimeler bittiği için oyun mecburi olarak sonlandırıldı. Mevcut puanlara göre sonuçlar aşağıdadır:
+            </p>
+          </div>
+        )}
+
+        <Trophy size={100} className="mb-6 drop-shadow-2xl text-yellow-100 animate-bounce shrink-0" />
+        
+        <h1 className="text-6xl md:text-8xl font-black mb-4 drop-shadow-lg shrink-0">
           {isTie ? "BERABERE!" : "KAZANAN"}
         </h1>
         
         {!isTie && (
-          <h2 className="text-5xl md:text-6xl font-bold text-yellow-100 mb-12 drop-shadow-md">
+          <h2 className="text-5xl md:text-6xl font-bold text-yellow-100 mb-12 drop-shadow-md shrink-0">
             {winnerName}
           </h2>
         )}
 
-        <div className="bg-white/20 p-8 rounded-3xl backdrop-blur-md mb-12 flex gap-12 text-3xl">
+        <div className="bg-white/20 p-8 rounded-3xl backdrop-blur-md mb-12 flex gap-12 text-3xl shrink-0">
           <div className={`flex flex-col items-center ${scores[0] > scores[1] ? 'font-black scale-110' : 'opacity-80'}`}>
             <span className="text-sm uppercase tracking-widest mb-2">{team1Name}</span>
             <span>{scores[0]}</span>
@@ -2804,7 +2820,7 @@ export default function Deme() {
 
         <button 
           onClick={returnToMainMenu}
-          className="px-10 py-5 bg-white text-orange-600 hover:bg-orange-50 text-2xl font-bold rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-3"
+          className="px-10 py-5 bg-white text-orange-600 hover:bg-orange-50 text-2xl font-bold rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-3 shrink-0"
         >
           <RotateCcw /> Ana Menüye Dön
         </button>
