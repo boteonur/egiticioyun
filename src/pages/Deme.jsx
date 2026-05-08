@@ -2461,13 +2461,14 @@ export default function Deme() {
     return () => clearTimeout(timer);
   }, [gameState, countdown]);
 
-  useEffect(() => {
+useEffect(() => {
     let mainTimer;
     let soundTimers = [];
 
-    if (showReportModal) return; // YENİ EKLENDİ: Pencere açıksa süreyi saymayı durdur!
+    // EĞER MODAL AÇIKSA VEYA SÜRE BİTTİYSE ZAMANLAYICIYI KURMA (return ile çık)
+    if (showReportModal || gameState !== 'playing') return;
 
-    if (gameState === 'playing' && timeLeft > 0) {
+    if (timeLeft > 0) {
       mainTimer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
 
       if (timeLeft > 10) {
@@ -2480,8 +2481,7 @@ export default function Deme() {
         soundTimers.push(setTimeout(() => playTickSound(1400), 333));
         soundTimers.push(setTimeout(() => playTickSound(1400), 666));
       }
-
-    } else if (gameState === 'playing' && timeLeft === 0) {
+    } else if (timeLeft === 0) {
       playTimeUpSound(); 
       endTurn();
     }
@@ -2490,7 +2490,7 @@ export default function Deme() {
       clearTimeout(mainTimer);
       soundTimers.forEach(clearTimeout);
     };
-  }, [gameState, timeLeft, showReportModal]);
+  }, [gameState, timeLeft, showReportModal]); // Dependency listesinde hepsi olmalı
 
   const pickNextWord = () => {
     // Hem resmi hem custom oyunlar bu mantıkla çalışır
