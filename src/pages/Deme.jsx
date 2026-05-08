@@ -2719,8 +2719,7 @@ const handleReportSubmit = async () => {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-8 overflow-hidden">
-          <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-4 md:border-8 border-yellow-400 flex flex-col flex-1 max-h-[65vh] md:h-[60vh] md:min-h-[400px]">
-            <div className="bg-yellow-400 text-center py-2 md:py-8 px-4 flex-shrink-0 relative">
+          <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-4 md:border-8 border-yellow-400 flex flex-col max-h-[70vh] relative mb-2">            <div className="bg-yellow-400 text-center py-2 md:py-8 px-4 flex-shrink-0 relative">
               {/* KELİME KARTINDAKİ BİLDİR (BAYRAK) İKONU */}
               <button 
                  onClick={() => setShowReportModal(true)}
@@ -2747,7 +2746,7 @@ const handleReportSubmit = async () => {
           </div>
         </div>
 
-        <div className="bg-white p-3 md:p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-2 md:gap-8 flex-shrink-0">
+        <div className="bg-white p-3 md:p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-3 md:gap-6 flex-shrink-0">
           <button 
             onClick={() => handleAction('taboo')}
             className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] md:shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
