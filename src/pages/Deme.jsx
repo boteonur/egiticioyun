@@ -2720,7 +2720,7 @@ const handleReportSubmit = async () => {
 
         <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-8 overflow-hidden">
           <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-4 md:border-8 border-yellow-400 flex flex-col flex-1 max-h-[65vh] md:h-[60vh] md:min-h-[400px]">
-            <div className="bg-yellow-400 text-center py-4 md:py-8 px-4 flex-shrink-0 relative">
+            <div className="bg-yellow-400 text-center py-2 md:py-8 px-4 flex-shrink-0 relative">
               {/* KELİME KARTINDAKİ BİLDİR (BAYRAK) İKONU */}
               <button 
                  onClick={() => setShowReportModal(true)}
