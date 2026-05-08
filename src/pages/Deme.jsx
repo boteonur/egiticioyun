@@ -2697,8 +2697,7 @@ const handleReportSubmit = async () => {
 
   if (gameState === 'playing' && currentWord) {
     return (
-      <div ref={gameRootRef} className="w-full h-[100dvh] bg-gray-50 flex flex-col font-sans relative">        {/* BİLDİRİM PENCERESİ (POPUP) */}
-        {showReportModal && (
+      <div ref={gameRootRef} className="w-full h-[100dvh] bg-gray-50 flex flex-col font-sans relative">        {showReportModal && (
           <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl flex flex-col border-4 border-red-200">
                <h3 className="text-xl md:text-2xl font-black text-gray-800 mb-3 flex items-center gap-2">
@@ -2737,9 +2736,9 @@ const handleReportSubmit = async () => {
             <span className="font-bold text-gray-500 hidden md:block">Saniye Kaldı</span>
             {/* YENİ TAM EKRAN YAP BUTONU BU GAP-3'ÜN İÇİNE GİRİYOR */}
             {!isFullscreen && (
-               <button onClick={handleRequestFullscreen} className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center text-gray-600 hover:text-purple-600 hover:bg-purple-100 transition-colors shadow-sm" title="Tam Ekran">
-                <Maximize2 size={24} />
-              </button>
+               <button onClick={handleRequestFullscreen} className="ml-2 w-10 h-10 md:w-12 md:h-12 bg-white rounded-full flex items-center justify-center text-gray-600 hover:text-purple-600 hover:bg-purple-100 transition-colors shadow-sm" title="Tam Ekran">
+                 <Maximize2 size={24} />
+               </button>
             )}
           </div>
           <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">
