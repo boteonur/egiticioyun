@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2 } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, BarChart3, Search, Ban, ShieldCheck, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2 } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -1022,6 +1022,37 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const [editCatName, setEditCatName] = useState("");
   const [confirmDeleteCat, setConfirmDeleteCat] = useState(false);
   const [selectedWords, setSelectedWords] = useState([]);
+  // YENİ: İstatistikler ve Kullanıcı Yönetimi için Stateler
+  const [usersList, setUsersList] = useState([]);
+  const [searchUser, setSearchUser] = useState("");
+
+  // İstatistik sekmesi açıldığında kullanıcıları Firestore'dan çek
+  useEffect(() => {
+    if (activeTab === 'stats') {
+      const q = collection(db, 'artifacts', appId, 'userProfiles');
+      const unsub = onSnapshot(q, (snapshot) => {
+        let arr = [];
+        snapshot.forEach(d => arr.push({ uid: d.id, ...d.data() }));
+        // En son giriş yapanlar en üstte görünsün diye tarihe göre sıralayalım
+        arr.sort((a,b) => (b.lastLogin || 0) - (a.lastLogin || 0));
+        setUsersList(arr);
+      });
+      return () => unsub();
+    }
+  }, [activeTab]);
+
+  // Kullanıcıyı Engelleme / Engel Kaldırma Fonksiyonu
+  const handleToggleBan = async (uid, currentBanStatus) => {
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'userProfiles', uid), {
+        isBanned: !currentBanStatus
+      });
+      setStatus({ type: 'success', msg: `Kullanıcı engeli ${!currentBanStatus ? 'koyuldu' : 'kaldırıldı'}.` });
+      setTimeout(() => setStatus(null), 2000);
+    } catch (e) {
+      setStatus({ type: 'error', msg: "Hata: " + e.message });
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -1472,7 +1503,10 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         <div className="flex flex-wrap gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
           <button onClick={() => {setActiveTab('categories'); setSelectedCat(null); setStatus(null);}} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><FolderTree size={18} /> Kategoriler</button>
           <button onClick={() => setActiveTab('review')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><ListTodo size={18} /> Öneriler {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{suggestions.length}</span>}</button>
-          
+          {/* YENİ: İSTATİSTİKLER SEKMESİ BUTONU */}
+          <button onClick={() => setActiveTab('stats')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'stats' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
+            <BarChart3 size={18} /> Üyeler / İstatistik
+          </button>
           {/* BİLDİRİMLER SEKMESİ */}
           <button onClick={() => setActiveTab('reports')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'reports' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
             <Flag size={18} /> Bildirimler {reports && reports.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{reports.length}</span>}
@@ -1522,6 +1556,79 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                 </div>
               ))
             )}
+          </div>
+        )}
+        {/* --- YENİ EKLENEN: İSTATİSTİKLER VE ÜYELER SEKMESİ --- */}
+        {activeTab === 'stats' && (
+          <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
+            
+            {/* Özet Kartları */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 flex-shrink-0">
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl text-center shadow-sm">
+                <div className="text-blue-500 font-bold text-sm uppercase mb-1">Toplam Üye</div>
+                <div className="text-3xl font-black text-blue-800">{usersList.length}</div>
+              </div>
+              <div className="bg-green-50 border border-green-200 p-4 rounded-2xl text-center shadow-sm">
+                <div className="text-green-500 font-bold text-sm uppercase mb-1">Aktif Üyeler</div>
+                <div className="text-3xl font-black text-green-800">{usersList.filter(u => !u.isBanned).length}</div>
+              </div>
+              <div className="bg-red-50 border border-red-200 p-4 rounded-2xl text-center shadow-sm">
+                <div className="text-red-500 font-bold text-sm uppercase mb-1">Engellenenler</div>
+                <div className="text-3xl font-black text-red-800">{usersList.filter(u => u.isBanned).length}</div>
+              </div>
+              <div className="bg-purple-50 border border-purple-200 p-4 rounded-2xl flex flex-col justify-center items-center text-center shadow-sm">
+                <Info className="text-purple-400 mb-1" size={20} />
+                <div className="text-[10px] text-purple-700 font-semibold leading-tight">Ziyaretçi analizi için Google Analytics tavsiye edilir.</div>
+              </div>
+            </div>
+
+            {/* Arama Kutusu */}
+            <div className="relative mb-4 flex-shrink-0">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="text-gray-400" size={20} />
+              </div>
+              <input 
+                type="text" 
+                placeholder="E-posta adresine göre üye ara..." 
+                value={searchUser}
+                onChange={(e) => setSearchUser(e.target.value.toLowerCase())}
+                className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 font-semibold text-gray-700"
+              />
+            </div>
+
+            {/* Kullanıcı Listesi */}
+            <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
+              {usersList.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 font-medium">Henüz kayıtlı üye bulunmuyor.</div>
+              ) : (
+                usersList
+                  .filter(u => u.email?.toLowerCase().includes(searchUser))
+                  .map(userObj => (
+                    <div key={userObj.uid} className={`flex flex-col md:flex-row md:items-center justify-between p-4 mb-3 rounded-xl border-2 transition-colors ${userObj.isBanned ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 hover:border-purple-200'}`}>
+                      <div className="flex flex-col mb-3 md:mb-0">
+                        <span className={`font-black text-lg ${userObj.isBanned ? 'text-red-700 line-through' : 'text-gray-800'}`}>
+                          {userObj.email}
+                        </span>
+                        <span className="text-xs font-bold text-gray-400 mt-1">
+                          Son Giriş: {userObj.lastLogin ? new Date(userObj.lastLogin).toLocaleString('tr-TR') : 'Bilinmiyor'}
+                        </span>
+                      </div>
+                      
+                      <button 
+                        onClick={() => handleToggleBan(userObj.uid, userObj.isBanned)}
+                        className={`px-4 py-2 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${userObj.isBanned ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}
+                      >
+                        {userObj.isBanned ? (
+                          <><ShieldCheck size={18} /> Engeli Kaldır</>
+                        ) : (
+                          <><Ban size={18} /> Engelle</>
+                        )}
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+            
           </div>
         )}
 
@@ -1964,11 +2071,22 @@ const handleExitFullscreen = () => {
       }
     };
     
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      // Eğer kullanıcı yoksa (ilk açılışta veya çıkış yapıldığında), anonim giriş yap
       if (!currentUser) {
         initAuth();
+      } else {
+        // YENİ EKLENEN: Gerçek üyelerin e-postasını ve son giriş tarihini veritabanına kaydet
+        if (!currentUser.isAnonymous && currentUser.email) {
+          try {
+            const userRef = doc(db, 'artifacts', appId, 'userProfiles', currentUser.uid);
+            await setDoc(userRef, {
+              email: currentUser.email,
+              lastLogin: Date.now(),
+              isBanned: false // Varsayılan olarak engelsiz
+            }, { merge: true }); // merge: true sayesinde eski verileri ezmez, sadece günceller
+          } catch(e) { console.error("Kullanıcı profili güncellenemedi", e); }
+        }
       }
     });
     
