@@ -2190,7 +2190,7 @@ const handleReportSubmit = async () => {
   };
   // Render Modals
   if (showAdmin) {
-    return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} />;
+    return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} />;
   }
   
   if (showSuggestionModal) {
