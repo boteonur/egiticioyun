@@ -83,38 +83,7 @@ const playClickSound = () => {
     oscillator.stop(audioCtx.currentTime + 0.1);
   } catch (e) {}
 };
-const [isFullscreen, setIsFullscreen] = useState(false);
-const gameRootRef = useRef(null); // Tam ekran yapılacak ana kapsayıcıyı referans alacağız
-// Tam ekran moduna geçme fonksiyonu
-const handleRequestFullscreen = () => {
-  const element = gameRootRef.current;
-  if (element && element.requestFullscreen) {
-    element.requestFullscreen().then(() => {
-      setIsFullscreen(true);
-    }).catch((err) => {
-      console.error(`Tam ekran hatası: ${err.message}`);
-    });
-  } else {
-    // Mobil veya bazı eski tarayıcılar için alternatif metodlar (web kit, moz, ms)
-    if (element.webkitRequestFullscreen) { element.webkitRequestFullscreen(); setIsFullscreen(true); }
-    else if (element.mozRequestFullScreen) { element.mozRequestFullScreen(); setIsFullscreen(true); }
-    else if (element.msRequestFullscreen) { element.msRequestFullscreen(); setIsFullscreen(true); }
-  }
-};
 
-// Tam ekran modundan çıkma fonksiyonu
-const handleExitFullscreen = () => {
-  if (document.exitFullscreen) {
-    document.exitFullscreen().then(() => {
-      setIsFullscreen(false);
-    });
-  } else {
-    // Alternatif metodlar
-    if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); setIsFullscreen(false); }
-    else if (document.mozCancelFullScreen) { document.mozCancelFullScreen(); setIsFullscreen(false); }
-    else if (document.msExitFullscreen) { document.msExitFullscreen(); setIsFullscreen(false); }
-  }
-};
 const playTickSound = (freq = 1000) => {
   try {
     const audioCtx = getAudioCtx();
@@ -1782,7 +1751,38 @@ export default function Deme() {
   const [user, setUser] = useState(null);
   const [wordDatabase, setWordDatabase] = useState(DEFAULT_WORD_DATABASE);
   const [suggestions, setSuggestions] = useState([]);
-  
+  const [isFullscreen, setIsFullscreen] = useState(false);
+const gameRootRef = useRef(null); // Tam ekran yapılacak ana kapsayıcıyı referans alacağız
+// Tam ekran moduna geçme fonksiyonu
+const handleRequestFullscreen = () => {
+  const element = gameRootRef.current;
+  if (element && element.requestFullscreen) {
+    element.requestFullscreen().then(() => {
+      setIsFullscreen(true);
+    }).catch((err) => {
+      console.error(`Tam ekran hatası: ${err.message}`);
+    });
+  } else {
+    // Mobil veya bazı eski tarayıcılar için alternatif metodlar (web kit, moz, ms)
+    if (element.webkitRequestFullscreen) { element.webkitRequestFullscreen(); setIsFullscreen(true); }
+    else if (element.mozRequestFullScreen) { element.mozRequestFullScreen(); setIsFullscreen(true); }
+    else if (element.msRequestFullscreen) { element.msRequestFullscreen(); setIsFullscreen(true); }
+  }
+};
+
+// Tam ekran modundan çıkma fonksiyonu
+const handleExitFullscreen = () => {
+  if (document.exitFullscreen) {
+    document.exitFullscreen().then(() => {
+      setIsFullscreen(false);
+    });
+  } else {
+    // Alternatif metodlar
+    if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); setIsFullscreen(false); }
+    else if (document.mozCancelFullScreen) { document.mozCancelFullScreen(); setIsFullscreen(false); }
+    else if (document.msExitFullscreen) { document.msExitFullscreen(); setIsFullscreen(false); }
+  }
+};
   // -- KULLANICILARIN OLUŞTURDUĞU OYUN LİSTELERİ --
   const [customPublicGames, setCustomPublicGames] = useState([]);
   const [customPrivateGames, setCustomPrivateGames] = useState([]);
