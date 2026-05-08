@@ -1279,7 +1279,49 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       setStatus({ type: 'error', msg: e.message });
     }
   };
+// YENİ EKLENEN: Resmi Kategoriyi Üyelerden Gelenlere Taşıma
+  const handleMoveToCustom = async () => {
+    try {
+      const catName = selectedCat.data;
+      const words = wordDatabase[catName] || [];
+      setStatus({ type: 'info', msg: "Taşınıyor..." });
+      
+      const gameData = {
+        name: catName,
+        words: words,
+        ownerId: "admin",
+        ownerEmail: "Yönetici",
+        visibility: "public",
+        status: "approved",
+        updatedAt: Date.now(),
+        createdAt: Date.now()
+      };
 
+      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'customGames'), gameData);
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName));
+
+      setStatus({ type: 'success', msg: "Başarıyla 'Üyelerden Gelenler'e taşındı!" });
+      setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
+    } catch (e) {
+      setStatus({ type: 'error', msg: e.message });
+    }
+  };
+
+  // YENİ EKLENEN: Üye Oyununu Resmi Kategorilere Taşıma
+  const handleMoveToOfficial = async () => {
+    try {
+      const game = selectedCat.data;
+      setStatus({ type: 'info', msg: "Taşınıyor..." });
+      
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', game.name), { words: game.words || [] });
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', game.id));
+
+      setStatus({ type: 'success', msg: "Başarıyla 'Resmi Kategoriler'e taşındı!" });
+      setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
+    } catch (e) {
+      setStatus({ type: 'error', msg: e.message });
+    }
+  };
   // YENİ EKLENEN: Bildirimi Listeden Silme
   const handleDeleteReport = async (reportId) => {
     try {
@@ -1510,21 +1552,37 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
             ) : (
               <div className="flex flex-col h-full">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3 bg-gray-50 p-4 rounded-xl border border-gray-200 flex-shrink-0">
-                  <div className="flex items-center gap-3 w-full">
+                  <div className="flex items-center gap-3 w-full md:w-auto">
                     <button onClick={() => {setSelectedCat(null); setStatus(null); setConfirmDeleteCat(false); setSelectedWords([]);}} className="p-2 bg-white hover:bg-gray-100 rounded-full text-gray-600 shadow-sm transition-colors border border-gray-200 flex-shrink-0"><ArrowLeft size={24} /></button>
                     <div className="flex-1 flex flex-col md:flex-row md:items-center gap-3">
                       <input value={editCatName} onChange={e => setEditCatName(e.target.value)} className="font-black text-2xl text-gray-800 bg-white border border-gray-300 px-3 py-1 rounded-lg focus:outline-none focus:border-purple-500 w-full md:w-auto" />
                       <button onClick={handleRenameCat} className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-1.5 rounded-lg font-bold text-sm transition-colors flex-shrink-0 whitespace-nowrap">İsmi Kaydet</button>
                     </div>
                   </div>
-                  {confirmDeleteCat ? (
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={handleDeleteCategory} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors whitespace-nowrap">Eminim, Sil</button>
-                      <button onClick={() => setConfirmDeleteCat(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">İptal</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmDeleteCat(true)} className="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-1 flex-shrink-0 whitespace-nowrap border border-red-200"><Trash2 size={16} /> Kategoriyi Sil</button>
-                  )}
+                  
+                  {/* YENİ: TAŞIMA VE SİLME BUTONLARI GRUBU */}
+                  <div className="flex items-center justify-end gap-2 flex-shrink-0 flex-wrap">
+                    {selectedCat.type === 'official' ? (
+                      <button onClick={handleMoveToCustom} className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 border border-indigo-200 whitespace-nowrap">
+                        <Users size={16} /> Üyelere Taşı
+                      </button>
+                    ) : (
+                      <button onClick={handleMoveToOfficial} className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 border border-emerald-200 whitespace-nowrap">
+                        <Database size={16} /> Resmiye Taşı
+                      </button>
+                    )}
+
+                    {confirmDeleteCat ? (
+                      <div className="flex items-center gap-2">
+                        <button onClick={handleDeleteCategory} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors whitespace-nowrap">Eminim, Sil</button>
+                        <button onClick={() => setConfirmDeleteCat(false)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors">İptal</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteCat(true)} className="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-1 whitespace-nowrap border border-red-200">
+                        <Trash2 size={16} /> Kategoriyi Sil
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl mb-3 flex-shrink-0">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-purple-900 select-none">
