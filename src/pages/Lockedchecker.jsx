@@ -146,8 +146,6 @@ export default function Lockedchecker({ onNavigateHome }) {
   useEffect(() => { if (window.innerWidth < 640) setIsRulesOpen(false); }, []);
 
   useEffect(() => {
-    document.title = "Locked Checker"; 
-    useEffect(() => {
     document.title = "Locked Checker";
     
     let metaTag = document.querySelector('meta[name="robots"]');
@@ -158,16 +156,6 @@ export default function Lockedchecker({ onNavigateHome }) {
     }
     // DÜZELTME: Arama motorlarının indekslemesine izin ver (SEO)
     metaTag.content = "index, follow";
-  }, []);
-    
-    let metaTag = document.querySelector('meta[name="robots"]');
-    if (!metaTag) {
-      metaTag = document.createElement('meta');
-      metaTag.name = "robots";
-      document.head.appendChild(metaTag);
-    }
-    // DÜZELTME: Arama motorlarının indekslemesine izin ver (SEO)
-    metaTag.content = "index, follow"; 
   }, []);
 
   useEffect(() => {
