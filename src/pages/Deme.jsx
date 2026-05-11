@@ -2881,8 +2881,8 @@ const handleReportSubmit = async () => {
   }
 
   /* ==========================================
-     RENDER BÖLÜMÜ - OYUN EKRANLARI
-  ============================================= */
+   RENDER BÖLÜMÜ - OYUN EKRANLARI
+============================================= */
   
   const currentTeamName = currentTeamIndex === 0 ? team1Name : team2Name;
 
@@ -2926,7 +2926,9 @@ const handleReportSubmit = async () => {
 
   if (gameState === 'playing' && currentWord) {
     return (
-      <div ref={gameRootRef} className="w-full h-[100dvh] bg-gray-50 flex flex-col font-sans relative">        {showReportModal && (
+      <div ref={gameRootRef} className="w-full h-[100dvh] bg-gray-50 flex flex-col font-sans relative">
+        
+        {showReportModal && (
           <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl flex flex-col border-4 border-red-200">
                <h3 className="text-xl md:text-2xl font-black text-gray-800 mb-3 flex items-center gap-2">
@@ -2957,20 +2959,18 @@ const handleReportSubmit = async () => {
             </div>
           </div>
         )}
+
         <div className="bg-white shadow-sm p-4 flex justify-between items-center px-4 md:px-6 border-b flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-lg md:text-xl">
               {timeLeft}
             </div>
             <span className="font-bold text-gray-500 hidden md:block">Saniye Kaldı</span>
-            {/* YENİ TAM EKRAN YAP BUTONU BU GAP-3'ÜN İÇİNE GİRİYOR */}
-            
           </div>
           <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">
             {currentTeamName} Oynuyor
           </div>
           <div className="flex gap-2 items-center">
-            {/* TAM EKRAN AÇ / KAPAT BUTONLARI */}
             {!isFullscreen ? (
               <button onClick={handleRequestFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekran">
                 <Maximize2 size={20} className="w-5 h-5 md:w-6 md:h-6" />
@@ -2980,16 +2980,16 @@ const handleReportSubmit = async () => {
                 <Minimize2 size={20} className="w-5 h-5 md:w-6 md:h-6" />
               </button>
             )}
-            {/* OYUNDAN ÇIKIŞ BUTONU */}
-            <button onClick={() => setGameState('gameOver')} className="p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Oyunu Sonlandır">
+            {/* OYUNDAN ÇIKIŞ BUTONU (Uyarıyı Tetikler) */}
+            <button onClick={() => setShowExitConfirmModal(true)} className="p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Oyunu Sonlandır">
               <LogOut size={20} className="w-5 h-5 md:w-6 md:h-6" />
             </button>
           </div>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-8 overflow-hidden">
-          <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-4 md:border-8 border-yellow-400 flex flex-col max-h-[70vh] relative mb-2">            <div className="bg-yellow-400 text-center py-2 md:py-8 px-4 flex-shrink-0 relative">
-              {/* KELİME KARTINDAKİ BİLDİR (BAYRAK) İKONU */}
+          <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-4 md:border-8 border-yellow-400 flex flex-col max-h-[70vh] relative mb-2">
+            <div className="bg-yellow-400 text-center py-2 md:py-8 px-4 flex-shrink-0 relative">
               <button 
                  onClick={() => setShowReportModal(true)}
                  className="absolute top-2 right-2 md:top-4 md:right-4 text-yellow-700 hover:text-red-600 bg-white/30 hover:bg-white/50 p-2 rounded-full transition-colors flex items-center justify-center"
@@ -3002,7 +3002,8 @@ const handleReportSubmit = async () => {
               </h2>
             </div>
                       
-              <div className="bg-white px-3 py-6 md:px-8 md:py-10 flex flex-col justify-around gap-3 md:gap-5 items-center overflow-y-auto">                    {currentWord.forbidden.map((word, index) => (
+            <div className="bg-white px-3 py-6 md:px-8 md:py-10 flex flex-col justify-around gap-3 md:gap-5 items-center overflow-y-auto">
+              {currentWord.forbidden.map((word, index) => (
                 <div key={index} className="w-full flex items-center justify-center relative">
                   <div className="absolute left-0 right-0 h-px bg-gray-200"></div>
                   <span className="relative bg-white px-4 md:px-6 text-xl md:text-3xl font-bold text-gray-700 capitalize">
@@ -3013,7 +3014,7 @@ const handleReportSubmit = async () => {
             </div>
           </div>
         </div>
-        {/* YENİ EKLENEN: SKORLAR (Kartın Altı) */}
+        
         <div className="flex justify-center gap-6 md:gap-12 mb-2 flex-shrink-0 font-bold text-sm md:text-xl">
           <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-gray-500">
             Doğru: <span className="text-green-600 font-black text-lg md:text-2xl">{turnStats.correct}</span>
@@ -3022,7 +3023,22 @@ const handleReportSubmit = async () => {
             Dedim: <span className="text-red-500 font-black text-lg md:text-2xl">{turnStats.taboo}</span>
           </div>
         </div>
+
         <div className="bg-white p-3 md:p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-3 md:gap-6 flex-shrink-0">
+          <button 
+            onClick={() => handleAction('taboo')}
+            className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] md:shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
+          >
+            <X size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DEDİM (-{settings.penalty})</span><span className="hidden md:inline">DEDİM (-{settings.penalty})</span>
+          </button>
+          
+          <button 
+            onClick={() => handleAction('pass')}
+            className={`flex-1 max-w-[90px] md:max-w-[120px] py-3 md:py-6 rounded-2xl md:rounded-3xl font-black text-base md:text-xl flex flex-col items-center justify-center gap-1 md:gap-2 transition-all ${passesLeft > 0 || settings.passLimit === 999 ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-[0_6px_0_rgb(202,138,4)] md:shadow-[0_8px_0_rgb(202,138,4)] active:shadow-none active:translate-y-2' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+          >
+            <SkipForward size={24} className="md:w-8 md:h-8" /> <span className="text-xs md:text-base">PAS ({settings.passLimit === 999 ? '∞' : passesLeft})</span>
+          </button>
+
           <button 
             onClick={() => handleAction('correct')}
             className="flex-1 max-w-xs py-3 md:py-6 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(21,128,61)] md:shadow-[0_8px_0_rgb(21,128,61)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
@@ -3092,7 +3108,6 @@ const handleReportSubmit = async () => {
     return (
       <div className="w-full h-screen bg-gradient-to-t from-yellow-600 via-yellow-500 to-orange-500 flex flex-col items-center justify-center p-6 text-center text-white overflow-y-auto">
         
-        {/* EKLENEN KISIM: KELİME BİTTİ UYARISI */}
         {outOfWords && (
           <div className="bg-red-500 text-white px-6 py-4 rounded-2xl shadow-lg border-2 border-white/40 flex flex-col items-center gap-2 mb-6 mt-4 w-full max-w-md text-center animate-pulse shrink-0">
             <AlertTriangle size={36} />
@@ -3137,5 +3152,5 @@ const handleReportSubmit = async () => {
     );
   }
 
-return null;
+  return null;
 }
