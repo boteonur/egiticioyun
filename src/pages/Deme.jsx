@@ -2010,10 +2010,6 @@ const handleExitFullscreen = () => {
   // --- YENİ EKLENEN KISIM SONU ---
 
   // --- KAYDIRMA STATE'LERİ ---
-  const [touchStart, setTouchStart] = useState(null); 
-
-  // --- KAYDIRMA STATE'LERİ ---
-  const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
   // --- OYUN STATE'LERİ ---
