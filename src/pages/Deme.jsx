@@ -1976,6 +1976,42 @@ const handleExitFullscreen = () => {
 
   const [setupStep, setSetupStep] = useState(0); 
 
+  // --- YENİ EKLENEN KISIM: 1. VE 2. ADIM (GERİ TUŞU TUZAĞI) ---
+  const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
+
+  useEffect(() => {
+    const handlePopState = (event) => {
+      // Eğer ana menüde değilsek (oyundaysak) tuzağı çalıştır
+      if (setupStep > 0) { 
+        event.preventDefault();
+        setShowExitConfirmModal(true); // Uyarı penceresini aç
+        window.history.pushState(null, '', window.location.href); // Sayfadan düşmeyi engelle
+      }
+    };
+
+    // Oyun menüden çıktığı an tuzağı kur
+    if (setupStep > 0) {
+      window.history.pushState(null, '', window.location.href);
+      window.addEventListener('popstate', handlePopState);
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [setupStep]);
+
+  const handleConfirmExit = () => {
+    setShowExitConfirmModal(false);
+    // Oyuncu çıkmayı onaylarsa asıl çıkış işlemlerini yap:
+    setGameState('setup');
+    setSetupStep(0);
+    setOutOfWords(false);
+  };
+  // --- YENİ EKLENEN KISIM SONU ---
+
+  // --- KAYDIRMA STATE'LERİ ---
+  const [touchStart, setTouchStart] = useState(null); 
+
   // --- KAYDIRMA STATE'LERİ ---
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -2347,9 +2383,15 @@ useEffect(() => {
   };
 
   const returnToMainMenu = () => {
-    setGameState('setup');
-    setSetupStep(0);
-        setOutOfWords(false); // UYARIYI SIFIRLA
+    // Eğer oyun o an oynanıyorsa uyarı penceresini aç
+    if (gameState === 'playing') {
+      setShowExitConfirmModal(true);
+    } else {
+      // Oyun oynanmıyorsa (örn: skor ekranındaysa) direkt çık
+      setGameState('setup');
+      setSetupStep(0);
+      setOutOfWords(false); // UYARIYI SIFIRLA
+    }
   };
 const handleReportSubmit = async () => {
     if (!reportReason.trim()) {
@@ -3094,5 +3136,24 @@ const handleReportSubmit = async () => {
     );
   }
 
-  return null;
+// --- ÇIKIŞ ONAY MODALI ---
+  return (
+    <>
+      {showExitConfirmModal && (
+        <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative overflow-hidden border-2 border-red-200 text-center animate-bounce-short">
+            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <h2 className="text-xl font-black text-neutral-800 mb-2">Oyundan Çıkış</h2>
+            <p className="text-sm font-bold text-neutral-600 mb-6">Oyundan çıkmak istediğinize emin misiniz? İlerlemeniz kaybolacaktır.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowExitConfirmModal(false)} className="flex-1 py-3 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-black rounded-xl transition-all shadow-sm">Hayır, Kal</button>
+              <button onClick={handleConfirmExit} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md transition-all transform hover:scale-105">Evet, Çık</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
