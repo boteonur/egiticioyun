@@ -2009,8 +2009,38 @@ const handleExitFullscreen = () => {
   };
   // --- YENİ EKLENEN KISIM SONU ---
 
-  // --- KAYDIRMA STATE'LERİ ---
+// --- KAYDIRMA STATE'LERİ VE MANTIĞI ---
+  const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const minSwipeDistance = 50;
+
+  const nextStep = () => setSetupStep(prev => prev + 1);
+  const prevStep = () => setSetupStep(prev => Math.max(0, prev - 1));
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && setupStep < 3) {
+      if (setupStep === 1 && team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase()) return;
+      nextStep();
+    }
+    if (isRightSwipe && setupStep > 0) {
+      prevStep();
+    }
+  };
 
   // --- OYUN STATE'LERİ ---
   const [team1Name, setTeam1Name] = useState("Kırmızı Ejderler");
