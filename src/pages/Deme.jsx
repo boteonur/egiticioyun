@@ -3028,26 +3028,31 @@ const handleReportSubmit = async () => {
         </div>
         <div className="bg-white p-3 md:p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-3 md:gap-6 flex-shrink-0">
           <button 
-            onClick={() => handleAction('taboo')}
-            className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] md:shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
-          >
-            <X size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DEDİM (-{settings.penalty})</span><span className="hidden md:inline">DEDİM (-{settings.penalty})</span>
-          </button>
-          
-          <button 
-            onClick={() => handleAction('pass')}
-            className={`flex-1 max-w-[90px] md:max-w-[120px] py-3 md:py-6 rounded-2xl md:rounded-3xl font-black text-base md:text-xl flex flex-col items-center justify-center gap-1 md:gap-2 transition-all ${passesLeft > 0 || settings.passLimit === 999 ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-[0_6px_0_rgb(202,138,4)] md:shadow-[0_8px_0_rgb(202,138,4)] active:shadow-none active:translate-y-2' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-          >
-            <SkipForward size={24} className="md:w-8 md:h-8" /> <span className="text-xs md:text-base">PAS ({settings.passLimit === 999 ? '∞' : passesLeft})</span>
-          </button>
-
-          <button 
             onClick={() => handleAction('correct')}
             className="flex-1 max-w-xs py-3 md:py-6 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(21,128,61)] md:shadow-[0_8px_0_rgb(21,128,61)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
           >
             <Check size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DOĞRU (+1)</span><span className="hidden md:inline">DOĞRU (+1)</span>
           </button>
         </div>
+        
+        {/* --- ÇIKIŞ ONAY MODALI --- */}
+        {showExitConfirmModal && (
+          <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+            <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative overflow-hidden border-2 border-red-200 text-center animate-bounce-short">
+              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              </div>
+              <h2 className="text-xl font-black text-neutral-800 mb-2">Oyundan Çıkış</h2>
+              <p className="text-sm font-bold text-neutral-600 mb-6">Oyundan çıkmak istediğinize emin misiniz? İlerlemeniz kaybolacaktır.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowExitConfirmModal(false)} className="flex-1 py-3 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-black rounded-xl transition-all shadow-sm">Hayır, Kal</button>
+                <button onClick={handleConfirmExit} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md transition-all transform hover:scale-105">Evet, Çık</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* --- MODAL SONU --- */}
+
       </div>
     );
   }
@@ -3136,24 +3141,5 @@ const handleReportSubmit = async () => {
     );
   }
 
-// --- ÇIKIŞ ONAY MODALI ---
-  return (
-    <>
-      {showExitConfirmModal && (
-        <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative overflow-hidden border-2 border-red-200 text-center animate-bounce-short">
-            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            </div>
-            <h2 className="text-xl font-black text-neutral-800 mb-2">Oyundan Çıkış</h2>
-            <p className="text-sm font-bold text-neutral-600 mb-6">Oyundan çıkmak istediğinize emin misiniz? İlerlemeniz kaybolacaktır.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowExitConfirmModal(false)} className="flex-1 py-3 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-black rounded-xl transition-all shadow-sm">Hayır, Kal</button>
-              <button onClick={handleConfirmExit} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md transition-all transform hover:scale-105">Evet, Çık</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
+return null;
 }
