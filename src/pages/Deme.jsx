@@ -6,10 +6,12 @@ import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } fro
 import { Link } from 'react-router-dom';
 import { auth, db, app, appId } from '../config/firebase.js';
 
-let isUsingUserFirebase = true;
+// --- GENEL AYARLAR ---
+const isUsingUserFirebase = true;
 
 /* ==========================================
-   VERİTABANI (VARSAYILAN SEED VERİSİ)
+   BÖLÜM 1: SABİT VERİLER (CONSTANTS)
+   Oyunun varsayılan kelime havuzu ve ayarları.
 ============================================= */
 const DEFAULT_WORD_DATABASE = {
   "Genel": [
@@ -50,7 +52,10 @@ const DEFAULT_WORD_DATABASE = {
 const ADJECTIVES = ["Cesur", "Uçan", "Gizemli", "Hızlı", "Zeki", "Korkusuz", "Muhteşem", "Çılgın", "Efsanevi", "Yenilmez", "Kızgın", "Süper", "Görünmez", "Komik"];
 const NOUNS = ["Aslanlar", "Kartallar", "Ejderhalar", "Kaplanlar", "Büyücüler", "Savaşçılar", "Dahiler", "Ninjalar", "Korsanlar", "Şövalyeler", "Robotlar", "Zombiler"];
 
-// Emojilerin Lucide ikonları gibi her ekranda kusursuz büyüyüp küçülebilmesi için özel SVG hilesi (ÖNCEKİ ADIMDAN AYNEN KORUNAN):
+/* ==========================================
+   BÖLÜM 2: GÖRSEL BİLEŞENLER (UI HELPERS)
+   Ölçeklenebilir emojiler ve kategori tasarımları.
+============================================= */
 const ScalableEmoji = ({ emoji, className }) => (
   <svg viewBox="0 0 100 100" className={className} style={{ overflow: 'visible' }}>
     <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fontSize="75" style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.15))' }}>
@@ -59,14 +64,11 @@ const ScalableEmoji = ({ emoji, className }) => (
   </svg>
 );
 
-// Yeni Seçilen Emojilerimiz (Descriptive background colors are defined below based on these choices)
-const GenelEmoji = (props) => <ScalableEmoji emoji="⭐" {...props} />;     // Yıldız (Genel Bilgi/Parlaklık için)
-const SporEmoji = (props) => <ScalableEmoji emoji="🏆" {...props} />;      // Kupa (Başarı/Spor için)
-const SinemaEmoji = (props) => <ScalableEmoji emoji="🎥" {...props} />;    // Film Kamerası (Sinema için)
-const TeknolojiEmoji = (props) => <ScalableEmoji emoji="🤖" {...props} />; // Robot (Teknoloji için)
-const TarihEmoji = (props) => <ScalableEmoji emoji="📜" {...props} />;     // Parşömen/Rulo Kağıt (Tarih için)
-
-// Önceki Adımda Tanımlanan Emojiler (Bütünlük İçin Buraya da Eklendi)
+const GenelEmoji = (props) => <ScalableEmoji emoji="⭐" {...props} />;
+const SporEmoji = (props) => <ScalableEmoji emoji="🏆" {...props} />;
+const SinemaEmoji = (props) => <ScalableEmoji emoji="🎥" {...props} />;
+const TeknolojiEmoji = (props) => <ScalableEmoji emoji="🤖" {...props} />;
+const TarihEmoji = (props) => <ScalableEmoji emoji="📜" {...props} />;
 const BookEmoji = (props) => <ScalableEmoji emoji="📖" {...props} />;
 const HandshakeEmoji = (props) => <ScalableEmoji emoji="🤝" {...props} />;
 const MusicEmoji = (props) => <ScalableEmoji emoji="🎵" {...props} />;
@@ -75,22 +77,23 @@ const WolfEmoji = (props) => <ScalableEmoji emoji="🐺" {...props} />;
 const ChildEmoji = (props) => <ScalableEmoji emoji="🧒" {...props} />;
 
 const CATEGORY_LIST = [
-  // Emojili Kategoriler (Tümü Güncellendi ve Eklendi, renkler de emojilere uygun olarak belirlendi)
-  { name: "Genel", icon: GenelEmoji, color: "text-blue-500", gradient: "from-blue-100 to-blue-200" }, // Yıldız için parlak renk
-  { name: "Spor", icon: SporEmoji, color: "text-orange-500", gradient: "from-orange-100 to-orange-200" }, // Kupa için enerjik renk
-  { name: "Sinema", icon: SinemaEmoji, color: "text-purple-500", gradient: "from-purple-100 to-purple-200" }, // Mor/Sinema teması
-  { name: "Teknoloji", icon: TeknolojiEmoji, color: "text-slate-700", gradient: "from-slate-100 to-slate-200" }, // Nötr/Tekno renk
-  { name: "Tarih", icon: TarihEmoji, color: "text-amber-700", gradient: "from-amber-100 to-amber-200" }, // Parşömen gibi sıcak renk
-  
-  // Önceki Adımda Emojileri ve Renkleri Tanımlanan Kategoriler (Aynen Korundu)
-  { name: "Çocuk", icon: ChildEmoji, color: "text-pink-500", gradient: "from-pink-100 to-pink-200" }, // Pink (çocuksu) renk geçişi
-  { name: "Eski Türkçe", icon: BookEmoji, color: "text-stone-600", gradient: "from-stone-100 to-stone-200" }, // Taş/Eski kitap renk geçişi
-  { name: "Hayat Bilgisi", icon: HandshakeEmoji, color: "text-emerald-600", gradient: "from-emerald-100 to-emerald-200" }, // Zümrüt/Büyüme renk geçişi
-  { name: "Müzik", icon: MusicEmoji, color: "text-rose-500", gradient: "from-rose-100 to-rose-200" }, // Gül/Pembe müzik renk geçişi
-  { name: "Ortaokul Fen Bilimleri", icon: BeakerEmoji, color: "text-cyan-600", gradient: "from-cyan-100 to-cyan-200" }, // Siyan/Mavi fen renk geçişi
-  { name: "Türkiye'm", icon: WolfEmoji, color: "text-red-600", gradient: "from-red-100 to-red-200" } // Kırmızı renk geçişi
+  { name: "Genel", icon: GenelEmoji, color: "text-blue-500", gradient: "from-blue-100 to-blue-200" },
+  { name: "Spor", icon: SporEmoji, color: "text-orange-500", gradient: "from-orange-100 to-orange-200" },
+  { name: "Sinema", icon: SinemaEmoji, color: "text-purple-500", gradient: "from-purple-100 to-purple-200" },
+  { name: "Teknoloji", icon: TeknolojiEmoji, color: "text-slate-700", gradient: "from-slate-100 to-slate-200" },
+  { name: "Tarih", icon: TarihEmoji, color: "text-amber-700", gradient: "from-amber-100 to-amber-200" },
+  { name: "Çocuk", icon: ChildEmoji, color: "text-pink-500", gradient: "from-pink-100 to-pink-200" },
+  { name: "Eski Türkçe", icon: BookEmoji, color: "text-stone-600", gradient: "from-stone-100 to-stone-200" },
+  { name: "Hayat Bilgisi", icon: HandshakeEmoji, color: "text-emerald-600", gradient: "from-emerald-100 to-emerald-200" },
+  { name: "Müzik", icon: MusicEmoji, color: "text-rose-500", gradient: "from-rose-100 to-rose-200" },
+  { name: "Ortaokul Fen Bilimleri", icon: BeakerEmoji, color: "text-cyan-600", gradient: "from-cyan-100 to-cyan-200" },
+  { name: "Türkiye'm", icon: WolfEmoji, color: "text-red-600", gradient: "from-red-100 to-red-200" }
 ];
 
+/* ==========================================
+   BÖLÜM 3: SES MOTORU (AUDIO ENGINE)
+   Tarayıcı tabanlı dinamik ses üretimi.
+============================================= */
 const getAudioCtx = () => {
   if (!window.audioCtx) {
     window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -212,9 +215,9 @@ const playTimeUpSound = () => {
     osc.stop(audioCtx.currentTime + 0.5);
   } catch (e) {}
 };
-
 /* ==========================================
-   ALT BİLEŞENLER
+   BÖLÜM 4: ALT BİLEŞENLER (SUB-COMPONENTS)
+   Oyun içi modal ve kart bileşenleri.
 ============================================= */
 
 // --- Oyunlarım Modalı ---
@@ -367,10 +370,9 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
     reader.readAsText(file);
   };
 
-const copyToClipboard = () => {
+  const copyToClipboard = () => {
     const textArea = document.createElement("textarea");
     textArea.value = aiPrompt;
-    
     textArea.style.position = "absolute";
     textArea.style.left = "-999999px";
     
@@ -461,7 +463,6 @@ const copyToClipboard = () => {
           <X size={32} />
         </button>
         
-        {/* --- LİSTE GÖRÜNÜMÜ --- */}
         {view === 'list' && (
           <div className="animate-fade-in">
             <h2 className="text-3xl font-black text-blue-600 mb-6 flex items-center gap-3">
@@ -507,7 +508,6 @@ const copyToClipboard = () => {
           </div>
         )}
 
-        {/* --- YENİ EKLENEN: EKLEME SEÇENEKLERİ GÖRÜNÜMÜ --- */}
         {view === 'add-choice' && (
           <div className="animate-fade-in flex flex-col">
             <div className="flex items-center gap-4 mb-8">
@@ -544,7 +544,6 @@ const copyToClipboard = () => {
           </div>
         )}
 
-        {/* --- GÖRÜNTÜLEME GÖRÜNÜMÜ --- */}
         {view === 'view' && selectedGame && (
           <div className="animate-fade-in">
             <div className="flex items-center gap-4 mb-6">
@@ -567,7 +566,6 @@ const copyToClipboard = () => {
           </div>
         )}
 
-        {/* --- EKLE / DÜZENLE GÖRÜNÜMÜ --- */}
         {(view === 'add' || view === 'edit') && (
           <div className="animate-fade-in flex flex-col max-h-[80vh]">
             <div className="flex items-center gap-4 mb-4 flex-shrink-0">
@@ -590,7 +588,6 @@ const copyToClipboard = () => {
                 />
               </div>
 
-              {/* TOPLU EKLEME ARAYÜZÜ */}
               {addMode === 'bulk' && view === 'add' && (
                 <div className="bg-purple-50 p-4 md:p-5 rounded-2xl border border-purple-200 shadow-sm space-y-4">
                   <div className="flex items-start gap-3 bg-white p-3 rounded-xl border border-purple-100">
@@ -600,10 +597,7 @@ const copyToClipboard = () => {
                     </p>
                   </div>
 
-                  {/* YENİ VE DÜZELTİLMİŞ PROMPT KUTUSU */}
                   <div className="bg-white border-2 border-purple-200 rounded-xl p-4 shadow-inner flex flex-col gap-3">
-                    
-                    {/* Üst Kısım: Başlık ve Buton Yan Yana */}
                     <div className="flex justify-between items-start gap-2">
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1.5">
                         Örnek Prompt
@@ -618,14 +612,11 @@ const copyToClipboard = () => {
                         <Copy size={16} /> Kopyala ve Git
                       </a>
                     </div>
-
-                    {/* Alt Kısım: Tam Genişlikte Prompt Metni */}
                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
                       <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap break-words leading-relaxed w-full">
                         {aiPrompt}
                       </pre>
                     </div>
-
                   </div>
 
                   <div className="bg-white border-2 border-dashed border-purple-300 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-purple-50 transition-colors">
@@ -639,7 +630,6 @@ const copyToClipboard = () => {
                 </div>
               )}
 
-              {/* TEK TEK EKLEME / DÜZENLEME ARAYÜZÜ */}
               {(addMode === 'single' || view === 'edit' || editingWordIndex !== null) && (
                 <div className="bg-gray-50 p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm relative">
                   {addMode === 'bulk' && <div className="absolute -top-3 left-4 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">Kelimeleri Düzenle</div>}
@@ -680,7 +670,6 @@ const copyToClipboard = () => {
                 </div>
               )}
 
-              {/* EKLENEN KELİMELER LİSTESİ */}
               {addedWords.length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-2xl p-4">
                   <h4 className="font-bold text-gray-600 mb-3 text-sm flex items-center justify-between">
@@ -705,7 +694,6 @@ const copyToClipboard = () => {
                 </div>
               )}
 
-              {/* BİLGİLENDİRME VE GİZLİLİK AYARLARI */}
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
                 <Info size={24} className="text-blue-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-blue-800 font-medium">
@@ -758,7 +746,6 @@ const copyToClipboard = () => {
     </div>
   );
 };
-
 // --- Kullanıcı Kelime Öneri Modalı ---
 const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   const [category, setCategory] = useState("Genel");
@@ -947,7 +934,6 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
   );
 };
 
-
 // --- Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
   const [word, setWord] = useState(suggestion.word || "");
@@ -1004,7 +990,7 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
   );
 }
 
-// Admin (Kelime Ekleme, Öneriler, Kategoriler ve Bildirimler) Modal Bileşeni
+// --- Yönetici (Admin) Modalı Bileşeni ---
 const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, reports }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -1022,18 +1008,16 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const [editCatName, setEditCatName] = useState("");
   const [confirmDeleteCat, setConfirmDeleteCat] = useState(false);
   const [selectedWords, setSelectedWords] = useState([]);
-  // YENİ: İstatistikler ve Kullanıcı Yönetimi için Stateler
+  
   const [usersList, setUsersList] = useState([]);
   const [searchUser, setSearchUser] = useState("");
 
-  // İstatistik sekmesi açıldığında kullanıcıları Firestore'dan çek
   useEffect(() => {
     if (activeTab === 'stats') {
       const q = collection(db, 'artifacts', appId, 'userProfiles');
       const unsub = onSnapshot(q, (snapshot) => {
         let arr = [];
         snapshot.forEach(d => arr.push({ uid: d.id, ...d.data() }));
-        // En son giriş yapanlar en üstte görünsün diye tarihe göre sıralayalım
         arr.sort((a,b) => (b.lastLogin || 0) - (a.lastLogin || 0));
         setUsersList(arr);
       });
@@ -1041,7 +1025,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     }
   }, [activeTab]);
 
-  // Kullanıcıyı Engelleme / Engel Kaldırma Fonksiyonu
   const handleToggleBan = async (uid, currentBanStatus) => {
     try {
       await updateDoc(doc(db, 'artifacts', appId, 'userProfiles', uid), {
@@ -1057,7 +1040,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const handleLogin = async () => {
     try {
       setStatus({ type: 'info', msg: "Giriş yapılıyor..." });
-      // Hardcoded şifre yerine Firebase Auth ile gerçek ve güvenli giriş yapıyoruz
       await signInWithEmailAndPassword(auth, "boteonur@gmail.com", password);
       setIsAuthenticated(true);
       setStatus(null);
@@ -1070,7 +1052,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     if (resetEmail.trim() === "boteonur@gmail.com") {
       setStatus({ type: 'info', msg: "Şifre sıfırlama bağlantısı gönderiliyor..." });
       try {
-        // EmailJS yerine Firebase'in kendi şifre sıfırlama servisini kullanıyoruz
         await sendPasswordResetEmail(auth, resetEmail.trim());
         setStatus({ type: 'success', msg: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!" });
         setTimeout(() => {
@@ -1342,7 +1323,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       setStatus({ type: 'error', msg: e.message });
     }
   };
-// YENİ EKLENEN: Resmi Kategoriyi Üyelerden Gelenlere Taşıma
+
   const handleMoveToCustom = async () => {
     try {
       const catName = selectedCat.data;
@@ -1370,7 +1351,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     }
   };
 
-  // YENİ EKLENEN: Üye Oyununu Resmi Kategorilere Taşıma
   const handleMoveToOfficial = async () => {
     try {
       const game = selectedCat.data;
@@ -1385,7 +1365,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       setStatus({ type: 'error', msg: e.message });
     }
   };
-  // YENİ EKLENEN: Bildirimi Listeden Silme
+
   const handleDeleteReport = async (reportId) => {
     try {
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId));
@@ -1396,7 +1376,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     }
   };
 
-  // YENİ EKLENEN: Bildirilen Kelimeyi Veritabanından Komple Silme
   const handleDeleteReportedWord = async (report) => {
     try {
       setStatus({ type: 'info', msg: "Kelime siliniyor..." });
@@ -1424,7 +1403,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       setStatus({ type: 'error', msg: e.message });
     }
   };
-
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
@@ -1503,15 +1481,12 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         <div className="flex flex-wrap gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
           <button onClick={() => {setActiveTab('categories'); setSelectedCat(null); setStatus(null);}} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><FolderTree size={18} /> Kategoriler</button>
           <button onClick={() => setActiveTab('review')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><ListTodo size={18} /> Öneriler {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{suggestions.length}</span>}</button>
-          {/* YENİ: İSTATİSTİKLER SEKMESİ BUTONU */}
           <button onClick={() => setActiveTab('stats')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'stats' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
             <BarChart3 size={18} /> Üyeler / İstatistik
           </button>
-          {/* BİLDİRİMLER SEKMESİ */}
           <button onClick={() => setActiveTab('reports')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'reports' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
             <Flag size={18} /> Bildirimler {reports && reports.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{reports.length}</span>}
           </button>
-
           <button onClick={() => setActiveTab('add')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Edit3 size={18} /> Tek Ekle</button>
           <button onClick={() => setActiveTab('import')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Upload size={18} /> Toplu Yükle</button>
         </div>
@@ -1558,11 +1533,10 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
             )}
           </div>
         )}
-        {/* --- YENİ EKLENEN: İSTATİSTİKLER VE ÜYELER SEKMESİ --- */}
+        
+        {/* İSTATİSTİKLER VE ÜYELER SEKMESİ */}
         {activeTab === 'stats' && (
           <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
-            
-            {/* Özet Kartları */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 flex-shrink-0">
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl text-center shadow-sm">
                 <div className="text-blue-500 font-bold text-sm uppercase mb-1">Toplam Üye</div>
@@ -1582,7 +1556,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
               </div>
             </div>
 
-            {/* Arama Kutusu */}
             <div className="relative mb-4 flex-shrink-0">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="text-gray-400" size={20} />
@@ -1596,7 +1569,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
               />
             </div>
 
-            {/* Kullanıcı Listesi */}
             <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
               {usersList.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 font-medium">Henüz kayıtlı üye bulunmuyor.</div>
@@ -1632,7 +1604,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
           </div>
         )}
 
-        {/* DİĞER SEKMELER */}
+        {/* KATEGORİLER */}
         {activeTab === 'categories' && (
           <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
             {!selectedCat ? (
@@ -1699,7 +1671,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                     </div>
                   </div>
                   
-                  {/* YENİ: TAŞIMA VE SİLME BUTONLARI GRUBU */}
                   <div className="flex items-center justify-end gap-2 flex-shrink-0 flex-wrap">
                     {selectedCat.type === 'official' ? (
                       <button onClick={handleMoveToCustom} className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-1 border border-indigo-200 whitespace-nowrap">
@@ -1747,6 +1718,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
           </div>
         )}
 
+        {/* TEK / TOPLU EKLEME SEKMESİ */}
         {activeTab === 'add' && (
           <div className="space-y-4 animate-fade-in">
             <div>
@@ -1813,7 +1785,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   );
 };
 
-// Birleştirilmiş Şık Takım Kartı Bileşeni
+// --- Birleştirilmiş Şık Takım Kartı Bileşeni ---
 const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCount, theme = "orange", otherTeamName }) => {
   const [history, setHistory] = useState([teamName || "Takım"]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -1894,7 +1866,7 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
           type="text" 
           value={teamName} 
           onChange={(e) => setTeamName(e.target.value)} 
-          onFocus={(e) => e.target.select()} /* <-- KUTUYA TIKLANINCA METNİ SEÇİLİ HALE GETİRİR */
+          onFocus={(e) => e.target.select()}
           className={`flex-1 min-w-0 text-center text-lg md:text-2xl font-black py-2 px-1 md:py-3 md:px-2 rounded-xl md:rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`} 
           placeholder="Takım Adı" 
         />
@@ -1921,147 +1893,50 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
     </div>
   );
 };
-
 /* ==========================================
-   ANA UYGULAMA BİLEŞENİ (Deme.jsx)
+   BÖLÜM 5: ANA UYGULAMA BİLEŞENİ (Deme.jsx)
+   Tüm oyun mantığını (State, Effect, Game Loop) yöneten merkez.
 ============================================= */
 export default function Deme() {
+  // --- 1. UYGULAMA VE VERİTABANI DURUMLARI (STATES) ---
   const [user, setUser] = useState(null);
   const [wordDatabase, setWordDatabase] = useState(DEFAULT_WORD_DATABASE);
   const [suggestions, setSuggestions] = useState([]);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-const gameRootRef = useRef(null); // Tam ekran yapılacak ana kapsayıcıyı referans alacağız
-// Tam ekran moduna geçme fonksiyonu
-const handleRequestFullscreen = () => {
-  const element = gameRootRef.current;
-  if (element && element.requestFullscreen) {
-    element.requestFullscreen().then(() => {
-      setIsFullscreen(true);
-    }).catch((err) => {
-      console.error(`Tam ekran hatası: ${err.message}`);
-    });
-  } else {
-    // Mobil veya bazı eski tarayıcılar için alternatif metodlar (web kit, moz, ms)
-    if (element.webkitRequestFullscreen) { element.webkitRequestFullscreen(); setIsFullscreen(true); }
-    else if (element.mozRequestFullScreen) { element.mozRequestFullScreen(); setIsFullscreen(true); }
-    else if (element.msRequestFullscreen) { element.msRequestFullscreen(); setIsFullscreen(true); }
-  }
-};
-useEffect(() => {
-    document.title = "Deme";
-  }, []);
-// Tam ekran modundan çıkma fonksiyonu
-const handleExitFullscreen = () => {
-  if (document.exitFullscreen) {
-    document.exitFullscreen().then(() => {
-      setIsFullscreen(false);
-    });
-  } else {
-    // Alternatif metodlar
-    if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); setIsFullscreen(false); }
-    else if (document.mozCancelFullScreen) { document.mozCancelFullScreen(); setIsFullscreen(false); }
-    else if (document.msExitFullscreen) { document.msExitFullscreen(); setIsFullscreen(false); }
-  }
-};
-  // -- KULLANICILARIN OLUŞTURDUĞU OYUN LİSTELERİ --
   const [customPublicGames, setCustomPublicGames] = useState([]);
   const [customPrivateGames, setCustomPrivateGames] = useState([]);
-
+  const [reports, setReports] = useState([]); 
   const [dbError, setDbError] = useState(""); 
-  
-  // Modals
+
+  // --- 2. ARAYÜZ / MODAL DURUMLARI ---
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [showMyGamesModal, setShowMyGamesModal] = useState(false);
-
-  const [setupStep, setSetupStep] = useState(0); 
-
-  // --- YENİ EKLENEN KISIM: 1. VE 2. ADIM (GERİ TUŞU TUZAĞI) ---
+  const [showReportModal, setShowReportModal] = useState(false); 
   const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isLoginMode, setIsLoginMode] = useState(true);
 
-  useEffect(() => {
-    const handlePopState = (event) => {
-      // Eğer ana menüde değilsek (oyundaysak) tuzağı çalıştır
-      if (setupStep > 0) { 
-        event.preventDefault();
-        setShowExitConfirmModal(true); // Uyarı penceresini aç
-        window.history.pushState(null, '', window.location.href); // Sayfadan düşmeyi engelle
-      }
-    };
+  // --- 3. FORMLAR / GEÇİCİ DURUMLAR ---
+  const [reportReason, setReportReason] = useState(""); 
+  const [reportStatus, setReportStatus] = useState(null); 
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authStatus, setAuthStatus] = useState(null);
 
-    // Oyun menüden çıktığı an tuzağı kur
-    if (setupStep > 0) {
-      window.history.pushState(null, '', window.location.href);
-      window.addEventListener('popstate', handlePopState);
-    }
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [setupStep]);
-
-  const handleConfirmExit = () => {
-    setShowExitConfirmModal(false);
-    // Oyuncu çıkmayı onaylarsa asıl çıkış işlemlerini yap:
-    setGameState('setup');
-    setSetupStep(0);
-    setOutOfWords(false);
-  };
-  // --- YENİ EKLENEN KISIM SONU ---
-
-// --- KAYDIRMA STATE'LERİ VE MANTIĞI ---
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-  const minSwipeDistance = 50;
-
-  const nextStep = () => setSetupStep(prev => prev + 1);
-  const prevStep = () => setSetupStep(prev => Math.max(0, prev - 1));
-
-  const onTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && setupStep < 3) {
-      if (setupStep === 1 && team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase()) return;
-      nextStep();
-    }
-    if (isRightSwipe && setupStep > 0) {
-      prevStep();
-    }
-  };
-
-  // --- OYUN STATE'LERİ ---
+  // --- 4. OYUN KURULUM DURUMLARI ---
+  const [setupStep, setSetupStep] = useState(0); 
   const [team1Name, setTeam1Name] = useState("Kırmızı Ejderler");
   const [team2Name, setTeam2Name] = useState("Mavi Aslanlar");
   const [team1Players, setTeam1Players] = useState(2);
   const [team2Players, setTeam2Players] = useState(2);
-  
   const [settings, setSettings] = useState({
-    timeLimit: 60,
-    penalty: 1,
-    passLimit: 3,
-    endType: 'rounds',
-    endRoundsValue: 5,
-    endScoreValue: 50,
+    timeLimit: 60, penalty: 1, passLimit: 3, endType: 'rounds', endRoundsValue: 5, endScoreValue: 50,
   });
-  const [reports, setReports] = useState([]); // Bildirimleri tutacak
-  const [showReportModal, setShowReportModal] = useState(false); // Pencereyi aç/kapat
-  const [reportReason, setReportReason] = useState(""); // Bildirim sebebi
-  const [reportStatus, setReportStatus] = useState(null); // Başarılı/Hata mesajı
+  
+  // --- 5. AKTİF OYUN İÇİ DURUMLARI ---
+  const [gameState, setGameState] = useState('setup'); // setup, preGame, countdown, playing, turnSummary, gameOver
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [gameState, setGameState] = useState('setup'); 
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0); 
   const [scores, setScores] = useState([0, 0]);
   const [roundsPlayed, setRoundsPlayed] = useState([0, 0]); 
@@ -2073,42 +1948,19 @@ const handleExitFullscreen = () => {
   const [turnStats, setTurnStats] = useState({ correct: 0, taboo: 0, pass: 0 });
   const [passesLeft, setPassesLeft] = useState(0);
 
-  // --- KULLANICI GİRİŞİ (AUTH) STATE VE FONKSİYONLARI ---
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authStatus, setAuthStatus] = useState(null);
+  // --- KAYDIRMA (SWIPE) DURUMLARI ---
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
 
-// GİRİŞ YAPMA FONKSİYONU
-  const handleAuthSubmit = async (e) => {
-    e.preventDefault();
-    if (!authEmail || !authPassword) {
-      setAuthStatus({ type: 'error', msg: "Lütfen e-posta ve şifre girin." });
-      return;
-    }
-    try {
-      if (isLoginMode) {
-        await signInWithEmailAndPassword(auth, authEmail, authPassword);
-      } else {
-        await createUserWithEmailAndPassword(auth, authEmail, authPassword);
-      }
-      setAuthStatus({ type: 'success', msg: "Giriş Başarılı!" });
-      setTimeout(() => {
-        setShowAuthModal(false);
-        setAuthStatus(null);
-      }, 1000);
-    } catch (error) {
-      console.error("Firebase Giriş Hatası:", error);
-      setAuthStatus({ type: 'error', msg: "Hata: " + error.message });
-    }
-  };
+  const gameRootRef = useRef(null); 
 
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
+  /* ==========================================
+     KİMLİK DOĞRULAMA (AUTH) EFEKTLERİ
+  ============================================= */
+  useEffect(() => {
+    document.title = "Deme";
+  }, []);
 
-  // Auth Effect
   useEffect(() => {
     if (!auth) return;
     const initAuth = async () => {
@@ -2117,99 +1969,79 @@ const handleExitFullscreen = () => {
           await signInAnonymously(auth);
         } else {
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            try {
-              await signInWithCustomToken(auth, __initial_auth_token);
-            } catch (tokenError) {
-              console.warn("Özel token doğrulanamadı, anonim girişe geçiliyor...", tokenError);
-              await signInAnonymously(auth);
-            }
+            try { await signInWithCustomToken(auth, __initial_auth_token); } 
+            catch (tokenError) { await signInAnonymously(auth); }
           } else {
             await signInAnonymously(auth);
           }
         }
       } catch (e) {
-        console.error("Kimlik doğrulama hatası:", e);
         if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/configuration-not-found') {
-          setDbError("Firebase Auth Hatası: Lütfen Firebase Console'da 'Authentication' kısmından 'Anonymous' (Anonim) girişi aktif edin.");
+          setDbError("Firebase Auth Hatası: Lütfen Firebase Console'da 'Anonymous' (Anonim) girişi aktif edin.");
         }
       }
     };
     
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if (!currentUser) {
-        initAuth();
-      } else {
-        // YENİ EKLENEN: Gerçek üyelerin e-postasını ve son giriş tarihini veritabanına kaydet
-        if (!currentUser.isAnonymous && currentUser.email) {
-          try {
-            const userRef = doc(db, 'artifacts', appId, 'userProfiles', currentUser.uid);
-            await setDoc(userRef, {
-              email: currentUser.email,
-              lastLogin: Date.now(),
-              isBanned: false // Varsayılan olarak engelsiz
-            }, { merge: true }); // merge: true sayesinde eski verileri ezmez, sadece günceller
-          } catch(e) { console.error("Kullanıcı profili güncellenemedi", e); }
-        }
+      if (!currentUser) initAuth();
+      else if (!currentUser.isAnonymous && currentUser.email) {
+        try {
+          const userRef = doc(db, 'artifacts', appId, 'userProfiles', currentUser.uid);
+          await setDoc(userRef, { email: currentUser.email, lastLogin: Date.now(), isBanned: false }, { merge: true });
+        } catch(e) {}
       }
     });
     
     return () => unsubscribe();
   }, []);
 
-  // Firestore Sync Effect
+  /* ==========================================
+     VERİTABANI (FIRESTORE) EFEKTLERİ
+  ============================================= */
   useEffect(() => {
     if (!user || !db) return;
     
-    // Categories Fetch
     const wordsRef = collection(db, 'artifacts', appId, 'public', 'data', 'categories');
     const unsubWords = onSnapshot(wordsRef, (snapshot) => {
       setDbError(""); 
       if (snapshot.empty) {
         Object.keys(DEFAULT_WORD_DATABASE).forEach(cat => {
-          setDoc(doc(wordsRef, cat), { words: DEFAULT_WORD_DATABASE[cat] })
-            .catch(err => console.error("Tohumlama hatası:", err));
+          setDoc(doc(wordsRef, cat), { words: DEFAULT_WORD_DATABASE[cat] }).catch(() => {});
         });
       } else {
         const newDB = {};
-        snapshot.forEach(document => {
-          newDB[document.id] = document.data().words;
-        });
+        snapshot.forEach(document => { newDB[document.id] = document.data().words; });
         setWordDatabase(newDB);
       }
     }, (error) => {
-      console.error("Firestore okuma hatası:", error);
       if (error.code === 'permission-denied' || error.message.includes('permission')) {
         setDbError("Veritabanı İzin Hatası: Lütfen Firebase Console'da veritabanınızı Test Moduna alın.");
       }
     });
 
-    // Suggestions Fetch
     const suggsRef = collection(db, 'artifacts', appId, 'public', 'data', 'suggestions');
     const unsubSuggs = onSnapshot(suggsRef, (snapshot) => {
       const s = [];
       snapshot.forEach(d => s.push({ id: d.id, ...d.data() }));
       setSuggestions(s);
-    }, (error) => console.error("Öneriler okuma hatası:", error));
-  // YENİ EKLENEN: Bildirimleri (Reports) Çekme
+    });
+
     const reportsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
     const unsubReports = onSnapshot(reportsRef, (snapshot) => {
       const arr = [];
       snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
-      arr.sort((a,b) => b.timestamp - a.timestamp); // Yeniler üstte
+      arr.sort((a,b) => b.timestamp - a.timestamp);
       setReports(arr);
     });
-    // Herkese Açık Kullanıcı Oyunları (Public Custom Games)
+
     const pubCustomRef = collection(db, 'artifacts', appId, 'public', 'data', 'customGames');
     const unsubPubCustom = onSnapshot(pubCustomRef, (snapshot) => {
       const arr = [];
       snapshot.forEach(d => arr.push({ id: d.id, ...d.data(), type: 'public' }));
       setCustomPublicGames(arr);
-    }, (err) => {
-      console.error("Oyunlar yüklenirken hata oluştu:", err);
     });
 
-    // Sadece Bana Özel Kullanıcı Oyunları (Private Custom Games)
     let unsubPrivCustom = () => {};
     if (user && !user.isAnonymous) {
       const privCustomRef = collection(db, 'artifacts', appId, 'users', user.uid, 'customGames');
@@ -2219,29 +2051,34 @@ const handleExitFullscreen = () => {
         setCustomPrivateGames(arr);
       });
     } else {
-      setCustomPrivateGames([]); // Anonimken özel oyunları temizle
+      setCustomPrivateGames([]); 
     }
     
     return () => { unsubWords(); unsubSuggs(); unsubPubCustom(); unsubPrivCustom(); unsubReports();};
   }, [user]);
 
+  /* ==========================================
+     GERİ TUŞU YAKALAYICI (TRAP)
+  ============================================= */
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (setupStep > 0) { 
+        event.preventDefault();
+        setShowExitConfirmModal(true);
+        window.history.pushState(null, '', window.location.href); 
+      }
+    };
 
-  // Kategori ismini ve kelimelerini parametre olarak alıyoruz
-  const startGameFlow = (catId, catName, catWords) => {
-    setSelectedCategory({ id: catId, name: catName, words: catWords });
-    setGameState('preGame');
-    setCurrentTeamIndex(0);
-    setScores([0, 0]);
-    setRoundsPlayed([0, 0]);
-    setUsedWords([]);
-    setOutOfWords(false); // YENİ OYUNDA UYARIYI SIFIRLA
-  };
+    if (setupStep > 0) {
+      window.history.pushState(null, '', window.location.href);
+      window.addEventListener('popstate', handlePopState);
+    }
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [setupStep]);
 
-  const startTurn = () => {
-    setGameState('countdown');
-    setCountdown(3);
-  };
-
+  /* ==========================================
+     ZAMANLAYICI (TIMER) EFEKTLERİ
+  ============================================= */
   useEffect(() => {
     let timer;
     if (gameState === 'countdown' && countdown > 0) {
@@ -2258,19 +2095,17 @@ const handleExitFullscreen = () => {
     return () => clearTimeout(timer);
   }, [gameState, countdown]);
 
-useEffect(() => {
+  useEffect(() => {
     let mainTimer;
     let soundTimers = [];
 
-    // EĞER MODAL AÇIKSA VEYA SÜRE BİTTİYSE ZAMANLAYICIYI KURMA (return ile çık)
     if (showReportModal || gameState !== 'playing') return;
 
     if (timeLeft > 0) {
       mainTimer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
 
-      if (timeLeft > 10) {
-        playTickSound(1000); 
-      } else if (timeLeft > 3 && timeLeft <= 10) {
+      if (timeLeft > 10) { playTickSound(1000); } 
+      else if (timeLeft > 3 && timeLeft <= 10) {
         playTickSound(1200); 
         soundTimers.push(setTimeout(() => playTickSound(1200), 500));
       } else if (timeLeft <= 3) {
@@ -2283,21 +2118,90 @@ useEffect(() => {
       endTurn();
     }
 
-    return () => {
-      clearTimeout(mainTimer);
-      soundTimers.forEach(clearTimeout);
-    };
-  }, [gameState, timeLeft, showReportModal]); // Dependency listesinde hepsi olmalı
+    return () => { clearTimeout(mainTimer); soundTimers.forEach(clearTimeout); };
+  }, [gameState, timeLeft, showReportModal]); 
+
+  /* ==========================================
+     FONKSİYONLAR - KAYDIRMA (SWIPE)
+  ============================================= */
+  const minSwipeDistance = 50;
+  const nextStep = () => setSetupStep(prev => prev + 1);
+  const prevStep = () => setSetupStep(prev => Math.max(0, prev - 1));
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe && setupStep < 3) {
+      if (setupStep === 1 && team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase()) return;
+      nextStep();
+    }
+    if (isRightSwipe && setupStep > 0) prevStep();
+  };
+
+  /* ==========================================
+     FONKSİYONLAR - OYUN MANTIĞI
+  ============================================= */
+  const handleRequestFullscreen = () => {
+    const element = gameRootRef.current;
+    if (element && element.requestFullscreen) {
+      element.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      if (element.webkitRequestFullscreen) { element.webkitRequestFullscreen(); setIsFullscreen(true); }
+      else if (element.mozRequestFullScreen) { element.mozRequestFullScreen(); setIsFullscreen(true); }
+      else if (element.msRequestFullscreen) { element.msRequestFullscreen(); setIsFullscreen(true); }
+    }
+  };
+
+  const handleExitFullscreen = () => {
+    if (document.exitFullscreen) { document.exitFullscreen().then(() => setIsFullscreen(false)); } 
+    else {
+      if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); setIsFullscreen(false); }
+      else if (document.mozCancelFullScreen) { document.mozCancelFullScreen(); setIsFullscreen(false); }
+      else if (document.msExitFullscreen) { document.msExitFullscreen(); setIsFullscreen(false); }
+    }
+  };
+
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    if (!authEmail || !authPassword) { setAuthStatus({ type: 'error', msg: "Lütfen e-posta ve şifre girin." }); return; }
+    try {
+      if (isLoginMode) await signInWithEmailAndPassword(auth, authEmail, authPassword);
+      else await createUserWithEmailAndPassword(auth, authEmail, authPassword);
+      setAuthStatus({ type: 'success', msg: "Giriş Başarılı!" });
+      setTimeout(() => { setShowAuthModal(false); setAuthStatus(null); }, 1000);
+    } catch (error) { setAuthStatus({ type: 'error', msg: "Hata: " + error.message }); }
+  };
+
+  const handleLogout = async () => await signOut(auth);
+
+  const startGameFlow = (catId, catName, catWords) => {
+    setSelectedCategory({ id: catId, name: catName, words: catWords });
+    setGameState('preGame');
+    setCurrentTeamIndex(0);
+    setScores([0, 0]);
+    setRoundsPlayed([0, 0]);
+    setUsedWords([]);
+    setOutOfWords(false);
+  };
+
+  const startTurn = () => {
+    setGameState('countdown');
+    setCountdown(3);
+  };
 
   const pickNextWord = () => {
-    // Hem resmi hem custom oyunlar bu mantıkla çalışır
-    const categoryWords = selectedCategory?.words && selectedCategory.words.length > 0 
-                            ? selectedCategory.words 
-                            : wordDatabase["Genel"];
-                            
+    const categoryWords = selectedCategory?.words && selectedCategory.words.length > 0 ? selectedCategory.words : wordDatabase["Genel"];
     const availableWords = categoryWords.filter(w => !usedWords.includes(w.word));
     
-    // HAVUZDA KELİME KALMADIYSA OYUNU ZORLA BİTİR
     if (availableWords.length === 0) {
       setOutOfWords(true);
       setGameState('gameOver');
@@ -2320,12 +2224,10 @@ useEffect(() => {
       pointsChange = 1;
       newStats.correct++;
       
-      // Skorları hemen güncelleyip ardından kelime çekiyoruz
       const newScores = [...scores];
       newScores[currentTeamIndex] += pointsChange;
       setScores(newScores);
       setTurnStats(newStats);
-      
       pickNextWord();
     } else if (type === 'taboo') {
       playTabooSound();
@@ -2336,18 +2238,14 @@ useEffect(() => {
       newScores[currentTeamIndex] += pointsChange;
       setScores(newScores);
       setTurnStats(newStats);
-      
       pickNextWord();
     } else if (type === 'pass') {
       if (passesLeft > 0 || settings.passLimit === 999) {
         playPassSound();
         newStats.pass++;
         if (settings.passLimit !== 999) setPassesLeft(prev => prev - 1);
-        
         setTurnStats(newStats);
         pickNextWord();
-      } else {
-        return; 
       }
     }
   };
@@ -2363,83 +2261,64 @@ useEffect(() => {
     let isGameOver = false;
     
     if (roundsPlayed[0] === roundsPlayed[1]) {
-      if (settings.endType === 'rounds') {
-        if (roundsPlayed[0] >= settings.endRoundsValue) isGameOver = true;
-      } else if (settings.endType === 'score') {
-        if (scores[0] >= settings.endScoreValue || scores[1] >= settings.endScoreValue) isGameOver = true;
-      }
+      if (settings.endType === 'rounds' && roundsPlayed[0] >= settings.endRoundsValue) isGameOver = true;
+      else if (settings.endType === 'score' && (scores[0] >= settings.endScoreValue || scores[1] >= settings.endScoreValue)) isGameOver = true;
     }
 
-    if (isGameOver) {
-      setGameState('gameOver');
-    } else {
+    if (isGameOver) setGameState('gameOver');
+    else {
       setCurrentTeamIndex(prev => (prev === 0 ? 1 : 0));
       setGameState('preGame');
     }
   };
 
   const returnToMainMenu = () => {
-    // Eğer oyun o an oynanıyorsa uyarı penceresini aç
     if (gameState === 'playing') {
       setShowExitConfirmModal(true);
     } else {
-      // Oyun oynanmıyorsa (örn: skor ekranındaysa) direkt çık
       setGameState('setup');
       setSetupStep(0);
-      setOutOfWords(false); // UYARIYI SIFIRLA
+      setOutOfWords(false); 
     }
   };
-const handleReportSubmit = async () => {
-    if (!reportReason.trim()) {
-      setReportStatus({ type: 'error', msg: "Lütfen bir sebep belirtin." });
-      return;
-    }
+
+  const handleConfirmExit = () => {
+    setShowExitConfirmModal(false);
+    setGameState('setup');
+    setSetupStep(0);
+    setOutOfWords(false);
+  };
+
+  const handleReportSubmit = async () => {
+    if (!reportReason.trim()) { setReportStatus({ type: 'error', msg: "Lütfen bir sebep belirtin." }); return; }
     try {
       setReportStatus({ type: 'info', msg: "Gönderiliyor..." });
       const repRef = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
       await addDoc(repRef, {
-        categoryId: selectedCategory?.id || "official",
-        categoryName: selectedCategory?.name || "Bilinmiyor",
-        word: currentWord.word,
-        forbidden: currentWord.forbidden,
-        reason: reportReason.trim(),
-        timestamp: Date.now(),
-        reportedBy: user && !user.isAnonymous ? user.email : "Anonim",
+        categoryId: selectedCategory?.id || "official", categoryName: selectedCategory?.name || "Bilinmiyor",
+        word: currentWord.word, forbidden: currentWord.forbidden, reason: reportReason.trim(),
+        timestamp: Date.now(), reportedBy: user && !user.isAnonymous ? user.email : "Anonim",
         isCustomGame: selectedCategory?.id !== selectedCategory?.name
       });
       setReportStatus({ type: 'success', msg: "Katkılarınız için teşekkür ederiz!" });
-      setTimeout(() => {
-        setShowReportModal(false);
-        setReportReason("");
-        setReportStatus(null);
-      }, 2000); // 2 saniye sonra pencereyi kapat ve süre devam etsin
-    } catch(e) {
-      setReportStatus({ type: 'error', msg: "Hata oluştu: " + e.message });
-    }
+      setTimeout(() => { setShowReportModal(false); setReportReason(""); setReportStatus(null); }, 2000);
+    } catch(e) { setReportStatus({ type: 'error', msg: "Hata oluştu: " + e.message }); }
   };
-  // Render Modals
-  if (showAdmin) {
-    return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} />;
-  }
+  /* ==========================================
+     BÖLÜM 6: RENDER (ARAYÜZ ÇİZİMİ)
+  ============================================= */
+
+  if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} />;
+  if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
   
-  if (showSuggestionModal) {
-    return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
-  }
-
-  // --- OYUNLARIM BÖLÜMÜNÜN FİLTRELENMESİ ---
   const myGames = [...customPublicGames, ...customPrivateGames].filter(g => g.ownerId === user?.uid);
-
-  if (showMyGamesModal) {
-    return <MyGamesModal onClose={() => setShowMyGamesModal(false)} user={user} myGames={myGames} />;
-  }
+  if (showMyGamesModal) return <MyGamesModal onClose={() => setShowMyGamesModal(false)} user={user} myGames={myGames} />;
 
   if (showAuthModal) {
     return (
       <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
         <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl relative border-4 border-purple-200">
-          <button onClick={() => {setShowAuthModal(false); setAuthStatus(null);}} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors">
-            <X size={32} />
-          </button>
+          <button onClick={() => {setShowAuthModal(false); setAuthStatus(null);}} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors"><X size={32} /></button>
           
           <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3">
             {isLoginMode ? <LogIn className="text-purple-500" size={36} /> : <UserPlus className="text-purple-500" size={36} />}
@@ -2449,30 +2328,16 @@ const handleReportSubmit = async () => {
           <form onSubmit={handleAuthSubmit} className="space-y-4">
             <div>
               <label className="block text-sm text-gray-500 mb-1 font-bold">E-posta</label>
-              <input 
-                type="email" 
-                required
-                value={authEmail} 
-                onChange={(e) => setAuthEmail(e.target.value)} 
-                className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
-              />
+              <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" />
             </div>
             <div>
               <label className="block text-sm text-gray-500 mb-1 font-bold">Şifre</label>
-              <input 
-                type="password" 
-                required
-                minLength="6"
-                value={authPassword} 
-                onChange={(e) => setAuthPassword(e.target.value)} 
-                className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
-              />
+              <input type="password" required minLength="6" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" />
             </div>
             
             {authStatus && (
               <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${authStatus.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : authStatus.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-                {authStatus.type === 'success' ? <Check size={20} /> : <Info size={20} />}
-                {authStatus.msg}
+                {authStatus.type === 'success' ? <Check size={20} /> : <Info size={20} />} {authStatus.msg}
               </div>
             )}
 
@@ -2482,14 +2347,8 @@ const handleReportSubmit = async () => {
           </form>
 
           <div className="mt-6 text-center border-t border-gray-100 pt-4">
-            <p className="text-gray-500 text-sm font-bold">
-              {isLoginMode ? "Hesabınız yok mu?" : "Zaten bir hesabınız var mı?"}
-            </p>
-            <button 
-              type="button"
-              onClick={() => { setIsLoginMode(!isLoginMode); setAuthStatus(null); }}
-              className="text-purple-600 hover:text-purple-800 font-black mt-1 transition-colors"
-            >
+            <p className="text-gray-500 text-sm font-bold">{isLoginMode ? "Hesabınız yok mu?" : "Zaten bir hesabınız var mı?"}</p>
+            <button type="button" onClick={() => { setIsLoginMode(!isLoginMode); setAuthStatus(null); }} className="text-purple-600 hover:text-purple-800 font-black mt-1 transition-colors">
               {isLoginMode ? "Yeni Hesap Oluştur" : "Mevcut Hesaba Giriş Yap"}
             </button>
           </div>
@@ -2498,10 +2357,6 @@ const handleReportSubmit = async () => {
     );
   }
 
-  /* ==========================================
-     RENDER BÖLÜMÜ - KURULUM AKIŞI (SLIDER)
-  ============================================= */
-  
   // Sadece onaylanmış public oyunlar (ya da kendi eklediği pending/approved public oyunlar) ve kendi private oyunları listelenir
   const visiblePublicGames = customPublicGames.filter(g => g.status === 'approved' || g.ownerId === user?.uid);
   const customCategoriesList = [...visiblePublicGames, ...customPrivateGames];
@@ -2512,94 +2367,48 @@ const handleReportSubmit = async () => {
         <div 
           className="flex-1 flex transition-transform duration-700 ease-in-out w-full h-full"
           style={{ transform: `translateX(-${setupStep * 100}%)` }}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={handleTouchEnd}
+          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={handleTouchEnd}
         >
           {/* STEP 0: ANA EKRAN */}
-          {/* DEĞİŞİKLİK: Mobilde justify-start ve pt-10 eklendi, böylece logo üste yapışır */}
           <div className="min-w-full h-full flex flex-col items-center justify-start pt-10 md:justify-center md:pt-6 p-6 relative overflow-y-auto">
-            
-            {/* DEĞİŞİKLİK: mb-8 değeri mb-5'e düşürüldü ki oyun kartı ile logo arası daralsın */}
             <Link to="/" className="mb-5 md:mb-8 hover:scale-105 transition-transform z-[100] shrink-0" title="Ana Sayfaya Dön">
-                <img 
-                  src="/anasayfa.png" 
-                  alt="Eğitici Oyunlar" 
-                  className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" 
-                />
+                <img src="/anasayfa.png" alt="Eğitici Oyunlar" className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" />
             </Link>
 
             <div className="bg-white/20 p-6 md:p-8 rounded-[3rem] backdrop-blur-sm border border-white/30 shadow-2xl flex flex-col items-center shrink-0 w-full max-w-[90%] md:max-w-md">
-              
-              <img 
-                src="/deme_logo.png" 
-                alt="Oyun Logosu" 
-                className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300"
-              />
-              
-              <p className="text-white/90 text-xl md:text-2xl mb-8 md:mb-12 text-center font-medium">
-                Yasaklı kelimeleri kullanmadan takım arkadaşlarına kelimeyi anlat!
-              </p>
-
+              <img src="/deme_logo.png" alt="Oyun Logosu" className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300" />
+              <p className="text-white/90 text-xl md:text-2xl mb-8 md:mb-12 text-center font-medium">Yasaklı kelimeleri kullanmadan takım arkadaşlarına kelimeyi anlat!</p>
               <div className="w-32 h-[2px] bg-white/30 mb-8 rounded-full"></div>
               
               <div className="flex flex-col items-center gap-4 w-full">
                 {dbError && (
                   <div className="bg-red-500/90 text-white p-4 rounded-xl shadow-lg border-2 border-red-300 text-sm max-w-md text-center mb-2 animate-pulse flex flex-col items-center gap-2">
-                    <Info size={24} />
-                    <p className="font-bold">{dbError}</p>
+                    <Info size={24} /> <p className="font-bold">{dbError}</p>
                   </div>
                 )}
-
-                <button 
-                  onClick={nextStep}
-                  className="group relative px-12 py-6 bg-yellow-400 hover:bg-yellow-300 text-purple-900 text-3xl font-bold rounded-full shadow-[0_10px_0_rgb(202,138,4)] hover:shadow-[0_5px_0_rgb(202,138,4)] hover:translate-y-1 transition-all flex items-center gap-4 mb-2"
-                >
-                  <Play fill="currentColor" size={32} />
-                  OYNA
+                <button onClick={nextStep} className="group relative px-12 py-6 bg-yellow-400 hover:bg-yellow-300 text-purple-900 text-3xl font-bold rounded-full shadow-[0_10px_0_rgb(202,138,4)] hover:shadow-[0_5px_0_rgb(202,138,4)] hover:translate-y-1 transition-all flex items-center gap-4 mb-2">
+                  <Play fill="currentColor" size={32} /> OYNA
                 </button>
 
                 <div className="flex flex-col items-center gap-4 mt-2 w-full max-w-[320px]">
                   {(!user || user.isAnonymous) ? (
                     <div className="flex items-center justify-center gap-2 w-full">
-                      <button
-                        onClick={() => { setShowAuthModal(true); setIsLoginMode(true); }}
-                        className="flex-1 px-4 py-3.5 bg-white text-purple-700 font-bold rounded-xl shadow-lg hover:bg-gray-100 transition-all flex items-center justify-center gap-2 hover:scale-105 whitespace-nowrap text-sm sm:text-base"
-                      >
+                      <button onClick={() => { setShowAuthModal(true); setIsLoginMode(true); }} className="flex-1 px-4 py-3.5 bg-white text-purple-700 font-bold rounded-xl shadow-lg hover:bg-gray-100 transition-all flex items-center justify-center gap-2 hover:scale-105 whitespace-nowrap text-sm sm:text-base">
                         <User size={20} /> Giriş Yap / Kayıt Ol
                       </button>
-                      
-                      <button
-                        onClick={() => setShowAdmin(true)}
-                        className="p-3.5 bg-transparent hover:bg-white/10 text-white/80 hover:text-white rounded-xl transition-colors flex items-center justify-center border border-white/30 shadow-sm hover:scale-105 flex-shrink-0"
-                        title="Yönetici Girişi"
-                      >
+                      <button onClick={() => setShowAdmin(true)} className="p-3.5 bg-transparent hover:bg-white/10 text-white/80 hover:text-white rounded-xl transition-colors flex items-center justify-center border border-white/30 shadow-sm hover:scale-105 flex-shrink-0" title="Yönetici Girişi">
                         <Lock size={20} />
                       </button>
                     </div>
                   ) : (
                     <div className="flex flex-wrap justify-center items-center gap-3">
-                      <button
-                        onClick={() => setShowSuggestionModal(true)}
-                        className="px-5 py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl text-sm font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 border border-white/30"
-                      >
-                        <MessageSquarePlus size={18} />
-                        Kelime Öner
+                      <button onClick={() => setShowSuggestionModal(true)} className="px-5 py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl text-sm font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 border border-white/30">
+                        <MessageSquarePlus size={18} /> Kelime Öner
                       </button>
-
-                      <button
-                        onClick={() => setShowMyGamesModal(true)}
-                        className="px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:translate-y-[-2px] transition-all flex items-center gap-2"
-                      >
-                        <Gamepad2 size={18} />
-                        Oyunlarım
+                      <button onClick={() => setShowMyGamesModal(true)} className="px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:translate-y-[-2px] transition-all flex items-center gap-2">
+                        <Gamepad2 size={18} /> Oyunlarım
                       </button>
-
-                      <button
-                        onClick={handleLogout}
-                        className="p-3 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-all shadow-md hover:scale-105 border border-red-400/50"
-                        title="Çıkış Yap"
-                      >
+                      <button onClick={handleLogout} className="p-3 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-all shadow-md hover:scale-105 border border-red-400/50" title="Çıkış Yap">
                         <LogOut size={18} />
                       </button>
                     </div>
@@ -2611,42 +2420,27 @@ const handleReportSubmit = async () => {
 
           {/* STEP 1: TAKIM ADLARI */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-20 relative overflow-y-auto">
-            {/* DEĞİŞİKLİK: top-4 yerine top-3 yapıldı (Geri butonu daha üstte) */}
             <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
               <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
                 <ChevronLeft size={24} /> Geri
               </button>
             </div>
             
-            {/* ORTAK BAŞLIK (Hizalar ve boyutlar eşitlendi) */}
             <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
               <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Takımları Belirle</h2>
             </div>
             
             <div className="w-full max-w-md flex flex-col gap-6 md:gap-12 mt-2 flex-shrink-0">
-              <TeamSetupCard 
-                title="1. TAKIM" teamName={team1Name} setTeamName={setTeam1Name}
-                playerCount={team1Players} setPlayerCount={setTeam1Players}
-                theme="orange" otherTeamName={team2Name}
-              />
-              
-              <TeamSetupCard 
-                title="2. TAKIM" teamName={team2Name} setTeamName={setTeam2Name}
-                playerCount={team2Players} setPlayerCount={setTeam2Players}
-                theme="turquoise" otherTeamName={team1Name}
-              />
+              <TeamSetupCard title="1. TAKIM" teamName={team1Name} setTeamName={setTeam1Name} playerCount={team1Players} setPlayerCount={setTeam1Players} theme="orange" otherTeamName={team2Name} />
+              <TeamSetupCard title="2. TAKIM" teamName={team2Name} setTeamName={setTeam2Name} playerCount={team2Players} setPlayerCount={setTeam2Players} theme="turquoise" otherTeamName={team1Name} />
             </div>
             
-            {/* Hata Mesajı veya İleri Butonu */}
             {team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase() ? (
               <div className="mt-8 bg-red-500/90 text-white px-6 py-3 rounded-full font-bold shadow-lg backdrop-blur-sm animate-bounce flex items-center gap-2 border-2 border-white/50 flex-shrink-0">
                 <Info size={20} /> Takım isimleri birbirinden farklı olmalıdır!
               </div>
             ) : (
-              <button 
-                onClick={nextStep}
-                className="mt-6 px-6 py-2 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-bold text-base flex items-center gap-2 transition-all shadow-md hover:scale-105 hover:shadow-lg flex-shrink-0"
-              >
+              <button onClick={nextStep} className="mt-6 px-6 py-2 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-bold text-base flex items-center gap-2 transition-all shadow-md hover:scale-105 hover:shadow-lg flex-shrink-0">
                 İLERİ <ArrowRight size={18} strokeWidth={3} />
               </button>
             )}
@@ -2654,30 +2448,22 @@ const handleReportSubmit = async () => {
 
           {/* STEP 2: AYARLAR */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-24 relative overflow-y-auto">
-            {/* DEĞİŞİKLİK: top-4 yerine top-3 yapıldı (Geri butonu daha üstte) */}
             <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
-              <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
-                <ChevronLeft size={24} /> Geri
-              </button>
+              <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button>
             </div>
             
-            {/* ORTAK BAŞLIK (Hizalar ve boyutlar eşitlendi) */}
             <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
               <Settings className="text-white w-6 h-6 md:w-8 md:h-8" />
               <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Oyun Ayarları</h2>
             </div>
             
             <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-3xl shadow-2xl flex-shrink-0">
-
               <div className="space-y-8">
                 <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100 shadow-sm">
                   <label className="block text-lg font-bold text-purple-900 mb-3">Anlatma Süresi (Saniye)</label>
                   <div className="flex flex-wrap gap-2">
                     {[15, 30, 45, 60, 75, 90, 105, 120].map(val => (
-                      <button
-                        key={val} onClick={() => setSettings({...settings, timeLimit: val})}
-                        className={`px-4 py-2 rounded-xl font-bold transition-all ${settings.timeLimit === val ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-100 shadow-sm'}`}
-                      >
+                      <button key={val} onClick={() => setSettings({...settings, timeLimit: val})} className={`px-4 py-2 rounded-xl font-bold transition-all ${settings.timeLimit === val ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-100 shadow-sm'}`}>
                         {val}
                       </button>
                     ))}
@@ -2689,10 +2475,7 @@ const handleReportSubmit = async () => {
                     <label className="block text-lg font-bold text-red-900 mb-3">Dedim Cezası</label>
                     <div className="flex gap-2">
                       {[1, 2, 3, 4].map(val => (
-                        <button
-                          key={val} onClick={() => setSettings({...settings, penalty: val})}
-                          className={`flex-1 py-3 rounded-xl font-bold transition-all ${settings.penalty === val ? 'bg-red-500 text-white shadow-lg scale-105' : 'bg-white text-red-600 border border-red-200 hover:bg-red-100 shadow-sm'}`}
-                        >
+                        <button key={val} onClick={() => setSettings({...settings, penalty: val})} className={`flex-1 py-3 rounded-xl font-bold transition-all ${settings.penalty === val ? 'bg-red-500 text-white shadow-lg scale-105' : 'bg-white text-red-600 border border-red-200 hover:bg-red-100 shadow-sm'}`}>
                           -{val}
                         </button>
                       ))}
@@ -2702,10 +2485,7 @@ const handleReportSubmit = async () => {
                     <label className="block text-lg font-bold text-amber-900 mb-3">Pas Hakkı</label>
                     <div className="flex flex-wrap gap-2">
                       {[1, 2, 3, 4, 5, 999].map(val => (
-                        <button
-                          key={val} onClick={() => setSettings({...settings, passLimit: val})}
-                          className={`px-3 py-3 flex-1 rounded-xl font-bold transition-all ${settings.passLimit === val ? 'bg-yellow-400 text-gray-900 shadow-lg scale-105' : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-100 shadow-sm'}`}
-                        >
+                        <button key={val} onClick={() => setSettings({...settings, passLimit: val})} className={`px-3 py-3 flex-1 rounded-xl font-bold transition-all ${settings.passLimit === val ? 'bg-yellow-400 text-gray-900 shadow-lg scale-105' : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-100 shadow-sm'}`}>
                           {val === 999 ? 'Limitsiz' : val}
                         </button>
                       ))}
@@ -2715,22 +2495,12 @@ const handleReportSubmit = async () => {
 
                 <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 shadow-sm">
                   <label className="block text-xl font-bold text-gray-800 mb-4">Oyun Nasıl Biter?</label>
-                  
                   <div className="space-y-4">
                     <label className={`flex items-start md:items-center gap-3 md:gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${settings.endType === 'rounds' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
-                      <input 
-                        type="radio" name="endType" checked={settings.endType === 'rounds'}
-                        onChange={() => setSettings({...settings, endType: 'rounds'})}
-                        className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0"
-                      />
+                      <input type="radio" name="endType" checked={settings.endType === 'rounds'} onChange={() => setSettings({...settings, endType: 'rounds'})} className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0" />
                       <div className="flex-1 flex flex-wrap items-center gap-x-2 gap-y-2 text-base md:text-lg">
                         <span className="font-semibold text-gray-700 whitespace-nowrap">Her takım</span>
-                        <select 
-                          disabled={settings.endType !== 'rounds'}
-                          value={settings.endRoundsValue}
-                          onChange={(e) => setSettings({...settings, endRoundsValue: parseInt(e.target.value)})}
-                          className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
-                        >
+                        <select disabled={settings.endType !== 'rounds'} value={settings.endRoundsValue} onChange={(e) => setSettings({...settings, endRoundsValue: parseInt(e.target.value)})} className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
                           {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
                         <span className="font-semibold text-gray-700 whitespace-nowrap">kez anlattığında.</span>
@@ -2738,19 +2508,10 @@ const handleReportSubmit = async () => {
                     </label>
 
                     <label className={`flex items-start md:items-center gap-3 md:gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${settings.endType === 'score' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
-                      <input 
-                        type="radio" name="endType" checked={settings.endType === 'score'}
-                        onChange={() => setSettings({...settings, endType: 'score'})}
-                        className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0"
-                      />
+                      <input type="radio" name="endType" checked={settings.endType === 'score'} onChange={() => setSettings({...settings, endType: 'score'})} className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0" />
                       <div className="flex-1 flex flex-wrap items-center gap-x-2 gap-y-2 text-base md:text-lg">
                         <span className="font-semibold text-gray-700 whitespace-nowrap">Toplam skor</span>
-                        <select 
-                          disabled={settings.endType !== 'score'}
-                          value={settings.endScoreValue}
-                          onChange={(e) => setSettings({...settings, endScoreValue: parseInt(e.target.value)})}
-                          className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
-                        >
+                        <select disabled={settings.endType !== 'score'} value={settings.endScoreValue} onChange={(e) => setSettings({...settings, endScoreValue: parseInt(e.target.value)})} className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
                           {Array.from({length: 20}, (_, i) => (i+1)*5).map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
                         <span className="font-semibold text-gray-700 whitespace-nowrap">olduğunda.</span>
@@ -2761,30 +2522,23 @@ const handleReportSubmit = async () => {
               </div>
             </div>
 
-            <button 
-              onClick={nextStep}
-              className="mt-6 mb-8 px-6 py-2 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-bold text-base flex items-center gap-2 transition-all shadow-md hover:scale-105 hover:shadow-lg flex-shrink-0"
-            >
+            <button onClick={nextStep} className="mt-6 mb-8 px-6 py-2 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-bold text-base flex items-center gap-2 transition-all shadow-md hover:scale-105 hover:shadow-lg flex-shrink-0">
               İLERİ <ArrowRight size={18} strokeWidth={3} />
             </button>
           </div>
-{/* STEP 3: KATEGORİ SEÇİMİ */}
+
+          {/* STEP 3: KATEGORİ SEÇİMİ */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-20 relative overflow-y-auto">
-            {/* DEĞİŞİKLİK: top-4 yerine top-3 yapıldı (Geri butonu daha üstte) */}
             <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
-              <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
-                <ChevronLeft size={24} /> Geri
-              </button>
+              <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button>
             </div>
             
-            {/* ORTAK BAŞLIK (Hizalar ve boyutlar eşitlendi) */}
             <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
               <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Kategori Seç</h2>
             </div>
             
             <div className="w-full max-w-5xl px-2 md:px-4 flex flex-col items-center">
               
-              {/* RESMİ OYUNLAR */}
               <div className="w-full mb-8 md:mb-12">
                 <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 border-b border-white/20 pb-2 md:pb-3">
                   <Database className="text-yellow-400 w-6 h-6 md:w-7 md:h-7" />
@@ -2804,17 +2558,12 @@ const handleReportSubmit = async () => {
                         className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-2xl md:rounded-[2.5rem] p-4 md:p-10 flex flex-col items-center justify-center gap-3 md:gap-6 shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] hover:-translate-y-2 md:hover:-translate-y-3 transition-all duration-300 group border-2 md:border-4 border-white/40"
                       >
                         <Icon className={`absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-500 ${color} w-24 h-24 md:w-48 md:h-48`} />
-                        
                         <div className={`w-14 h-14 md:w-32 md:h-32 bg-gradient-to-br ${gradient} rounded-xl md:rounded-[2rem] flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner relative z-10 border-2 md:border-4 border-white`}>
                           <Icon className={`${color} drop-shadow-md w-6 h-6 md:w-16 md:h-16`} strokeWidth={2.5} />
                         </div>
-                        
-                        {/* DEĞİŞEN KISIM: İsim ve kelime sayısı alt alta, gruplu halde */}
                         <div className="flex flex-col items-center relative z-10">
                           <span className="text-base md:text-3xl font-black tracking-wide text-center leading-tight">{catName}</span>
-                          <span className="text-[11px] md:text-sm font-bold text-gray-500 mt-1">
-                            ({wordDatabase[catName] ? wordDatabase[catName].length : 0} Kelime)
-                          </span>
+                          <span className="text-[11px] md:text-sm font-bold text-gray-500 mt-1">({wordDatabase[catName] ? wordDatabase[catName].length : 0} Kelime)</span>
                         </div>
                       </button>
                     );
@@ -2822,7 +2571,6 @@ const handleReportSubmit = async () => {
                 </div>
               </div>
 
-              {/* ÜYELERDEN VE OYUNLARIM */}
               {customCategoriesList.length > 0 && (
                 <div className="w-full">
                   <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 border-b border-white/20 pb-2 md:pb-3">
@@ -2839,31 +2587,19 @@ const handleReportSubmit = async () => {
                         <div className={`w-12 h-12 md:w-20 md:h-20 bg-gradient-to-br ${custom.type === 'private' ? 'from-purple-100 to-purple-200' : 'from-blue-100 to-blue-200'} rounded-xl md:rounded-3xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-inner border-2 border-white`}>
                           {custom.type === 'private' ? <Lock className="text-purple-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" /> : <Gamepad2 className="text-blue-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" />}
                         </div>
-                        
-                        {/* DEĞİŞEN KISIM: İsim ve kelime sayısı alt alta, gruplu halde */}
                         <div className="flex flex-col items-center mt-1 md:mt-2">
                           <span className="text-sm md:text-2xl font-black tracking-wide text-center leading-tight">{custom.name}</span>
-                          <span className="text-[10px] md:text-sm font-bold text-gray-500 mt-1">
-                            ({custom.words?.length || 0} Kelime)
-                          </span>
+                          <span className="text-[10px] md:text-sm font-bold text-gray-500 mt-1">({custom.words?.length || 0} Kelime)</span>
                         </div>
-                        
                         <div className="flex flex-col items-center gap-1 mt-1">
-                          {/* Kelime sayısını sildik, diğer bilgilendirme rozetleri kaldı */}
                           {custom.type === 'public' && custom.ownerEmail && (
-                            <span className="text-[9px] md:text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                              @{custom.ownerEmail.split('@')[0]}
-                            </span>
+                            <span className="text-[9px] md:text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">@{custom.ownerEmail.split('@')[0]}</span>
                           )}
                           {custom.type === 'private' && (
-                            <span className="text-[9px] md:text-[11px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
-                              Bana Özel
-                            </span>
+                            <span className="text-[9px] md:text-[11px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">Bana Özel</span>
                           )}
                           {custom.type === 'public' && custom.status === 'pending' && (
-                            <span className="text-[9px] md:text-[11px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 mt-0.5 md:mt-1">
-                              Onay Bekliyor
-                            </span>
+                            <span className="text-[9px] md:text-[11px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 mt-0.5 md:mt-1">Onay Bekliyor</span>
                           )}
                         </div>
                       </button>
@@ -2871,19 +2607,13 @@ const handleReportSubmit = async () => {
                   </div>
                 </div>
               )}
-
             </div>
           </div>
-
-            </div>
-          </div>
+        </div>
+      </div>
     );
   }
 
-  /* ==========================================
-   RENDER BÖLÜMÜ - OYUN EKRANLARI
-============================================= */
-  
   const currentTeamName = currentTeamIndex === 0 ? team1Name : team2Name;
 
   if (gameState === 'preGame') {
@@ -2893,25 +2623,12 @@ const handleReportSubmit = async () => {
           <p className="text-2xl text-blue-300 font-bold mb-2">Sıra şu takımda:</p>
           <h1 className="text-6xl font-black text-yellow-400 drop-shadow-lg">{currentTeamName}</h1>
         </div>
-        
         <div className="flex gap-12 mb-16 opacity-80">
-          <div>
-            <p className="text-sm uppercase tracking-wider">{team1Name}</p>
-            <p className="text-3xl font-bold">{scores[0]} Puan</p>
-          </div>
+          <div><p className="text-sm uppercase tracking-wider">{team1Name}</p><p className="text-3xl font-bold">{scores[0]} Puan</p></div>
           <div className="w-px bg-white/20"></div>
-          <div>
-            <p className="text-sm uppercase tracking-wider">{team2Name}</p>
-            <p className="text-3xl font-bold">{scores[1]} Puan</p>
-          </div>
+          <div><p className="text-sm uppercase tracking-wider">{team2Name}</p><p className="text-3xl font-bold">{scores[1]} Puan</p></div>
         </div>
-
-        <button 
-          onClick={startTurn}
-          className="px-16 py-6 bg-green-500 hover:bg-green-400 text-white text-4xl font-bold rounded-full shadow-[0_10px_0_rgb(22,163,74)] hover:shadow-[0_5px_0_rgb(22,163,74)] hover:translate-y-1 transition-all"
-        >
-          HAZIRIZ, BAŞLA!
-        </button>
+        <button onClick={startTurn} className="px-16 py-6 bg-green-500 hover:bg-green-400 text-white text-4xl font-bold rounded-full shadow-[0_10px_0_rgb(22,163,74)] hover:shadow-[0_5px_0_rgb(22,163,74)] hover:translate-y-1 transition-all">HAZIRIZ, BAŞLA!</button>
       </div>
     );
   }
@@ -2927,34 +2644,16 @@ const handleReportSubmit = async () => {
   if (gameState === 'playing' && currentWord) {
     return (
       <div ref={gameRootRef} className="w-full h-[100dvh] bg-gray-50 flex flex-col font-sans relative">
-        
         {showReportModal && (
           <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
             <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-md shadow-2xl flex flex-col border-4 border-red-200">
-               <h3 className="text-xl md:text-2xl font-black text-gray-800 mb-3 flex items-center gap-2">
-                 <Flag className="text-red-500" /> "{currentWord.word}" İfadesini Bildir
-               </h3>
-               <p className="text-gray-600 mb-4 font-medium text-sm">
-                 Oyun süreniz şu an duraklatıldı. Lütfen bu kelimede ne gibi bir hata olduğunu kısaca belirtin.
-               </p>
-               <textarea
-                 value={reportReason}
-                 onChange={e => setReportReason(e.target.value)}
-                 className="w-full border-2 border-gray-200 rounded-xl p-3 font-medium text-gray-800 focus:border-red-400 outline-none shadow-inner resize-none h-28 mb-4"
-                 placeholder="Bildirme sebebiniz..."
-               />
-               {reportStatus && (
-                 <div className={`p-3 rounded-xl font-bold flex items-center gap-2 mb-4 ${reportStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} border`}>
-                   {reportStatus.msg}
-                 </div>
-               )}
+               <h3 className="text-xl md:text-2xl font-black text-gray-800 mb-3 flex items-center gap-2"><Flag className="text-red-500" /> "{currentWord.word}" İfadesini Bildir</h3>
+               <p className="text-gray-600 mb-4 font-medium text-sm">Oyun süreniz şu an duraklatıldı. Lütfen bu kelimede ne gibi bir hata olduğunu kısaca belirtin.</p>
+               <textarea value={reportReason} onChange={e => setReportReason(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 font-medium text-gray-800 focus:border-red-400 outline-none shadow-inner resize-none h-28 mb-4" placeholder="Bildirme sebebiniz..." />
+               {reportStatus && (<div className={`p-3 rounded-xl font-bold flex items-center gap-2 mb-4 ${reportStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} border`}>{reportStatus.msg}</div>)}
                <div className="flex gap-3">
-                 <button onClick={() => { setShowReportModal(false); setReportReason(""); setReportStatus(null); }} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl transition-colors">
-                   İptal
-                 </button>
-                 <button onClick={handleReportSubmit} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-colors flex justify-center items-center gap-2">
-                   <Flag size={18} /> Bildir
-                 </button>
+                 <button onClick={() => { setShowReportModal(false); setReportReason(""); setReportStatus(null); }} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl transition-colors">İptal</button>
+                 <button onClick={handleReportSubmit} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-colors flex justify-center items-center gap-2"><Flag size={18} /> Bildir</button>
                </div>
             </div>
           </div>
@@ -2962,53 +2661,31 @@ const handleReportSubmit = async () => {
 
         <div className="bg-white shadow-sm p-4 flex justify-between items-center px-4 md:px-6 border-b flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-lg md:text-xl">
-              {timeLeft}
-            </div>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-lg md:text-xl">{timeLeft}</div>
             <span className="font-bold text-gray-500 hidden md:block">Saniye Kaldı</span>
           </div>
-          <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">
-            {currentTeamName} Oynuyor
-          </div>
+          <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">{currentTeamName} Oynuyor</div>
           <div className="flex gap-2 items-center">
             {!isFullscreen ? (
-              <button onClick={handleRequestFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekran">
-                <Maximize2 size={20} className="w-5 h-5 md:w-6 md:h-6" />
-              </button>
+              <button onClick={handleRequestFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekran"><Maximize2 size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>
             ) : (
-              <button onClick={handleExitFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekrandan Çık">
-                <Minimize2 size={20} className="w-5 h-5 md:w-6 md:h-6" />
-              </button>
+              <button onClick={handleExitFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekrandan Çık"><Minimize2 size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>
             )}
-            {/* OYUNDAN ÇIKIŞ BUTONU (Uyarıyı Tetikler) */}
-            <button onClick={() => setShowExitConfirmModal(true)} className="p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Oyunu Sonlandır">
-              <LogOut size={20} className="w-5 h-5 md:w-6 md:h-6" />
-            </button>
+            <button onClick={() => setShowExitConfirmModal(true)} className="p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Oyunu Sonlandır"><LogOut size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>
           </div>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-8 overflow-hidden">
           <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-4 md:border-8 border-yellow-400 flex flex-col max-h-[70vh] relative mb-2">
             <div className="bg-yellow-400 text-center py-2 md:py-8 px-4 flex-shrink-0 relative">
-              <button 
-                 onClick={() => setShowReportModal(true)}
-                 className="absolute top-2 right-2 md:top-4 md:right-4 text-yellow-700 hover:text-red-600 bg-white/30 hover:bg-white/50 p-2 rounded-full transition-colors flex items-center justify-center"
-                 title="Hatalı Kelimeyi Bildir"
-              >
-                 <Flag size={20} />
-              </button>
-              <h2 className="text-3xl md:text-5xl font-black text-gray-900 uppercase tracking-wide">
-                {currentWord.word}
-              </h2>
+              <button onClick={() => setShowReportModal(true)} className="absolute top-2 right-2 md:top-4 md:right-4 text-yellow-700 hover:text-red-600 bg-white/30 hover:bg-white/50 p-2 rounded-full transition-colors flex items-center justify-center" title="Hatalı Kelimeyi Bildir"><Flag size={20} /></button>
+              <h2 className="text-3xl md:text-5xl font-black text-gray-900 uppercase tracking-wide">{currentWord.word}</h2>
             </div>
-                      
             <div className="bg-white px-3 py-6 md:px-8 md:py-10 flex flex-col justify-around gap-3 md:gap-5 items-center overflow-y-auto">
               {currentWord.forbidden.map((word, index) => (
                 <div key={index} className="w-full flex items-center justify-center relative">
                   <div className="absolute left-0 right-0 h-px bg-gray-200"></div>
-                  <span className="relative bg-white px-4 md:px-6 text-xl md:text-3xl font-bold text-gray-700 capitalize">
-                    {word}
-                  </span>
+                  <span className="relative bg-white px-4 md:px-6 text-xl md:text-3xl font-bold text-gray-700 capitalize">{word}</span>
                 </div>
               ))}
             </div>
@@ -3016,33 +2693,18 @@ const handleReportSubmit = async () => {
         </div>
         
         <div className="flex justify-center gap-6 md:gap-12 mb-2 flex-shrink-0 font-bold text-sm md:text-xl">
-          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-gray-500">
-            Doğru: <span className="text-green-600 font-black text-lg md:text-2xl">{turnStats.correct}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-gray-500">
-            Dedim: <span className="text-red-500 font-black text-lg md:text-2xl">{turnStats.taboo}</span>
-          </div>
+          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-gray-500">Doğru: <span className="text-green-600 font-black text-lg md:text-2xl">{turnStats.correct}</span></div>
+          <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100 text-gray-500">Dedim: <span className="text-red-500 font-black text-lg md:text-2xl">{turnStats.taboo}</span></div>
         </div>
 
         <div className="bg-white p-3 md:p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-3 md:gap-6 flex-shrink-0">
-          <button 
-            onClick={() => handleAction('taboo')}
-            className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] md:shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
-          >
+          <button onClick={() => handleAction('taboo')} className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] md:shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2">
             <X size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DEDİM (-{settings.penalty})</span><span className="hidden md:inline">DEDİM (-{settings.penalty})</span>
           </button>
-          
-          <button 
-            onClick={() => handleAction('pass')}
-            className={`flex-1 max-w-[90px] md:max-w-[120px] py-3 md:py-6 rounded-2xl md:rounded-3xl font-black text-base md:text-xl flex flex-col items-center justify-center gap-1 md:gap-2 transition-all ${passesLeft > 0 || settings.passLimit === 999 ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-[0_6px_0_rgb(202,138,4)] md:shadow-[0_8px_0_rgb(202,138,4)] active:shadow-none active:translate-y-2' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-          >
+          <button onClick={() => handleAction('pass')} className={`flex-1 max-w-[90px] md:max-w-[120px] py-3 md:py-6 rounded-2xl md:rounded-3xl font-black text-base md:text-xl flex flex-col items-center justify-center gap-1 md:gap-2 transition-all ${passesLeft > 0 || settings.passLimit === 999 ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-[0_6px_0_rgb(202,138,4)] md:shadow-[0_8px_0_rgb(202,138,4)] active:shadow-none active:translate-y-2' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
             <SkipForward size={24} className="md:w-8 md:h-8" /> <span className="text-xs md:text-base">PAS ({settings.passLimit === 999 ? '∞' : passesLeft})</span>
           </button>
-
-          <button 
-            onClick={() => handleAction('correct')}
-            className="flex-1 max-w-xs py-3 md:py-6 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(21,128,61)] md:shadow-[0_8px_0_rgb(21,128,61)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2"
-          >
+          <button onClick={() => handleAction('correct')} className="flex-1 max-w-xs py-3 md:py-6 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(21,128,61)] md:shadow-[0_8px_0_rgb(21,128,61)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2">
             <Check size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DOĞRU (+1)</span><span className="hidden md:inline">DOĞRU (+1)</span>
           </button>
         </div>
@@ -3051,9 +2713,7 @@ const handleReportSubmit = async () => {
         {showExitConfirmModal && (
           <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
             <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative overflow-hidden border-2 border-red-200 text-center animate-bounce-short">
-              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-              </div>
+              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
               <h2 className="text-xl font-black text-neutral-800 mb-2">Oyundan Çıkış</h2>
               <p className="text-sm font-bold text-neutral-600 mb-6">Oyundan çıkmak istediğinize emin misiniz? İlerlemeniz kaybolacaktır.</p>
               <div className="flex gap-3">
@@ -3063,8 +2723,6 @@ const handleReportSubmit = async () => {
             </div>
           </div>
         )}
-        {/* --- MODAL SONU --- */}
-
       </div>
     );
   }
@@ -3074,29 +2732,13 @@ const handleReportSubmit = async () => {
       <div className="w-full h-screen bg-indigo-900 text-white flex flex-col items-center justify-center p-6 text-center">
         <h1 className="text-5xl font-black mb-2 text-yellow-400">Süre Doldu!</h1>
         <p className="text-2xl mb-12 opacity-90">{currentTeamName} takımının tur özeti</p>
-
         <div className="bg-white/10 p-8 rounded-3xl backdrop-blur-md mb-12 w-full max-w-md">
-          <div className="flex justify-between items-center mb-6 text-2xl">
-            <span className="font-bold flex items-center gap-2"><Check className="text-green-400"/> Doğru:</span>
-            <span className="font-black text-green-400">+{turnStats.correct} Puan</span>
-          </div>
-          <div className="flex justify-between items-center mb-6 text-2xl">
-            <span className="font-bold flex items-center gap-2"><X className="text-red-400"/> Dedim:</span>
-            <span className="font-black text-red-400">-{turnStats.taboo * settings.penalty} Puan</span>
-          </div>
+          <div className="flex justify-between items-center mb-6 text-2xl"><span className="font-bold flex items-center gap-2"><Check className="text-green-400"/> Doğru:</span><span className="font-black text-green-400">+{turnStats.correct} Puan</span></div>
+          <div className="flex justify-between items-center mb-6 text-2xl"><span className="font-bold flex items-center gap-2"><X className="text-red-400"/> Dedim:</span><span className="font-black text-red-400">-{turnStats.taboo * settings.penalty} Puan</span></div>
           <div className="w-full h-px bg-white/20 mb-6"></div>
-          <div className="flex justify-between items-center text-3xl">
-            <span className="font-black">Bu Tur Kazanılan:</span>
-            <span className="font-black text-yellow-400">{turnStats.correct - (turnStats.taboo * settings.penalty)} Puan</span>
-          </div>
+          <div className="flex justify-between items-center text-3xl"><span className="font-black">Bu Tur Kazanılan:</span><span className="font-black text-yellow-400">{turnStats.correct - (turnStats.taboo * settings.penalty)} Puan</span></div>
         </div>
-
-        <button 
-          onClick={handleNextTurn}
-          className="px-12 py-5 bg-white text-indigo-900 text-2xl font-bold rounded-full shadow-xl hover:scale-105 transition-transform flex items-center gap-3"
-        >
-          Devam Et <ArrowRight />
-        </button>
+        <button onClick={handleNextTurn} className="px-12 py-5 bg-white text-indigo-900 text-2xl font-bold rounded-full shadow-xl hover:scale-105 transition-transform flex items-center gap-3">Devam Et <ArrowRight /></button>
       </div>
     );
   }
@@ -3107,47 +2749,24 @@ const handleReportSubmit = async () => {
 
     return (
       <div className="w-full h-screen bg-gradient-to-t from-yellow-600 via-yellow-500 to-orange-500 flex flex-col items-center justify-center p-6 text-center text-white overflow-y-auto">
-        
         {outOfWords && (
           <div className="bg-red-500 text-white px-6 py-4 rounded-2xl shadow-lg border-2 border-white/40 flex flex-col items-center gap-2 mb-6 mt-4 w-full max-w-md text-center animate-pulse shrink-0">
             <AlertTriangle size={36} />
             <h3 className="font-black text-xl">KELİMELER TÜKENDİ!</h3>
-            <p className="font-medium text-red-100 text-sm md:text-base">
-              Kategorideki tüm kelimeler bittiği için oyun mecburi olarak sonlandırıldı. Mevcut puanlara göre sonuçlar aşağıdadır:
-            </p>
+            <p className="font-medium text-red-100 text-sm md:text-base">Kategorideki tüm kelimeler bittiği için oyun mecburi olarak sonlandırıldı. Mevcut puanlara göre sonuçlar aşağıdadır:</p>
           </div>
         )}
-
         <Trophy size={100} className="mb-6 drop-shadow-2xl text-yellow-100 animate-bounce shrink-0" />
-        
-        <h1 className="text-6xl md:text-8xl font-black mb-4 drop-shadow-lg shrink-0">
-          {isTie ? "BERABERE!" : "KAZANAN"}
-        </h1>
-        
-        {!isTie && (
-          <h2 className="text-5xl md:text-6xl font-bold text-yellow-100 mb-12 drop-shadow-md shrink-0">
-            {winnerName}
-          </h2>
-        )}
+        <h1 className="text-6xl md:text-8xl font-black mb-4 drop-shadow-lg shrink-0">{isTie ? "BERABERE!" : "KAZANAN"}</h1>
+        {!isTie && <h2 className="text-5xl md:text-6xl font-bold text-yellow-100 mb-12 drop-shadow-md shrink-0">{winnerName}</h2>}
 
         <div className="bg-white/20 p-8 rounded-3xl backdrop-blur-md mb-12 flex gap-12 text-3xl shrink-0">
-          <div className={`flex flex-col items-center ${scores[0] > scores[1] ? 'font-black scale-110' : 'opacity-80'}`}>
-            <span className="text-sm uppercase tracking-widest mb-2">{team1Name}</span>
-            <span>{scores[0]}</span>
-          </div>
+          <div className={`flex flex-col items-center ${scores[0] > scores[1] ? 'font-black scale-110' : 'opacity-80'}`}><span className="text-sm uppercase tracking-widest mb-2">{team1Name}</span><span>{scores[0]}</span></div>
           <div className="w-1 bg-white/30 rounded-full"></div>
-          <div className={`flex flex-col items-center ${scores[1] > scores[0] ? 'font-black scale-110' : 'opacity-80'}`}>
-            <span className="text-sm uppercase tracking-widest mb-2">{team2Name}</span>
-            <span>{scores[1]}</span>
-          </div>
+          <div className={`flex flex-col items-center ${scores[1] > scores[0] ? 'font-black scale-110' : 'opacity-80'}`}><span className="text-sm uppercase tracking-widest mb-2">{team2Name}</span><span>{scores[1]}</span></div>
         </div>
 
-        <button 
-          onClick={returnToMainMenu}
-          className="px-10 py-5 bg-white text-orange-600 hover:bg-orange-50 text-2xl font-bold rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-3 shrink-0"
-        >
-          <RotateCcw /> Ana Menüye Dön
-        </button>
+        <button onClick={returnToMainMenu} className="px-10 py-5 bg-white text-orange-600 hover:bg-orange-50 text-2xl font-bold rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-3 shrink-0"><RotateCcw /> Ana Menüye Dön</button>
       </div>
     );
   }
