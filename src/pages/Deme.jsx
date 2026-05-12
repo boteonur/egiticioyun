@@ -1177,12 +1177,10 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     };
     reader.readAsText(file);
   };
-
-  const handleOpenCat = (type, data) => {
+const handleOpenCat = (type, data) => {
     setSelectedCat({ type, data });
     setEditCatName(type === 'official' ? data : data.name);
-    setConfirmDeleteCat(false);
-    setSelectedWords([]);
+    setConfirmDeleteCat(false); setSelectedWords([]);
   };
 
   const handleRenameCat = async () => {
@@ -1203,65 +1201,66 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         setStatus({ type: 'success', msg: "Oyun adı güncellendi!" });
       }
       setTimeout(() => setStatus(null), 2000);
-    } catch (e) {
-      setStatus({ type: 'error', msg: e.message });
-    }
+    } catch (e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
-  const handleSaveWord = async (index, newWordObj) => {
+  const handleSaveWord = async (originalIdx, newWordObj) => {
     try {
       if (selectedCat.type === 'official') {
         const catName = selectedCat.data;
         const newWords = [...wordDatabase[catName]];
-        newWords[index] = newWordObj;
-        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: newWords });
+        newWords[originalIdx] = newWordObj; 
+        
+        // YENİ: Kelime güncellendiğinde sırasını korumak için tekrar alfabetik sırala
+        const sortedNewWords = sortWordsAlphabetically(newWords);
+        
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: sortedNewWords });
       } else {
         const gameId = selectedCat.data.id;
         const newWords = [...selectedCat.data.words];
-        newWords[index] = newWordObj;
-        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: newWords });
-        setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: newWords } });
+        newWords[originalIdx] = newWordObj;
+        const sortedNewWords = sortWordsAlphabetically(newWords);
+        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: sortedNewWords });
+        setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: sortedNewWords } });
       }
       setStatus({ type: 'success', msg: "Kelime güncellendi!" });
       setTimeout(() => setStatus(null), 2000);
     } catch(e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
-  const handleDeleteWord = async (index) => {
+  const handleDeleteWord = async (originalIdx) => {
     try {
       if (selectedCat.type === 'official') {
         const catName = selectedCat.data;
         const newWords = [...wordDatabase[catName]];
-        newWords.splice(index, 1);
+        newWords.splice(originalIdx, 1);
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: newWords });
       } else {
         const gameId = selectedCat.data.id;
         const newWords = [...selectedCat.data.words];
-        newWords.splice(index, 1);
+        newWords.splice(originalIdx, 1);
         await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: newWords });
         setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: newWords } });
       }
-      setSelectedWords(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i));
+      setSelectedWords(prev => prev.filter(i => i !== originalIdx).map(i => i > originalIdx ? i - 1 : i));
       setStatus({ type: 'success', msg: "Kelime silindi!" });
       setTimeout(() => setStatus(null), 2000);
     } catch(e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
+  // YENİ: Ekranda görünen liste alfabetik sıralı liste olacak
+  const rawWordList = selectedCat ? (selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])) : [];
+  const sortedWordList = sortWordsAlphabetically(rawWordList);
+  const isAllSelected = rawWordList.length > 0 && selectedWords.length === rawWordList.length;
+
   const handleSelectAll = (e) => {
-    const currentList = selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || []);
-    if (e.target.checked) {
-      setSelectedWords(currentList.map((_, i) => i));
-    } else {
-      setSelectedWords([]);
-    }
+    if (e.target.checked) setSelectedWords(rawWordList.map((_, i) => i));
+    else setSelectedWords([]);
   };
 
-  const handleSelectWord = (index) => {
-    if (selectedWords.includes(index)) {
-      setSelectedWords(selectedWords.filter(i => i !== index));
-    } else {
-      setSelectedWords([...selectedWords, index]);
-    }
+  const handleSelectWord = (originalIdx) => {
+    if (selectedWords.includes(originalIdx)) setSelectedWords(selectedWords.filter(i => i !== originalIdx));
+    else setSelectedWords([...selectedWords, originalIdx]);
   };
 
   const handleDeleteSelectedWords = async () => {
@@ -1282,11 +1281,8 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         setSelectedCat({ type: 'custom', data: { ...selectedCat.data, words: newWords } });
       }
       setStatus({ type: 'success', msg: `${selectedWords.length} kelime başarıyla silindi!` });
-      setSelectedWords([]);
-      setTimeout(() => setStatus(null), 2000);
-    } catch(e) {
-      setStatus({ type: 'error', msg: e.message });
-    }
+      setSelectedWords([]); setTimeout(() => setStatus(null), 2000);
+    } catch(e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
   const handleApproveCustomGame = async (gameId) => {
@@ -1308,37 +1304,22 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
 
   const handleDeleteCategory = async () => {
     try {
-      if (selectedCat.type === 'official') {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', selectedCat.data));
-      } else {
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', selectedCat.data.id));
-      }
+      if (selectedCat.type === 'official') await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', selectedCat.data));
+      else await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', selectedCat.data.id));
       setStatus({ type: 'success', msg: "Kategori başarıyla silindi!" });
-      setTimeout(() => {
-        setStatus(null);
-        setSelectedCat(null);
-        setConfirmDeleteCat(false);
-      }, 2000);
-    } catch (e) {
-      setStatus({ type: 'error', msg: e.message });
-    }
+      setTimeout(() => { setStatus(null); setSelectedCat(null); setConfirmDeleteCat(false); }, 2000);
+    } catch (e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
   const handleMoveToCustom = async () => {
     try {
       const catName = selectedCat.data;
-      const words = wordDatabase[catName] || [];
+      const words = sortWordsAlphabetically(wordDatabase[catName] || []); // YENİ: Taşıma esnasında sırala
       setStatus({ type: 'info', msg: "Taşınıyor..." });
       
       const gameData = {
-        name: catName,
-        words: words,
-        ownerId: "admin",
-        ownerEmail: "Yönetici",
-        visibility: "public",
-        status: "approved",
-        updatedAt: Date.now(),
-        createdAt: Date.now()
+        name: catName, words: words, ownerId: "admin", ownerEmail: "Yönetici",
+        visibility: "public", status: "approved", updatedAt: Date.now(), createdAt: Date.now()
       };
 
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'customGames'), gameData);
@@ -1346,24 +1327,21 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
 
       setStatus({ type: 'success', msg: "Başarıyla 'Üyelerden Gelenler'e taşındı!" });
       setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
-    } catch (e) {
-      setStatus({ type: 'error', msg: e.message });
-    }
+    } catch (e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
   const handleMoveToOfficial = async () => {
     try {
       const game = selectedCat.data;
       setStatus({ type: 'info', msg: "Taşınıyor..." });
+      const sortedWords = sortWordsAlphabetically(game.words || []); // YENİ: Taşıma esnasında sırala
       
-      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', game.name), { words: game.words || [] });
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', game.name), { words: sortedWords });
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', game.id));
 
       setStatus({ type: 'success', msg: "Başarıyla 'Resmi Kategoriler'e taşındı!" });
       setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
-    } catch (e) {
-      setStatus({ type: 'error', msg: e.message });
-    }
+    } catch (e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
   const handleDeleteReport = async (reportId) => {
@@ -1371,9 +1349,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId));
       setStatus({ type: 'success', msg: "Bildirim başarıyla silindi." });
       setTimeout(() => setStatus(null), 2000);
-    } catch(e) {
-      setStatus({ type: 'error', msg: e.message });
-    }
+    } catch(e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
   const handleDeleteReportedWord = async (report) => {
@@ -1399,67 +1375,35 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', report.id));
       setStatus({ type: 'success', msg: "Kelime başarıyla silindi ve bildirim kapatıldı!" });
       setTimeout(() => setStatus(null), 2000);
-    } catch(e) {
-      setStatus({ type: 'error', msg: e.message });
-    }
+    } catch(e) { setStatus({ type: 'error', msg: e.message }); }
   };
+
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
         <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl relative border-4 border-purple-200">
-          <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors">
-            <X size={32} />
-          </button>
-          
-          <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3">
-            <Lock className="text-purple-500" size={36} /> Yönetici Girişi
-          </h2>
+          <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors"><X size={32} /></button>
+          <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3"><Lock className="text-purple-500" size={36} /> Yönetici Girişi</h2>
 
           <div className="space-y-4">
             {isForgotPassword ? (
               <div className="animate-fade-in">
                 <div className="text-sm text-gray-500 mb-4">Şifrenizi yenilemek için yönetici e-posta adresinizi girin.</div>
-                <input 
-                  type="email" 
-                  value={resetEmail} 
-                  onChange={(e) => setResetEmail(e.target.value)} 
-                  onKeyDown={(e) => e.key === 'Enter' && handleResetPassword()}
-                  placeholder="bo................@gmail.com" 
-                  className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
-                />
-                {status && (
-                  <div className={`mt-4 p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-                    {status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}
-                  </div>
-                )}
+                <input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleResetPassword()} placeholder="bo................@gmail.com" className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" />
+                {status && (<div className={`mt-4 p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} border`}>{status.msg}</div>)}
                 <div className="flex gap-3 mt-4">
-                  <button onClick={handleResetPassword} className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-black py-4 rounded-xl shadow-[0_5px_0_rgb(2,132,199)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2">GÖNDER</button>
-                  <button onClick={() => { setIsForgotPassword(false); setStatus(null); setResetEmail(""); }} className="px-5 bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold rounded-xl shadow-[0_5px_0_rgb(209,213,219)] hover:translate-y-1 hover:shadow-none transition-all">İptal</button>
+                  <button onClick={handleResetPassword} className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-black py-4 rounded-xl transition-all">GÖNDER</button>
+                  <button onClick={() => { setIsForgotPassword(false); setStatus(null); setResetEmail(""); }} className="px-5 bg-gray-200 text-gray-600 font-bold rounded-xl transition-all">İptal</button>
                 </div>
               </div>
             ) : (
               <div className="animate-fade-in">
                 <div className="text-sm text-gray-500 mb-4">Panele erişmek için yönetici şifresini girin.</div>
-                <input 
-                  type="password" 
-                  value={password} 
-                  onChange={(e) => setPassword(e.target.value)} 
-                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                  placeholder="Şifre" 
-                  className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" 
-                />
-                {status && (
-                  <div className={`mt-4 p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-                    {status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}
-                  </div>
-                )}
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} placeholder="Şifre" className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" />
+                {status && (<div className={`mt-4 p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} border`}>{status.msg}</div>)}
                 <div className="flex gap-3 mt-4">
-                  <button onClick={handleLogin} className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3">GİRİŞ YAP</button>
-                  <button 
-                    onClick={() => { setIsForgotPassword(true); setStatus(null); }}
-                    className="w-16 bg-gray-100 hover:bg-gray-200 flex items-center justify-center rounded-xl shadow-[0_5px_0_rgb(209,213,219)] hover:translate-y-1 hover:shadow-none transition-all text-3xl"
-                    title="Şifremi Unuttum"
-                  >😔</button>
+                  <button onClick={handleLogin} className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xl py-4 rounded-xl transition-all">GİRİŞ YAP</button>
+                  <button onClick={() => { setIsForgotPassword(true); setStatus(null); }} className="w-16 bg-gray-100 rounded-xl text-3xl" title="Şifremi Unuttum">😔</button>
                 </div>
               </div>
             )}
@@ -1468,9 +1412,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       </div>
     );
   }
-
-  const currentWordList = selectedCat ? (selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])) : [];
-  const isAllSelected = currentWordList.length > 0 && selectedWords.length === currentWordList.length;
 
   return (
     <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
@@ -1481,12 +1422,8 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         <div className="flex flex-wrap gap-2 mb-6 bg-gray-100 p-1 rounded-xl">
           <button onClick={() => {setActiveTab('categories'); setSelectedCat(null); setStatus(null);}} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'categories' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><FolderTree size={18} /> Kategoriler</button>
           <button onClick={() => setActiveTab('review')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><ListTodo size={18} /> Öneriler {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{suggestions.length}</span>}</button>
-          <button onClick={() => setActiveTab('stats')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'stats' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
-            <BarChart3 size={18} /> Üyeler / İstatistik
-          </button>
-          <button onClick={() => setActiveTab('reports')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'reports' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
-            <Flag size={18} /> Bildirimler {reports && reports.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{reports.length}</span>}
-          </button>
+          <button onClick={() => setActiveTab('stats')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'stats' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><BarChart3 size={18} /> Üyeler / İstatistik</button>
+          <button onClick={() => setActiveTab('reports')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'reports' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Flag size={18} /> Bildirimler {reports && reports.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{reports.length}</span>}</button>
           <button onClick={() => setActiveTab('add')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Edit3 size={18} /> Tek Ekle</button>
           <button onClick={() => setActiveTab('import')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Upload size={18} /> Toplu Yükle</button>
         </div>
@@ -1604,7 +1541,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
           </div>
         )}
 
-        {/* KATEGORİLER */}
+        {/* --- KATEGORİLER İÇERİSİNDE ALFABETİK GÖRÜNÜM --- */}
         {activeTab === 'categories' && (
           <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
             {!selectedCat ? (
@@ -1613,10 +1550,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
                   {Object.keys(wordDatabase).map(catName => (
                     <div key={catName} className="bg-white border-2 border-gray-100 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-purple-200 transition-colors">
-                      <div>
-                        <div className="font-black text-lg text-gray-800">{catName}</div>
-                        <div className="text-xs font-bold text-gray-500">{wordDatabase[catName].length} Kelime</div>
-                      </div>
+                      <div><div className="font-black text-lg text-gray-800">{catName}</div><div className="text-xs font-bold text-gray-500">{wordDatabase[catName].length} Kelime</div></div>
                       <button onClick={() => handleOpenCat('official', catName)} className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 font-bold flex items-center gap-2"><Edit2 size={16} /> Düzenle</button>
                     </div>
                   ))}
@@ -1703,9 +1637,12 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                   )}
                 </div>
                 <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
-                  {currentWordList.map((w, idx) => (
-                    <AdminWordRow key={idx} wordObj={w} isSelected={selectedWords.includes(idx)} onToggleSelect={() => handleSelectWord(idx)} onSave={(newObj) => handleSaveWord(idx, newObj)} onDelete={() => handleDeleteWord(idx)} />
-                  ))}
+                  {sortedWordList.map((w, idx) => {
+                    const originalIdx = rawWordList.findIndex(orig => orig.word === w.word);
+                    return (
+                      <AdminWordRow key={idx} wordObj={w} isSelected={selectedWords.includes(originalIdx)} onToggleSelect={() => handleSelectWord(originalIdx)} onSave={(newObj) => handleSaveWord(originalIdx, newObj)} onDelete={() => handleDeleteWord(originalIdx)} />
+                    );
+                  })}
                 </div>
                 {selectedCat.type === 'custom' && selectedCat.data.status === 'pending' && (
                   <div className="mt-4 pt-4 border-t border-gray-200 flex gap-3 flex-shrink-0">
@@ -1784,7 +1721,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     </div>
   );
 };
-
 // --- Birleştirilmiş Şık Takım Kartı Bileşeni ---
 const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCount, theme = "orange", otherTeamName }) => {
   const [history, setHistory] = useState([teamName || "Takım"]);
@@ -1893,6 +1829,7 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
     </div>
   );
 };
+
 /* ==========================================
    BÖLÜM 5: ANA UYGULAMA BİLEŞENİ (Deme.jsx)
    Tüm oyun mantığını (State, Effect, Game Loop) yöneten merkez.
@@ -2304,6 +2241,7 @@ export default function Deme() {
       setTimeout(() => { setShowReportModal(false); setReportReason(""); setReportStatus(null); }, 2000);
     } catch(e) { setReportStatus({ type: 'error', msg: "Hata oluştu: " + e.message }); }
   };
+
   /* ==========================================
      BÖLÜM 6: RENDER (ARAYÜZ ÇİZİMİ)
   ============================================= */
@@ -2357,7 +2295,6 @@ export default function Deme() {
     );
   }
 
-  // Sadece onaylanmış public oyunlar (ya da kendi eklediği pending/approved public oyunlar) ve kendi private oyunları listelenir
   const visiblePublicGames = customPublicGames.filter(g => g.status === 'approved' || g.ownerId === user?.uid);
   const customCategoriesList = [...visiblePublicGames, ...customPrivateGames];
 
@@ -2709,7 +2646,6 @@ export default function Deme() {
           </button>
         </div>
         
-        {/* --- ÇIKIŞ ONAY MODALI --- */}
         {showExitConfirmModal && (
           <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
             <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative overflow-hidden border-2 border-red-200 text-center animate-bounce-short">
