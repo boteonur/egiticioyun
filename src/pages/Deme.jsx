@@ -9,33 +9,38 @@ import { auth, db, app, appId } from '../config/firebase.js';
 // --- GENEL AYARLAR ---
 const isUsingUserFirebase = true;
 
+// YENİ EKLENEN: Her yerde kullanılabilecek, Türkçe uyumlu global alfabetik sıralama fonksiyonu
+const sortWordsAlphabetically = (wordsArray) => {
+  if (!wordsArray) return [];
+  return [...wordsArray].sort((a, b) => (a.word || "").localeCompare(b.word || "", 'tr-TR'));
+};
+
 /* ==========================================
    BÖLÜM 1: SABİT VERİLER (CONSTANTS)
-   Oyunun varsayılan kelime havuzu ve ayarları.
 ============================================= */
 const DEFAULT_WORD_DATABASE = {
   "Genel": [
-    { word: "KİTAP", forbidden: ["Okumak", "Sayfa", "Yazar", "Roman", "Kütüphane"] },
     { word: "BİLGİSAYAR", forbidden: ["Klavye", "Ekran", "Fare", "İnternet", "Oyun"] },
     { word: "DENİZ", forbidden: ["Su", "Dalga", "Yüzmek", "Kum", "Sahil"] },
+    { word: "KİTAP", forbidden: ["Okumak", "Sayfa", "Yazar", "Roman", "Kütüphane"] },
     { word: "OKUL", forbidden: ["Öğrenci", "Öğretmen", "Ders", "Sınıf", "Sınav"] },
     { word: "TELEFON", forbidden: ["Aramak", "Mesaj", "Ekran", "Uygulama", "İletişim"] }
   ],
   "Spor": [
-    { word: "FUTBOL", forbidden: ["Top", "Kale", "Maç", "Gol", "Hakem"] },
     { word: "BASKETBOL", forbidden: ["Pota", "Zıplamak", "Smaç", "Top", "Salon"] },
-    { word: "YÜZME", forbidden: ["Havuz", "Deniz", "Kulaç", "Bone", "Su"] },
-    { word: "TENİS", forbidden: ["Raket", "Kort", "File", "Top", "Wimbledon"] }
+    { word: "FUTBOL", forbidden: ["Top", "Kale", "Maç", "Gol", "Hakem"] },
+    { word: "TENİS", forbidden: ["Raket", "Kort", "File", "Top", "Wimbledon"] },
+    { word: "YÜZME", forbidden: ["Havuz", "Deniz", "Kulaç", "Bone", "Su"] }
   ],
   "Sinema": [
-    { word: "YÖNETMEN", forbidden: ["Film", "Kamera", "Oyuncu", "Sahne", "Motor"] },
     { word: "OSCAR", forbidden: ["Ödül", "Film", "Tören", "Aktör", "Akademi"] },
-    { word: "PATLAMAMIŞ MISIR", forbidden: ["Sinema", "Yemek", "Tuzlu", "İzlemek", "Film"] }
+    { word: "PATLAMAMIŞ MISIR", forbidden: ["Sinema", "Yemek", "Tuzlu", "İzlemek", "Film"] },
+    { word: "YÖNETMEN", forbidden: ["Film", "Kamera", "Oyuncu", "Sahne", "Motor"] }
   ],
   "Teknoloji": [
+    { word: "İNTERNET", forbidden: ["Web", "Bağlantı", "Wifi", "Tarayıcı", "Dünya"] },
     { word: "YAPAY ZEKA", forbidden: ["Robot", "Bilgisayar", "Gelecek", "Öğrenme", "Akıllı"] },
-    { word: "YAZILIM", forbidden: ["Kod", "Program", "Bilgisayar", "Geliştirici", "Uygulama"] },
-    { word: "İNTERNET", forbidden: ["Web", "Bağlantı", "Wifi", "Tarayıcı", "Dünya"] }
+    { word: "YAZILIM", forbidden: ["Kod", "Program", "Bilgisayar", "Geliştirici", "Uygulama"] }
   ],
   "Tarih": [
     { word: "İMPARATORLUK", forbidden: ["Devlet", "Savaş", "Padişah", "Tarih", "Kral"] },
@@ -43,9 +48,9 @@ const DEFAULT_WORD_DATABASE = {
     { word: "PİRAMİT", forbidden: ["Mısır", "Firavun", "Mezar", "Çöl", "Üçgen"] }
   ],
   "Çocuk": [
-    { word: "KÖPEK", forbidden: ["Havlamak", "Kemik", "Hayvan", "Kedi", "Evcil"] },
     { word: "ELMA", forbidden: ["Meyve", "Kırmızı", "Ağaç", "Yemek", "Tatlı"] },
-    { word: "GÜNEŞ", forbidden: ["Sıcak", "Gökyüzü", "Sarı", "Yaz", "Işık"] }
+    { word: "GÜNEŞ", forbidden: ["Sıcak", "Gökyüzü", "Sarı", "Yaz", "Işık"] },
+    { word: "KÖPEK", forbidden: ["Havlamak", "Kemik", "Hayvan", "Kedi", "Evcil"] }
   ]
 };
 
@@ -54,13 +59,10 @@ const NOUNS = ["Aslanlar", "Kartallar", "Ejderhalar", "Kaplanlar", "Büyücüler
 
 /* ==========================================
    BÖLÜM 2: GÖRSEL BİLEŞENLER (UI HELPERS)
-   Ölçeklenebilir emojiler ve kategori tasarımları.
 ============================================= */
 const ScalableEmoji = ({ emoji, className }) => (
   <svg viewBox="0 0 100 100" className={className} style={{ overflow: 'visible' }}>
-    <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fontSize="75" style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.15))' }}>
-      {emoji}
-    </text>
+    <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fontSize="75" style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.15))' }}>{emoji}</text>
   </svg>
 );
 
@@ -92,132 +94,87 @@ const CATEGORY_LIST = [
 
 /* ==========================================
    BÖLÜM 3: SES MOTORU (AUDIO ENGINE)
-   Tarayıcı tabanlı dinamik ses üretimi.
 ============================================= */
 const getAudioCtx = () => {
-  if (!window.audioCtx) {
-    window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
+  if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
   return window.audioCtx;
 };
 
 const playClickSound = () => {
   try {
-    const audioCtx = getAudioCtx();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+    const audioCtx = getAudioCtx(); const oscillator = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+    oscillator.type = 'sine'; oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.1);
-    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); 
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1); 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1); 
+    oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+    oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.1);
   } catch (e) {}
 };
 
 const playTickSound = (freq = 1000) => {
   try {
-    const audioCtx = getAudioCtx();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    const audioCtx = getAudioCtx(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(freq / 1.5, audioCtx.currentTime + 0.05);
-    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.05);
   } catch (e) {}
 };
 
 const playCorrectSound = () => {
   try {
-    const audioCtx = getAudioCtx();
-    const osc1 = audioCtx.createOscillator();
-    const gain1 = audioCtx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime);
-    gain1.gain.setValueAtTime(0, audioCtx.currentTime);
-    gain1.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
+    const audioCtx = getAudioCtx(); const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain();
+    osc1.type = 'sine'; osc1.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+    gain1.gain.setValueAtTime(0, audioCtx.currentTime); gain1.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
     gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-    osc1.connect(gain1);
-    gain1.connect(audioCtx.destination);
-    osc1.start();
-    osc1.stop(audioCtx.currentTime + 0.15);
+    osc1.connect(gain1); gain1.connect(audioCtx.destination);
+    osc1.start(); osc1.stop(audioCtx.currentTime + 0.15);
 
-    const osc2 = audioCtx.createOscillator();
-    const gain2 = audioCtx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
-    gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.1);
-    gain2.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.12);
+    const osc2 = audioCtx.createOscillator(); const gain2 = audioCtx.createGain();
+    osc2.type = 'sine'; osc2.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+    gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.1); gain2.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.12);
     gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-    osc2.connect(gain2);
-    gain2.connect(audioCtx.destination);
-    osc2.start(audioCtx.currentTime + 0.1);
-    osc2.stop(audioCtx.currentTime + 0.4);
+    osc2.connect(gain2); gain2.connect(audioCtx.destination);
+    osc2.start(audioCtx.currentTime + 0.1); osc2.stop(audioCtx.currentTime + 0.4);
   } catch (e) {}
 };
 
 const playTabooSound = () => {
   try {
-    const audioCtx = getAudioCtx();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    const audioCtx = getAudioCtx(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
     osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.3);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
   } catch (e) {}
 };
 
 const playPassSound = () => {
   try {
-    const audioCtx = getAudioCtx();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+    const audioCtx = getAudioCtx(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'triangle'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.15);
   } catch (e) {}
 };
 
 const playTimeUpSound = () => {
   try {
-    const audioCtx = getAudioCtx();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+    const audioCtx = getAudioCtx(); const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+    osc.type = 'square'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
     osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start();
-    osc.stop(audioCtx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.5);
   } catch (e) {}
 };
 /* ==========================================
    BÖLÜM 4: ALT BİLEŞENLER (SUB-COMPONENTS)
-   Oyun içi modal ve kart bileşenleri.
 ============================================= */
 
 // --- Oyunlarım Modalı ---
@@ -238,84 +195,58 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
 
   const aiPrompt = `Bir kelime anlatma oyununda kullanılmak üzere, <kategori adı giriniz> kategorisinde, 200 adet kelime ya da kelime grubu ve bunları anlatırken kullanılmaması gereken 5'er tane yasaklı kelimeyi içeren bir json dosyası hazırla ve indirilebilir link ver. İçeriği oluştururken dikkat etmen gereken kodlama dizimi şu şekildedir: 
 [
-  {
-    "category": "Türkiye'm",
-    "word": "MUSTAFA KEMAL ATATÜRK", 
-    "forbidden": ["Ali Rıza Bey", "Zübeyde Hanım", "Anıtkabir", "Önder", "Selanik"] 
-  }, 
-  {
-    "category": "Türkiye'm",
-    "word": "ŞEHZADELER ŞEHRİ",
-    "forbidden": ["Amasya", "Osmanlı", "Padişah", "Oğul", "Eğitim"]
-  }
+  { "category": "Türkiye'm", "word": "MUSTAFA KEMAL ATATÜRK", "forbidden": ["Ali Rıza Bey", "Zübeyde Hanım", "Anıtkabir", "Önder", "Selanik"] }, 
+  { "category": "Türkiye'm", "word": "ŞEHZADELER ŞEHRİ", "forbidden": ["Amasya", "Osmanlı", "Padişah", "Oğul", "Eğitim"] }
 ]`;
 
   const resetForm = () => {
-    setCategoryName("");
-    setVisibility("public");
-    setWord("");
-    setForbidden(["", "", "", "", ""]);
-    setAddedWords([]);
-    setEditingWordIndex(null);
-    setStatus(null);
-    setConfirmDeleteGame(false);
+    setCategoryName(""); setVisibility("public"); setWord(""); setForbidden(["", "", "", "", ""]);
+    setAddedWords([]); setEditingWordIndex(null); setStatus(null); setConfirmDeleteGame(false);
   };
 
-  const openAddChoice = () => {
-    resetForm();
-    setView('add-choice');
-  };
-
-  const openView = (game) => {
-    setSelectedGame(game);
-    setView('view');
-  };
+  const openAddChoice = () => { resetForm(); setView('add-choice'); };
+  const openView = (game) => { setSelectedGame(game); setView('view'); };
 
   const openEdit = (game) => {
     setSelectedGame(game);
     setCategoryName(game.name);
     setVisibility(game.type || 'public');
     setAddedWords(game.words || []);
-    setWord("");
-    setForbidden(["", "", "", "", ""]);
-    setEditingWordIndex(null);
-    setStatus(null);
-    setConfirmDeleteGame(false);
-    setAddMode('single');
-    setView('edit');
+    setWord(""); setForbidden(["", "", "", "", ""]);
+    setEditingWordIndex(null); setStatus(null); setConfirmDeleteGame(false);
+    setAddMode('single'); setView('edit');
   };
 
   const handleAddOrUpdateWord = () => {
     if (!word.trim() || forbidden.some(f => !f.trim())) {
-      setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" });
-      return;
+      setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" }); return;
     }
-    
     const newWordObj = {
       word: word.trim().toLocaleUpperCase('tr-TR'),
       forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR'))
     };
 
+    let updatedList = [];
     if (editingWordIndex !== null) {
-      const updatedList = [...addedWords];
+      updatedList = [...addedWords];
       updatedList[editingWordIndex] = newWordObj;
-      setAddedWords(updatedList);
-      setEditingWordIndex(null);
       setStatus({ type: 'success', msg: "Kelime güncellendi!" });
     } else {
-      setAddedWords([newWordObj, ...addedWords]);
+      updatedList = [newWordObj, ...addedWords];
       setStatus({ type: 'success', msg: "Kelime eklendi!" });
     }
     
-    setWord("");
-    setForbidden(["", "", "", "", ""]);
+    // Alfabetik sırala
+    updatedList = sortWordsAlphabetically(updatedList);
+    setAddedWords(updatedList);
+    setEditingWordIndex(null);
+    setWord(""); setForbidden(["", "", "", "", ""]);
     setTimeout(() => setStatus(null), 2000);
   };
 
   const handleEditWordClick = (index) => {
     const w = addedWords[index];
-    setWord(w.word);
-    setForbidden([...w.forbidden]);
+    setWord(w.word); setForbidden([...w.forbidden]);
     setEditingWordIndex(index);
     setStatus({ type: 'info', msg: "Kelimeyi düzenliyorsunuz..." });
   };
@@ -323,9 +254,7 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
   const handleDeleteWordClick = (index) => {
     setAddedWords(addedWords.filter((_, i) => i !== index));
     if (editingWordIndex === index) {
-      setWord("");
-      setForbidden(["", "", "", "", ""]);
-      setEditingWordIndex(null);
+      setWord(""); setForbidden(["", "", "", "", ""]); setEditingWordIndex(null);
     }
   };
 
@@ -348,18 +277,16 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
               word: item.word.trim().toLocaleUpperCase('tr-TR'),
               forbidden: item.forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR'))
             });
-            if (!detectedCategory && item.category) {
-              detectedCategory = item.category.trim();
-            }
+            if (!detectedCategory && item.category) detectedCategory = item.category.trim();
           }
         });
 
         if (newWords.length === 0) throw new Error("Geçerli kelime bulunamadı.");
 
-        setAddedWords(prev => [...newWords, ...prev]);
-        if (!categoryName && detectedCategory) {
-          setCategoryName(detectedCategory);
-        }
+        // Alfabetik sırala
+        setAddedWords(prev => sortWordsAlphabetically([...newWords, ...prev]));
+        
+        if (!categoryName && detectedCategory) setCategoryName(detectedCategory);
         setStatus({ type: 'success', msg: `${newWords.length} kelime başarıyla eklendi! İsterseniz kelimeleri düzenleyebilir veya silebilirsiniz.` });
         e.target.value = null; 
       } catch (error) {
@@ -371,43 +298,28 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
   };
 
   const copyToClipboard = () => {
-    const textArea = document.createElement("textarea");
-    textArea.value = aiPrompt;
-    textArea.style.position = "absolute";
-    textArea.style.left = "-999999px";
-    
-    document.body.appendChild(textArea);
-    textArea.select();
-    
+    const textArea = document.createElement("textarea"); textArea.value = aiPrompt;
+    textArea.style.position = "absolute"; textArea.style.left = "-999999px";
+    document.body.appendChild(textArea); textArea.select();
     try {
       document.execCommand('copy');
       setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmede açılan Gemini'a yapıştırabilirsiniz (Basılı Tut / Ctrl+V)." });
       setTimeout(() => setStatus(null), 4000);
-    } catch (err) {
-      setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." });
-    }
-    
+    } catch (err) { setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." }); }
     document.body.removeChild(textArea);
   };
 
   const handleFinish = async () => {
-    if (!categoryName.trim()) {
-      setStatus({ type: 'error', msg: "Lütfen bir kategori (oyun) ismi girin!" });
-      return;
-    }
-    if (addedWords.length === 0) {
-      setStatus({ type: 'error', msg: "Oyununuza henüz hiç kelime eklemediniz!" });
-      return;
-    }
+    if (!categoryName.trim()) { setStatus({ type: 'error', msg: "Lütfen bir kategori (oyun) ismi girin!" }); return; }
+    if (addedWords.length === 0) { setStatus({ type: 'error', msg: "Oyununuza henüz hiç kelime eklemediniz!" }); return; }
 
     try {
       setStatus({ type: 'info', msg: "Kaydediliyor..." });
       
       const gameData = {
         name: categoryName.trim(),
-        words: addedWords,
-        ownerId: user.uid,
-        ownerEmail: user.email || "Üye",
+        words: addedWords, // Zaten sıralı
+        ownerId: user.uid, ownerEmail: user.email || "Üye",
         visibility: visibility,
         status: visibility === 'public' ? (view === 'edit' ? (selectedGame?.status || 'pending') : 'pending') : 'private',
         updatedAt: Date.now(),
@@ -430,14 +342,8 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
         await addDoc(collection(db, 'artifacts', appId, ...coll.split('/')), gameData);
         setStatus({ type: 'success', msg: "Oyun başarıyla oluşturuldu!" });
       }
-      
-      setTimeout(() => {
-        setStatus(null);
-        setView('list');
-      }, 1500);
-    } catch (e) {
-      setStatus({ type: 'error', msg: "Hata: " + e.message });
-    }
+      setTimeout(() => { setStatus(null); setView('list'); }, 1500);
+    } catch (e) { setStatus({ type: 'error', msg: "Hata: " + e.message }); }
   };
 
   const handleDeleteGame = async () => {
@@ -446,14 +352,8 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
       const coll = selectedGame.type === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
       await deleteDoc(doc(db, 'artifacts', appId, ...coll.split('/'), selectedGame.id));
       setStatus({ type: 'success', msg: "Oyun silindi!" });
-      setTimeout(() => {
-        setStatus(null);
-        setConfirmDeleteGame(false);
-        setView('list');
-      }, 1500);
-    } catch (e) {
-      setStatus({ type: 'error', msg: "Silinirken hata oluştu: " + e.message });
-    }
+      setTimeout(() => { setStatus(null); setConfirmDeleteGame(false); setView('list'); }, 1500);
+    } catch (e) { setStatus({ type: 'error', msg: "Silinirken hata oluştu: " + e.message }); }
   };
 
   return (
@@ -469,18 +369,13 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
               <Gamepad2 size={36} /> Oyunlarım
             </h2>
             
-            <button 
-              onClick={openAddChoice} 
-              className="w-full mb-6 bg-blue-50 border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-600 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"
-            >
+            <button onClick={openAddChoice} className="w-full mb-6 bg-blue-50 border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-600 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2">
               <Plus size={24} /> Yeni Oyun Ekle
             </button>
 
             <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
               {myGames.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 font-medium">
-                  Henüz bir oyun eklemediniz.
-                </div>
+                <div className="text-center py-8 text-gray-400 font-medium">Henüz bir oyun eklemediniz.</div>
               ) : (
                 myGames.map(game => (
                   <div key={game.id} className="bg-white border-2 border-gray-100 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-blue-200 transition-all">
@@ -511,32 +406,20 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
         {view === 'add-choice' && (
           <div className="animate-fade-in flex flex-col">
             <div className="flex items-center gap-4 mb-8">
-              <button onClick={() => setView('list')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors">
-                <ArrowLeft size={24} />
-              </button>
+              <button onClick={() => setView('list')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"><ArrowLeft size={24} /></button>
               <h2 className="text-2xl font-black text-blue-600">Oyun Ekleme Yöntemi</h2>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button 
-                onClick={() => { setAddMode('single'); setView('add'); }} 
-                className="flex flex-col items-center justify-center p-8 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-3xl transition-all gap-4 group"
-              >
-                <div className="w-16 h-16 bg-blue-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Edit3 size={32} />
-                </div>
+              <button onClick={() => { setAddMode('single'); setView('add'); }} className="flex flex-col items-center justify-center p-8 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-3xl transition-all gap-4 group">
+                <div className="w-16 h-16 bg-blue-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Edit3 size={32} /></div>
                 <div className="text-xl font-black text-blue-800">Tek Tek Ekle</div>
                 <div className="text-sm font-medium text-blue-600 text-center">Kelimeleri ve yasaklı kelimeleri manuel olarak kutucuklara girin.</div>
               </button>
 
-              <button 
-                onClick={() => { setAddMode('bulk'); setView('add'); }} 
-                className="flex flex-col items-center justify-center p-8 bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 rounded-3xl transition-all gap-4 group relative overflow-hidden"
-              >
+              <button onClick={() => { setAddMode('bulk'); setView('add'); }} className="flex flex-col items-center justify-center p-8 bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 rounded-3xl transition-all gap-4 group relative overflow-hidden">
                 <div className="absolute -right-6 -top-6 text-purple-200 opacity-50 group-hover:scale-110 transition-transform"><Cpu size={120} /></div>
-                <div className="w-16 h-16 bg-purple-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform relative z-10">
-                  <FileJson size={32} />
-                </div>
+                <div className="w-16 h-16 bg-purple-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform relative z-10"><FileJson size={32} /></div>
                 <div className="text-xl font-black text-purple-800 relative z-10">Toplu Ekle (Yapay Zeka)</div>
                 <div className="text-sm font-medium text-purple-600 text-center relative z-10">Yapay zeka araçları ile oluşturduğunuz yüzlerce kelimeyi anında yükleyin.</div>
               </button>
@@ -547,9 +430,7 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
         {view === 'view' && selectedGame && (
           <div className="animate-fade-in">
             <div className="flex items-center gap-4 mb-6">
-              <button onClick={() => setView('list')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors">
-                <ArrowLeft size={24} />
-              </button>
+              <button onClick={() => setView('list')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"><ArrowLeft size={24} /></button>
               <h2 className="text-3xl font-black text-gray-800">{selectedGame.name}</h2>
             </div>
             
@@ -569,9 +450,7 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
         {(view === 'add' || view === 'edit') && (
           <div className="animate-fade-in flex flex-col max-h-[80vh]">
             <div className="flex items-center gap-4 mb-4 flex-shrink-0">
-              <button onClick={() => view === 'edit' ? setView('list') : setView('add-choice')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors">
-                <ArrowLeft size={24} />
-              </button>
+              <button onClick={() => view === 'edit' ? setView('list') : setView('add-choice')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"><ArrowLeft size={24} /></button>
               <h2 className="text-2xl font-black text-blue-600">
                 {view === 'edit' ? 'Oyunu Düzenle' : (addMode === 'bulk' ? 'Toplu Kelime Yükle' : 'Yeni Oyun Oluştur')}
               </h2>
@@ -580,45 +459,24 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
               <div>
                 <label className="block text-gray-700 font-bold mb-2">Oyun Adı</label>
-                <input 
-                  value={categoryName} 
-                  onChange={(e) => setCategoryName(e.target.value)} 
-                  placeholder="Örn: 90'lar Pop" 
-                  className="w-full border-2 border-blue-200 bg-blue-50 rounded-xl p-3 font-bold text-gray-800 focus:border-blue-500 outline-none" 
-                />
+                <input value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="Örn: 90'lar Pop" className="w-full border-2 border-blue-200 bg-blue-50 rounded-xl p-3 font-bold text-gray-800 focus:border-blue-500 outline-none" />
               </div>
 
               {addMode === 'bulk' && view === 'add' && (
                 <div className="bg-purple-50 p-4 md:p-5 rounded-2xl border border-purple-200 shadow-sm space-y-4">
                   <div className="flex items-start gap-3 bg-white p-3 rounded-xl border border-purple-100">
                     <Info size={24} className="text-purple-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-purple-800 font-medium">
-                      Aşağıdaki Prompta kendi kategori isminizi yazarak (Ör: "İlkokul Türkçe Dersi", "Uzay ve Astronomi" gibi) yapay zeka araçlarından aldığınız sonucu json formatında yükleyebilirsiniz.
-                    </p>
+                    <p className="text-sm text-purple-800 font-medium">Aşağıdaki Prompta kendi kategori isminizi yazarak yapay zeka araçlarından aldığınız sonucu json formatında yükleyebilirsiniz.</p>
                   </div>
-
                   <div className="bg-white border-2 border-purple-200 rounded-xl p-4 shadow-inner flex flex-col gap-3">
                     <div className="flex justify-between items-start gap-2">
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1.5">
-                        Örnek Prompt
-                      </p>
-                     <a 
-                        href="https://gemini.google.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={copyToClipboard} 
-                        className="p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold shrink-0 cursor-pointer no-underline"
-                      >
-                        <Copy size={16} /> Kopyala ve Git
-                      </a>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-1.5">Örnek Prompt</p>
+                      <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" onClick={copyToClipboard} className="p-2 bg-purple-100 text-purple-700 hover:bg-purple-200 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold shrink-0 cursor-pointer no-underline"><Copy size={16} /> Kopyala ve Git</a>
                     </div>
                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                      <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap break-words leading-relaxed w-full">
-                        {aiPrompt}
-                      </pre>
+                      <pre className="text-xs text-gray-700 font-mono whitespace-pre-wrap break-words leading-relaxed w-full">{aiPrompt}</pre>
                     </div>
                   </div>
-
                   <div className="bg-white border-2 border-dashed border-purple-300 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-purple-50 transition-colors">
                     <Upload size={36} className="text-purple-400 mb-3" />
                     <p className="font-bold text-purple-900 mb-2">JSON Dosyanızı Yükleyin</p>
@@ -633,38 +491,15 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
               {(addMode === 'single' || view === 'edit' || editingWordIndex !== null) && (
                 <div className="bg-gray-50 p-4 md:p-5 rounded-2xl border border-gray-200 shadow-sm relative">
                   {addMode === 'bulk' && <div className="absolute -top-3 left-4 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">Kelimeleri Düzenle</div>}
-                  
                   <label className="block text-gray-700 font-bold mb-2">Anlatılacak Kelime:</label>
-                  <input 
-                    value={word} 
-                    onChange={(e) => setWord(e.target.value)} 
-                    placeholder="Anlatılacak Kelime" 
-                    className="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-xl text-gray-800 focus:border-blue-500 outline-none uppercase shadow-inner" 
-                  />
-
-                  <label className=" text-red-500 font-bold mb-2 mt-4 flex items-center gap-2">
-                    <X size={18} /> Deme Kelimeleri (5 Adet)
-                  </label>
+                  <input value={word} onChange={(e) => setWord(e.target.value)} placeholder="Anlatılacak Kelime" className="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-xl text-gray-800 focus:border-blue-500 outline-none uppercase shadow-inner" />
+                  <label className=" text-red-500 font-bold mb-2 mt-4 flex items-center gap-2"><X size={18} /> Deme Kelimeleri (5 Adet)</label>
                   <div className="space-y-2">
                     {forbidden.map((fw, i) => (
-                      <input 
-                        key={i} 
-                        value={fw} 
-                        onChange={(e) => {
-                          const newF = [...forbidden];
-                          newF[i] = e.target.value;
-                          setForbidden(newF);
-                        }} 
-                        placeholder={`${i + 1}. Yasaklı Kelime`} 
-                        className="w-full border-2 border-red-100 bg-white rounded-xl p-2 font-bold text-gray-700 focus:border-red-400 outline-none capitalize shadow-sm" 
-                      />
+                      <input key={i} value={fw} onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} placeholder={`${i + 1}. Yasaklı Kelime`} className="w-full border-2 border-red-100 bg-white rounded-xl p-2 font-bold text-gray-700 focus:border-red-400 outline-none capitalize shadow-sm" />
                     ))}
                   </div>
-
-                  <button 
-                    onClick={handleAddOrUpdateWord} 
-                    className={`w-full mt-4 text-white font-black text-lg py-3 rounded-xl hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2 ${editingWordIndex !== null ? 'bg-amber-500 hover:bg-amber-600 shadow-[0_4px_0_rgb(217,119,6)]' : 'bg-blue-500 hover:bg-blue-600 shadow-[0_4px_0_rgb(37,99,235)]'}`}
-                  >
+                  <button onClick={handleAddOrUpdateWord} className={`w-full mt-4 text-white font-black text-lg py-3 rounded-xl hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-2 ${editingWordIndex !== null ? 'bg-amber-500 hover:bg-amber-600 shadow-[0_4px_0_rgb(217,119,6)]' : 'bg-blue-500 hover:bg-blue-600 shadow-[0_4px_0_rgb(37,99,235)]'}`}>
                     {editingWordIndex !== null ? <><Check size={22} /> KELİMEYİ GÜNCELLE</> : <><Plus size={22} /> KELİME EKLE</>}
                   </button>
                 </div>
@@ -672,21 +507,14 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
 
               {addedWords.length > 0 && (
                 <div className="bg-white border border-gray-200 rounded-2xl p-4">
-                  <h4 className="font-bold text-gray-600 mb-3 text-sm flex items-center justify-between">
-                    <span>Eklenen Kelimeler</span>
-                    <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">{addedWords.length} Adet</span>
-                  </h4>
+                  <h4 className="font-bold text-gray-600 mb-3 text-sm flex items-center justify-between"><span>Eklenen Kelimeler</span><span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md">{addedWords.length} Adet</span></h4>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                     {addedWords.map((aw, idx) => (
                       <div key={idx} className={`flex items-center justify-between p-2 md:p-3 rounded-lg border ${editingWordIndex === idx ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-100 hover:bg-blue-50 hover:border-blue-100'} transition-colors`}>
                         <span className="font-black text-gray-800">{aw.word}</span>
                         <div className="flex gap-2">
-                          <button onClick={() => handleEditWordClick(idx)} className="p-2 bg-white rounded-md text-blue-600 hover:bg-blue-100 shadow-sm border border-gray-200">
-                            <Edit2 size={16} />
-                          </button>
-                          <button onClick={() => handleDeleteWordClick(idx)} className="p-2 bg-white rounded-md text-red-600 hover:bg-red-100 shadow-sm border border-gray-200">
-                            <Trash2 size={16} />
-                          </button>
+                          <button onClick={() => handleEditWordClick(idx)} className="p-2 bg-white rounded-md text-blue-600 hover:bg-blue-100 shadow-sm border border-gray-200"><Edit2 size={16} /></button>
+                          <button onClick={() => handleDeleteWordClick(idx)} className="p-2 bg-white rounded-md text-red-600 hover:bg-red-100 shadow-sm border border-gray-200"><Trash2 size={16} /></button>
                         </div>
                       </div>
                     ))}
@@ -696,28 +524,21 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
 
               <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
                 <Info size={24} className="text-blue-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-blue-800 font-medium">
-                  Oyun oluşturmayı tamamladığınızda, oyununuz "Oyna" seçeneği altındaki kategorilere eklenecek ve hemen oynamaya hazır olacaktır. Ancak herkese açılması için yönetici onayı gerekmektedir. Kullanılan kelimelerdeki sorumluluk ekleyen kullanıcıya aittir. Nefret söylemi, cinsellik, şiddet içeren kelimeler kullanmaktan kaçının.
-                </p>
+                <p className="text-sm text-blue-800 font-medium">Oyun oluşturmayı tamamladığınızda, oyununuz "Oyna" seçeneği altındaki kategorilere eklenecek ve hemen oynamaya hazır olacaktır. Ancak herkese açılması için yönetici onayı gerekmektedir. Kullanılan kelimelerdeki sorumluluk ekleyen kullanıcıya aittir.</p>
               </div>
 
               <div className="flex gap-4">
                 <label className={`flex-1 p-3 rounded-xl border-2 flex items-center justify-center gap-2 cursor-pointer transition-all ${visibility === 'public' ? 'border-blue-500 bg-blue-50 shadow-inner' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-                  <input type="radio" checked={visibility === 'public'} onChange={() => setVisibility('public')} className="hidden" />
-                  <Globe size={20} className={visibility === 'public' ? 'text-blue-500' : 'text-gray-400'} />
-                  <span className={`font-bold text-sm md:text-base ${visibility === 'public' ? 'text-blue-700' : 'text-gray-500'}`}>Herkese Açık</span>
+                  <input type="radio" checked={visibility === 'public'} onChange={() => setVisibility('public')} className="hidden" /><Globe size={20} className={visibility === 'public' ? 'text-blue-500' : 'text-gray-400'} /><span className={`font-bold text-sm md:text-base ${visibility === 'public' ? 'text-blue-700' : 'text-gray-500'}`}>Herkese Açık</span>
                 </label>
                 <label className={`flex-1 p-3 rounded-xl border-2 flex items-center justify-center gap-2 cursor-pointer transition-all ${visibility === 'private' ? 'border-purple-500 bg-purple-50 shadow-inner' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-                  <input type="radio" checked={visibility === 'private'} onChange={() => setVisibility('private')} className="hidden" />
-                  <Lock size={20} className={visibility === 'private' ? 'text-purple-500' : 'text-gray-400'} />
-                  <span className={`font-bold text-sm md:text-base ${visibility === 'private' ? 'text-purple-700' : 'text-gray-500'}`}>Bana Özel</span>
+                  <input type="radio" checked={visibility === 'private'} onChange={() => setVisibility('private')} className="hidden" /><Lock size={20} className={visibility === 'private' ? 'text-purple-500' : 'text-gray-400'} /><span className={`font-bold text-sm md:text-base ${visibility === 'private' ? 'text-purple-700' : 'text-gray-500'}`}>Bana Özel</span>
                 </label>
               </div>
 
               {status && (
                 <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-                  {status.type === 'success' ? <Check size={20} /> : <Info size={20} />}
-                  {status.msg}
+                  {status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}
                 </div>
               )}
             </div>
@@ -730,12 +551,9 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
                     <button onClick={() => setConfirmDeleteGame(false)} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl">İptal</button>
                   </div>
                 ) : (
-                  <button onClick={() => setConfirmDeleteGame(true)} className="md:w-1/3 bg-red-100 hover:bg-red-200 text-red-600 font-black text-lg py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-                    <Trash2 size={20} /> SİL
-                  </button>
+                  <button onClick={() => setConfirmDeleteGame(true)} className="md:w-1/3 bg-red-100 hover:bg-red-200 text-red-600 font-black text-lg py-3 rounded-xl transition-all flex items-center justify-center gap-2"><Trash2 size={20} /> SİL</button>
                 )
               )}
-              
               <button onClick={handleFinish} className="flex-1 bg-green-500 hover:bg-green-600 text-white font-black text-xl py-3 rounded-xl shadow-[0_5px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all">
                 {view === 'edit' ? 'KAYDET' : 'BİTTİ'}
               </button>
@@ -756,42 +574,24 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   const [isSuccess, setIsSuccess] = useState(false);
 
   const handleSubmit = async () => {
-    if (!word.trim() || forbidden.some(f => !f.trim())) {
-      setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" });
-      return;
-    }
-    
-    if (category === "NEW" && !customCategory.trim()) {
-      setStatus({ type: 'error', msg: "Lütfen önermek istediğiniz kategorinin adını yazın!" });
-      return;
-    }
+    if (!word.trim() || forbidden.some(f => !f.trim())) { setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" }); return; }
+    if (category === "NEW" && !customCategory.trim()) { setStatus({ type: 'error', msg: "Lütfen önermek istediğiniz kategorinin adını yazın!" }); return; }
 
     try {
       if (!db || !appId) throw new Error("Veritabanı bağlantısı kurulamadı. Firebase ayarlarınızı kontrol edin.");
-      
       const suggRef = collection(db, 'artifacts', appId, 'public', 'data', 'suggestions');
       await addDoc(suggRef, {
         category: category === "NEW" ? customCategory.trim() : category,
         word: word.trim().toLocaleUpperCase('tr-TR'),
-        forbidden: forbidden.map(f => f.trim()),
+        forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')),
         timestamp: Date.now(),
         suggestedBy: user && !user.isAnonymous ? user.email : "Anonim" 
       });
-
-      setIsSuccess(true);
-      setStatus(null);
-    } catch (e) {
-      setStatus({ type: 'error', msg: "Öneri gönderilemedi: " + e.message });
-    }
+      setIsSuccess(true); setStatus(null);
+    } catch (e) { setStatus({ type: 'error', msg: "Öneri gönderilemedi: " + e.message }); }
   };
 
-  const resetForm = () => {
-    setWord("");
-    setForbidden(["", "", "", "", ""]);
-    setCustomCategory("");
-    setCategory("Genel");
-    setIsSuccess(false);
-  };
+  const resetForm = () => { setWord(""); setForbidden(["", "", "", "", ""]); setCustomCategory(""); setCategory("Genel"); setIsSuccess(false); };
 
   if (isSuccess) {
     return (
@@ -800,14 +600,8 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
           <CheckCircle2 size={80} className="text-green-500 mb-6 animate-bounce" />
           <h2 className="text-3xl font-black text-gray-800 mb-2">Harika!</h2>
           <p className="text-gray-600 mb-8 font-medium">Kelime önerin başarıyla alındı. Yönetici onayından sonra oyuna eklenecektir.</p>
-          
-          <button onClick={resetForm} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all mb-4">
-            YENİ KELİME ÖNER
-          </button>
-          
-          <button onClick={onClose} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(156,163,175)] hover:translate-y-1 hover:shadow-none transition-all">
-            ANASAYFAYA DÖN
-          </button>
+          <button onClick={resetForm} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all mb-4">YENİ KELİME ÖNER</button>
+          <button onClick={onClose} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(156,163,175)] hover:translate-y-1 hover:shadow-none transition-all">ANASAYFAYA DÖN</button>
         </div>
       </div>
     );
@@ -816,65 +610,34 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   return (
     <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-lg shadow-2xl relative border-4 border-yellow-300 my-auto">
-        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors">
-          <X size={32} />
-        </button>
-        
-        <h2 className="text-3xl font-black text-yellow-600 mb-6 flex items-center gap-3">
-          <MessageSquarePlus size={36} />
-          Kelime Öner
-        </h2>
-
+        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors"><X size={32} /></button>
+        <h2 className="text-3xl font-black text-yellow-600 mb-6 flex items-center gap-3"><MessageSquarePlus size={36} /> Kelime Öner</h2>
         <div className="space-y-4">
           <div>
             <label className="block text-gray-700 font-bold mb-2">Kategori Seçimi</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border-2 border-yellow-200 bg-yellow-50 rounded-xl p-3 font-bold text-gray-800 focus:border-yellow-500 outline-none cursor-pointer">
-              {Object.keys(wordDatabase).map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              {Object.keys(wordDatabase).map(cat => (<option key={cat} value={cat}>{cat}</option>))}
               <option value="NEW" className="font-black text-yellow-700">➕ Yeni Kategori Öner...</option>
             </select>
           </div>
-
           {category === "NEW" && (
             <div className="animate-fade-in">
               <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} placeholder="Örn: Müzik" className="w-full border-2 border-yellow-400 bg-yellow-100 rounded-xl p-3 font-bold text-gray-800 focus:border-yellow-600 outline-none" />
             </div>
           )}
-
           <div>
             <label className="block text-gray-700 font-bold mb-2">Kelime:</label>
             <input value={word} onChange={(e) => setWord(e.target.value)} placeholder="Anlatılacak Kelime" className="w-full border-2 border-gray-200 rounded-xl p-3 font-black text-2xl text-gray-800 focus:border-yellow-500 outline-none uppercase placeholder:text-gray-300 shadow-inner" />
           </div>
-
           <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
-            <label className="text-gray-700 font-bold mb-3 flex items-center gap-2">
-              <X size={18} className="text-red-500"/> Deme Kelimeleri:
-            </label>
+            <label className="text-gray-700 font-bold mb-3 flex items-center gap-2"><X size={18} className="text-red-500"/> Deme Kelimeleri:</label>
             <div className="space-y-2">
               {forbidden.map((fw, i) => (
-                <input 
-                  key={i} 
-                  value={fw} 
-                  onChange={(e) => {
-                    const newF = [...forbidden];
-                    newF[i] = e.target.value;
-                    setForbidden(newF);
-                  }} 
-                  placeholder={`${i + 1}. Yasaklı Kelime`} 
-                  className="w-full border-2 border-red-100 bg-white rounded-xl p-2 md:p-3 font-bold text-gray-700 focus:border-red-400 outline-none capitalize shadow-sm" 
-                />
+                <input key={i} value={fw} onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} placeholder={`${i + 1}. Yasaklı Kelime`} className="w-full border-2 border-red-100 bg-white rounded-xl p-2 md:p-3 font-bold text-gray-700 focus:border-red-400 outline-none capitalize shadow-sm" />
               ))}
             </div>
           </div>
-
-          {status && (
-            <div className="p-3 rounded-xl font-bold flex items-center gap-2 bg-red-100 text-red-700 border border-red-200">
-              <Info size={20} />
-              {status.msg}
-            </div>
-          )}
-
+          {status && <div className="p-3 rounded-xl font-bold flex items-center gap-2 bg-red-100 text-red-700 border border-red-200"><Info size={20} />{status.msg}</div>}
           <button onClick={handleSubmit} className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(202,138,4)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-4">
             KELİMEYİ ÖNER
           </button>
@@ -890,10 +653,7 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
   const [word, setWord] = useState(wordObj.word);
   const [forbidden, setForbidden] = useState([...wordObj.forbidden]);
 
-  const handleSave = () => {
-    onSave({ word, forbidden });
-    setIsEditing(false);
-  };
+  const handleSave = () => { onSave({ word, forbidden }); setIsEditing(false); };
 
   if (isEditing) {
     return (
@@ -915,12 +675,7 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
   return (
     <div className={`bg-gray-50 p-3 rounded-xl border flex flex-col md:flex-row justify-between items-center gap-4 mb-3 transition-colors ${isSelected ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-blue-200'}`}>
       <div className="flex items-center gap-3 flex-1 w-full">
-        <input 
-          type="checkbox" 
-          checked={isSelected} 
-          onChange={onToggleSelect} 
-          className="w-5 h-5 cursor-pointer accent-purple-600 flex-shrink-0" 
-        />
+        <input type="checkbox" checked={isSelected} onChange={onToggleSelect} className="w-5 h-5 cursor-pointer accent-purple-600 flex-shrink-0" />
         <div className="flex-1">
           <span className="font-black text-lg text-gray-800">{wordObj.word}</span>
           <div className="text-sm text-red-500 font-medium">{wordObj.forbidden.join(', ')}</div>
@@ -946,11 +701,7 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
         <div className="flex-1">
           <div className="flex justify-between items-center mb-1">
             <label className="text-xs font-bold text-purple-600 uppercase block">Kategori</label>
-            {suggestion.suggestedBy && (
-              <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">
-                Öneren: {suggestion.suggestedBy}
-              </span>
-            )}
+            {suggestion.suggestedBy && <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">Öneren: {suggestion.suggestedBy}</span>}
           </div>
           <input value={cat} onChange={(e) => setCat(e.target.value)} className="w-full p-2 rounded-lg border border-purple-200 font-bold focus:outline-none focus:border-purple-500"/>
         </div>
@@ -964,27 +715,14 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
         <label className="text-xs font-bold text-red-500 uppercase mb-1 block">Yasaklı Kelimeler</label>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {forbidden.map((fw, i) => (
-            <input 
-              key={i} 
-              value={fw} 
-              onChange={(e) => {
-                const newF = [...forbidden];
-                newF[i] = e.target.value;
-                setForbidden(newF);
-              }}
-              className="w-full p-2 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none focus:border-red-500 capitalize"
-            />
+            <input key={i} value={fw} onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} className="w-full p-2 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none focus:border-red-500 capitalize" />
           ))}
         </div>
       </div>
 
       <div className="flex justify-end gap-3 pt-2 border-t border-purple-200">
-        <button onClick={() => onReject(suggestion.id)} className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded-lg transition-colors flex items-center gap-2">
-          <Trash2 size={18} /> Sil
-        </button>
-        <button onClick={() => onApprove(suggestion.id, cat, word, forbidden)} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-md">
-          <Check size={18} /> Onayla ve Ekle
-        </button>
+        <button onClick={() => onReject(suggestion.id)} className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded-lg transition-colors flex items-center gap-2"><Trash2 size={18} /> Sil</button>
+        <button onClick={() => onApprove(suggestion.id, cat, word, forbidden)} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-md"><Check size={18} /> Onayla ve Ekle</button>
       </div>
     </div>
   );
@@ -996,14 +734,12 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(null);
   const [activeTab, setActiveTab] = useState('categories'); 
-
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
   const [category, setCategory] = useState("Genel");
   const [word, setWord] = useState("");
   const [forbidden, setForbidden] = useState(["", "", "", "", ""]);
-
   const [selectedCat, setSelectedCat] = useState(null);
   const [editCatName, setEditCatName] = useState("");
   const [confirmDeleteCat, setConfirmDeleteCat] = useState(false);
@@ -1027,25 +763,18 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
 
   const handleToggleBan = async (uid, currentBanStatus) => {
     try {
-      await updateDoc(doc(db, 'artifacts', appId, 'userProfiles', uid), {
-        isBanned: !currentBanStatus
-      });
+      await updateDoc(doc(db, 'artifacts', appId, 'userProfiles', uid), { isBanned: !currentBanStatus });
       setStatus({ type: 'success', msg: `Kullanıcı engeli ${!currentBanStatus ? 'koyuldu' : 'kaldırıldı'}.` });
       setTimeout(() => setStatus(null), 2000);
-    } catch (e) {
-      setStatus({ type: 'error', msg: "Hata: " + e.message });
-    }
+    } catch (e) { setStatus({ type: 'error', msg: "Hata: " + e.message }); }
   };
 
   const handleLogin = async () => {
     try {
       setStatus({ type: 'info', msg: "Giriş yapılıyor..." });
       await signInWithEmailAndPassword(auth, "boteonur@gmail.com", password);
-      setIsAuthenticated(true);
-      setStatus(null);
-    } catch (error) {
-      setStatus({ type: 'error', msg: "Hatalı şifre girdiniz!" });
-    }
+      setIsAuthenticated(true); setStatus(null);
+    } catch (error) { setStatus({ type: 'error', msg: "Hatalı şifre girdiniz!" }); }
   };
 
   const handleResetPassword = async () => {
@@ -1054,104 +783,66 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       try {
         await sendPasswordResetEmail(auth, resetEmail.trim());
         setStatus({ type: 'success', msg: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi!" });
-        setTimeout(() => {
-          setIsForgotPassword(false);
-          setStatus(null);
-          setResetEmail("");
-        }, 4000);
-      } catch (err) {
-        setStatus({ type: 'error', msg: "Gönderilemedi. Lütfen bağlantınızı kontrol edin." });
-      }
-    } else {
-      setStatus({ type: 'error', msg: "Böyle bir yönetici e-posta adresi bulunamadı!" });
-    }
+        setTimeout(() => { setIsForgotPassword(false); setStatus(null); setResetEmail(""); }, 4000);
+      } catch (err) { setStatus({ type: 'error', msg: "Gönderilemedi. Lütfen bağlantınızı kontrol edin." }); }
+    } else { setStatus({ type: 'error', msg: "Böyle bir yönetici e-posta adresi bulunamadı!" }); }
   };
 
   const handleDirectSave = async () => {
-    if (!word.trim() || forbidden.some(f => !f.trim())) {
-      setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" });
-      return;
-    }
-
+    if (!word.trim() || forbidden.some(f => !f.trim())) { setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" }); return; }
     try {
       if (!db || !appId) throw new Error("Veritabanı bağlantısı kurulamadı.");
-      
-      const newWordObj = {
-        word: word.trim().toLocaleUpperCase('tr-TR'),
-        forbidden: forbidden.map(f => f.trim())
-      };
-
+      const newWordObj = { word: word.trim().toLocaleUpperCase('tr-TR'), forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
       const currentWords = wordDatabase[category] || [];
-      const updatedWords = [...currentWords, newWordObj];
+      
+      // YENİ EKLENDİ: Listeyi kaydederken alfabetik sırala
+      const updatedWords = sortWordsAlphabetically([...currentWords, newWordObj]);
 
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), category);
       await setDoc(catRef, { words: updatedWords });
 
       setStatus({ type: 'success', msg: "Kelime başarıyla eklendi!" });
-      setWord("");
-      setForbidden(["", "", "", "", ""]);
+      setWord(""); setForbidden(["", "", "", "", ""]);
       setTimeout(() => setStatus(null), 3000);
-    } catch (e) {
-      setStatus({ type: 'error', msg: "Kaydedilirken hata oluştu: " + e.message });
-    }
+    } catch (e) { setStatus({ type: 'error', msg: "Kaydedilirken hata oluştu: " + e.message }); }
   };
 
   const handleApproveSuggestion = async (id, catName, wordVal, forbiddenArr) => {
-    if (!wordVal.trim() || forbiddenArr.some(f => !f.trim()) || !catName.trim()) {
-      setStatus({ type: 'error', msg: "Eksik alan var, onaylanamadı." });
-      return;
-    }
+    if (!wordVal.trim() || forbiddenArr.some(f => !f.trim()) || !catName.trim()) { setStatus({ type: 'error', msg: "Eksik alan var, onaylanamadı." }); return; }
     try {
       const currentWords = wordDatabase[catName.trim()] || [];
-      const newWordObj = {
-        word: wordVal.trim().toLocaleUpperCase('tr-TR'),
-        forbidden: forbiddenArr.map(f => f.trim())
-      };
+      const newWordObj = { word: wordVal.trim().toLocaleUpperCase('tr-TR'), forbidden: forbiddenArr.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
+      
+      // YENİ EKLENDİ: Listeyi kaydederken alfabetik sırala
+      const updatedWords = sortWordsAlphabetically([...currentWords, newWordObj]);
       
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName.trim());
-      await setDoc(catRef, { words: [...currentWords, newWordObj] });
-      
+      await setDoc(catRef, { words: updatedWords });
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'suggestions', id));
       
       setStatus({ type: 'success', msg: "Öneri onaylandı ve veritabanına eklendi!" });
       setTimeout(() => setStatus(null), 3000);
-    } catch (e) {
-      setStatus({ type: 'error', msg: "Hata: " + e.message });
-    }
-  };
-
-  const handleRejectSuggestion = async (id) => {
-    try {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'suggestions', id));
-      setStatus({ type: 'success', msg: "Öneri reddedildi ve silindi." });
-      setTimeout(() => setStatus(null), 3000);
-    } catch (e) {
-      setStatus({ type: 'error', msg: "Hata: " + e.message });
-    }
+    } catch (e) { setStatus({ type: 'error', msg: "Hata: " + e.message }); }
   };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result);
         if (!Array.isArray(data)) throw new Error("Geçersiz format.");
-
         setStatus({ type: 'info', msg: "Yükleniyor..." });
 
-        const groupedWords = {};
-        let validWordCount = 0;
-
+        const groupedWords = {}; let validWordCount = 0;
         data.forEach(item => {
           if (item.category && item.word && Array.isArray(item.forbidden) && item.forbidden.length > 0) {
             const cat = item.category.trim();
             if (!groupedWords[cat]) groupedWords[cat] = [];
             groupedWords[cat].push({
               word: item.word.trim().toLocaleUpperCase('tr-TR'),
-              forbidden: item.forbidden.map(f => f.trim())
+              forbidden: item.forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR'))
             });
             validWordCount++;
           }
@@ -1161,23 +852,19 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
 
         for (const [catName, newWords] of Object.entries(groupedWords)) {
           const currentWords = wordDatabase[catName] || [];
-          const updatedWords = [...currentWords, ...newWords];
+          // YENİ EKLENDİ: Listeyi kaydederken alfabetik sırala
+          const updatedWords = sortWordsAlphabetically([...currentWords, ...newWords]);
           const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName);
           await setDoc(catRef, { words: updatedWords });
         }
 
         setStatus({ type: 'success', msg: `Tebrikler! ${validWordCount} adet kelime başarıyla eklendi.` });
-        e.target.value = null; 
-        setTimeout(() => setStatus(null), 5000);
-
-      } catch (error) {
-        setStatus({ type: 'error', msg: "Hata: " + error.message });
-        e.target.value = null;
-      }
+        e.target.value = null; setTimeout(() => setStatus(null), 5000);
+      } catch (error) { setStatus({ type: 'error', msg: "Hata: " + error.message }); e.target.value = null; }
     };
     reader.readAsText(file);
   };
-const handleOpenCat = (type, data) => {
+  const handleOpenCat = (type, data) => {
     setSelectedCat({ type, data });
     setEditCatName(type === 'official' ? data : data.name);
     setConfirmDeleteCat(false); setSelectedWords([]);
@@ -1832,10 +1519,9 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
 
 /* ==========================================
    BÖLÜM 5: ANA UYGULAMA BİLEŞENİ (Deme.jsx)
-   Tüm oyun mantığını (State, Effect, Game Loop) yöneten merkez.
 ============================================= */
 export default function Deme() {
-  // --- 1. UYGULAMA VE VERİTABANI DURUMLARI (STATES) ---
+  // --- STATES ---
   const [user, setUser] = useState(null);
   const [wordDatabase, setWordDatabase] = useState(DEFAULT_WORD_DATABASE);
   const [suggestions, setSuggestions] = useState([]);
@@ -1844,7 +1530,6 @@ export default function Deme() {
   const [reports, setReports] = useState([]); 
   const [dbError, setDbError] = useState(""); 
 
-  // --- 2. ARAYÜZ / MODAL DURUMLARI ---
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
@@ -1854,14 +1539,12 @@ export default function Deme() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isLoginMode, setIsLoginMode] = useState(true);
 
-  // --- 3. FORMLAR / GEÇİCİ DURUMLAR ---
   const [reportReason, setReportReason] = useState(""); 
   const [reportStatus, setReportStatus] = useState(null); 
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authStatus, setAuthStatus] = useState(null);
 
-  // --- 4. OYUN KURULUM DURUMLARI ---
   const [setupStep, setSetupStep] = useState(0); 
   const [team1Name, setTeam1Name] = useState("Kırmızı Ejderler");
   const [team2Name, setTeam2Name] = useState("Mavi Aslanlar");
@@ -1871,8 +1554,7 @@ export default function Deme() {
     timeLimit: 60, penalty: 1, passLimit: 3, endType: 'rounds', endRoundsValue: 5, endScoreValue: 50,
   });
   
-  // --- 5. AKTİF OYUN İÇİ DURUMLARI ---
-  const [gameState, setGameState] = useState('setup'); // setup, preGame, countdown, playing, turnSummary, gameOver
+  const [gameState, setGameState] = useState('setup'); 
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0); 
   const [scores, setScores] = useState([0, 0]);
@@ -1885,32 +1567,24 @@ export default function Deme() {
   const [turnStats, setTurnStats] = useState({ correct: 0, taboo: 0, pass: 0 });
   const [passesLeft, setPassesLeft] = useState(0);
 
-  // --- KAYDIRMA (SWIPE) DURUMLARI ---
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
 
   const gameRootRef = useRef(null); 
 
-  /* ==========================================
-     KİMLİK DOĞRULAMA (AUTH) EFEKTLERİ
-  ============================================= */
-  useEffect(() => {
-    document.title = "Deme";
-  }, []);
+  // --- EFFECTS ---
+  useEffect(() => { document.title = "Deme"; }, []);
 
   useEffect(() => {
     if (!auth) return;
     const initAuth = async () => {
       try {
-        if (isUsingUserFirebase) {
-          await signInAnonymously(auth);
-        } else {
+        if (isUsingUserFirebase) { await signInAnonymously(auth); } 
+        else {
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
             try { await signInWithCustomToken(auth, __initial_auth_token); } 
             catch (tokenError) { await signInAnonymously(auth); }
-          } else {
-            await signInAnonymously(auth);
-          }
+          } else { await signInAnonymously(auth); }
         }
       } catch (e) {
         if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/configuration-not-found') {
@@ -1933,9 +1607,6 @@ export default function Deme() {
     return () => unsubscribe();
   }, []);
 
-  /* ==========================================
-     VERİTABANI (FIRESTORE) EFEKTLERİ
-  ============================================= */
   useEffect(() => {
     if (!user || !db) return;
     
@@ -1959,124 +1630,74 @@ export default function Deme() {
 
     const suggsRef = collection(db, 'artifacts', appId, 'public', 'data', 'suggestions');
     const unsubSuggs = onSnapshot(suggsRef, (snapshot) => {
-      const s = [];
-      snapshot.forEach(d => s.push({ id: d.id, ...d.data() }));
-      setSuggestions(s);
+      const s = []; snapshot.forEach(d => s.push({ id: d.id, ...d.data() })); setSuggestions(s);
     });
 
     const reportsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
     const unsubReports = onSnapshot(reportsRef, (snapshot) => {
-      const arr = [];
-      snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
-      arr.sort((a,b) => b.timestamp - a.timestamp);
-      setReports(arr);
+      const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
+      arr.sort((a,b) => b.timestamp - a.timestamp); setReports(arr);
     });
 
     const pubCustomRef = collection(db, 'artifacts', appId, 'public', 'data', 'customGames');
     const unsubPubCustom = onSnapshot(pubCustomRef, (snapshot) => {
-      const arr = [];
-      snapshot.forEach(d => arr.push({ id: d.id, ...d.data(), type: 'public' }));
-      setCustomPublicGames(arr);
+      const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data(), type: 'public' })); setCustomPublicGames(arr);
     });
 
     let unsubPrivCustom = () => {};
     if (user && !user.isAnonymous) {
       const privCustomRef = collection(db, 'artifacts', appId, 'users', user.uid, 'customGames');
       unsubPrivCustom = onSnapshot(privCustomRef, (snapshot) => {
-        const arr = [];
-        snapshot.forEach(d => arr.push({ id: d.id, ...d.data(), type: 'private' }));
-        setCustomPrivateGames(arr);
+        const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data(), type: 'private' })); setCustomPrivateGames(arr);
       });
-    } else {
-      setCustomPrivateGames([]); 
-    }
+    } else { setCustomPrivateGames([]); }
     
     return () => { unsubWords(); unsubSuggs(); unsubPubCustom(); unsubPrivCustom(); unsubReports();};
   }, [user]);
 
-  /* ==========================================
-     GERİ TUŞU YAKALAYICI (TRAP)
-  ============================================= */
   useEffect(() => {
     const handlePopState = (event) => {
       if (setupStep > 0) { 
-        event.preventDefault();
-        setShowExitConfirmModal(true);
-        window.history.pushState(null, '', window.location.href); 
+        event.preventDefault(); setShowExitConfirmModal(true); window.history.pushState(null, '', window.location.href); 
       }
     };
-
-    if (setupStep > 0) {
-      window.history.pushState(null, '', window.location.href);
-      window.addEventListener('popstate', handlePopState);
-    }
+    if (setupStep > 0) { window.history.pushState(null, '', window.location.href); window.addEventListener('popstate', handlePopState); }
     return () => window.removeEventListener('popstate', handlePopState);
   }, [setupStep]);
 
-  /* ==========================================
-     ZAMANLAYICI (TIMER) EFEKTLERİ
-  ============================================= */
   useEffect(() => {
     let timer;
     if (gameState === 'countdown' && countdown > 0) {
-      playTickSound(1500); 
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      playTickSound(1500); timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     } else if (gameState === 'countdown' && countdown === 0) {
-      playCorrectSound(); 
-      setGameState('playing');
-      setTimeLeft(settings.timeLimit);
-      setPassesLeft(settings.passLimit);
-      setTurnStats({ correct: 0, taboo: 0, pass: 0 });
-      pickNextWord();
+      playCorrectSound(); setGameState('playing'); setTimeLeft(settings.timeLimit); setPassesLeft(settings.passLimit); setTurnStats({ correct: 0, taboo: 0, pass: 0 }); pickNextWord();
     }
     return () => clearTimeout(timer);
   }, [gameState, countdown]);
 
   useEffect(() => {
-    let mainTimer;
-    let soundTimers = [];
-
+    let mainTimer; let soundTimers = [];
     if (showReportModal || gameState !== 'playing') return;
 
     if (timeLeft > 0) {
       mainTimer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-
       if (timeLeft > 10) { playTickSound(1000); } 
-      else if (timeLeft > 3 && timeLeft <= 10) {
-        playTickSound(1200); 
-        soundTimers.push(setTimeout(() => playTickSound(1200), 500));
-      } else if (timeLeft <= 3) {
-        playTickSound(1400); 
-        soundTimers.push(setTimeout(() => playTickSound(1400), 333));
-        soundTimers.push(setTimeout(() => playTickSound(1400), 666));
-      }
-    } else if (timeLeft === 0) {
-      playTimeUpSound(); 
-      endTurn();
-    }
-
+      else if (timeLeft > 3 && timeLeft <= 10) { playTickSound(1200); soundTimers.push(setTimeout(() => playTickSound(1200), 500)); } 
+      else if (timeLeft <= 3) { playTickSound(1400); soundTimers.push(setTimeout(() => playTickSound(1400), 333)); soundTimers.push(setTimeout(() => playTickSound(1400), 666)); }
+    } else if (timeLeft === 0) { playTimeUpSound(); endTurn(); }
     return () => { clearTimeout(mainTimer); soundTimers.forEach(clearTimeout); };
   }, [gameState, timeLeft, showReportModal]); 
 
-  /* ==========================================
-     FONKSİYONLAR - KAYDIRMA (SWIPE)
-  ============================================= */
+  // --- FONKSİYONLAR ---
   const minSwipeDistance = 50;
   const nextStep = () => setSetupStep(prev => prev + 1);
   const prevStep = () => setSetupStep(prev => Math.max(0, prev - 1));
-
-  const onTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
+  const onTouchStart = (e) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); };
   const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
-
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
     const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
+    const isLeftSwipe = distance > minSwipeDistance; const isRightSwipe = distance < -minSwipeDistance;
     if (isLeftSwipe && setupStep < 3) {
       if (setupStep === 1 && team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase()) return;
       nextStep();
@@ -2084,14 +1705,10 @@ export default function Deme() {
     if (isRightSwipe && setupStep > 0) prevStep();
   };
 
-  /* ==========================================
-     FONKSİYONLAR - OYUN MANTIĞI
-  ============================================= */
   const handleRequestFullscreen = () => {
     const element = gameRootRef.current;
-    if (element && element.requestFullscreen) {
-      element.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
-    } else {
+    if (element && element.requestFullscreen) { element.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {}); } 
+    else {
       if (element.webkitRequestFullscreen) { element.webkitRequestFullscreen(); setIsFullscreen(true); }
       else if (element.mozRequestFullScreen) { element.mozRequestFullScreen(); setIsFullscreen(true); }
       else if (element.msRequestFullscreen) { element.msRequestFullscreen(); setIsFullscreen(true); }
@@ -2122,108 +1739,66 @@ export default function Deme() {
 
   const startGameFlow = (catId, catName, catWords) => {
     setSelectedCategory({ id: catId, name: catName, words: catWords });
-    setGameState('preGame');
-    setCurrentTeamIndex(0);
-    setScores([0, 0]);
-    setRoundsPlayed([0, 0]);
-    setUsedWords([]);
-    setOutOfWords(false);
+    setGameState('preGame'); setCurrentTeamIndex(0); setScores([0, 0]); setRoundsPlayed([0, 0]); setUsedWords([]); setOutOfWords(false);
   };
 
-  const startTurn = () => {
-    setGameState('countdown');
-    setCountdown(3);
-  };
+  const startTurn = () => { setGameState('countdown'); setCountdown(3); };
 
   const pickNextWord = () => {
     const categoryWords = selectedCategory?.words && selectedCategory.words.length > 0 ? selectedCategory.words : wordDatabase["Genel"];
     const availableWords = categoryWords.filter(w => !usedWords.includes(w.word));
     
     if (availableWords.length === 0) {
-      setOutOfWords(true);
-      setGameState('gameOver');
-      return; 
+      setOutOfWords(true); setGameState('gameOver'); return; 
     } else {
       const randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
-      setCurrentWord(randomWord);
-      setUsedWords(prev => [...prev, randomWord.word]);
+      setCurrentWord(randomWord); setUsedWords(prev => [...prev, randomWord.word]);
     }
   };
 
   const handleAction = (type) => {
     if (gameState !== 'playing' || showReportModal) return;
-
-    let pointsChange = 0;
-    const newStats = { ...turnStats };
+    let pointsChange = 0; const newStats = { ...turnStats };
 
     if (type === 'correct') {
-      playCorrectSound();
-      pointsChange = 1;
-      newStats.correct++;
-      
-      const newScores = [...scores];
-      newScores[currentTeamIndex] += pointsChange;
-      setScores(newScores);
-      setTurnStats(newStats);
-      pickNextWord();
+      playCorrectSound(); pointsChange = 1; newStats.correct++;
+      const newScores = [...scores]; newScores[currentTeamIndex] += pointsChange;
+      setScores(newScores); setTurnStats(newStats); pickNextWord();
     } else if (type === 'taboo') {
-      playTabooSound();
-      pointsChange = -settings.penalty;
-      newStats.taboo++;
-      
-      const newScores = [...scores];
-      newScores[currentTeamIndex] += pointsChange;
-      setScores(newScores);
-      setTurnStats(newStats);
-      pickNextWord();
+      playTabooSound(); pointsChange = -settings.penalty; newStats.taboo++;
+      const newScores = [...scores]; newScores[currentTeamIndex] += pointsChange;
+      setScores(newScores); setTurnStats(newStats); pickNextWord();
     } else if (type === 'pass') {
       if (passesLeft > 0 || settings.passLimit === 999) {
-        playPassSound();
-        newStats.pass++;
+        playPassSound(); newStats.pass++;
         if (settings.passLimit !== 999) setPassesLeft(prev => prev - 1);
-        setTurnStats(newStats);
-        pickNextWord();
+        setTurnStats(newStats); pickNextWord();
       }
     }
   };
 
   const endTurn = () => {
     setGameState('turnSummary');
-    const newRounds = [...roundsPlayed];
-    newRounds[currentTeamIndex] += 1;
-    setRoundsPlayed(newRounds);
+    const newRounds = [...roundsPlayed]; newRounds[currentTeamIndex] += 1; setRoundsPlayed(newRounds);
   };
 
   const handleNextTurn = () => {
     let isGameOver = false;
-    
     if (roundsPlayed[0] === roundsPlayed[1]) {
       if (settings.endType === 'rounds' && roundsPlayed[0] >= settings.endRoundsValue) isGameOver = true;
       else if (settings.endType === 'score' && (scores[0] >= settings.endScoreValue || scores[1] >= settings.endScoreValue)) isGameOver = true;
     }
-
     if (isGameOver) setGameState('gameOver');
-    else {
-      setCurrentTeamIndex(prev => (prev === 0 ? 1 : 0));
-      setGameState('preGame');
-    }
+    else { setCurrentTeamIndex(prev => (prev === 0 ? 1 : 0)); setGameState('preGame'); }
   };
 
   const returnToMainMenu = () => {
-    if (gameState === 'playing') {
-      setShowExitConfirmModal(true);
-    } else {
-      setGameState('setup');
-      setSetupStep(0);
-      setOutOfWords(false); 
-    }
+    if (gameState === 'playing') setShowExitConfirmModal(true);
+    else { setGameState('setup'); setSetupStep(0); setOutOfWords(false); }
   };
 
   const handleConfirmExit = () => {
-    setShowExitConfirmModal(false);
-    setGameState('setup');
-    setSetupStep(0);
-    setOutOfWords(false);
+    setShowExitConfirmModal(false); setGameState('setup'); setSetupStep(0); setOutOfWords(false);
   };
 
   const handleReportSubmit = async () => {
