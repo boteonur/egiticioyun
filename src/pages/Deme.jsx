@@ -1317,7 +1317,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                 </div>
                 <div className="flex justify-between items-center bg-purple-50 border border-purple-100 p-3 rounded-xl mb-3 flex-shrink-0">
                   <label className="flex items-center gap-2 cursor-pointer font-bold text-purple-900 select-none">
-                    <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} className="w-5 h-5 accent-purple-600 cursor-pointer" /> Tümünü Seç ({currentWordList.length})
+                    <input type="checkbox" checked={isAllSelected} onChange={handleSelectAll} className="w-5 h-5 accent-purple-600 cursor-pointer" /> Tümünü Seç ({rawWordList.length})
                   </label>
                   {selectedWords.length > 0 && (
                     <button onClick={handleDeleteSelectedWords} className="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm"><Trash2 size={16} /> Seçilenleri Sil ({selectedWords.length})</button>
