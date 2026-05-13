@@ -796,6 +796,13 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       setTimeout(() => setStatus(null), 3000);
     } catch (e) { setStatus({ type: 'error', msg: "Hata: " + e.message }); }
   };
+  const handleRejectSuggestion = async (id) => {
+    try {
+      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'suggestions', id));
+      setStatus({ type: 'success', msg: "Öneri reddedildi ve silindi." });
+      setTimeout(() => setStatus(null), 2000);
+    } catch (e) { setStatus({ type: 'error', msg: "Hata: " + e.message }); }
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
