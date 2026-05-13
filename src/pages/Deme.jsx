@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, BarChart3, Search, Ban, ShieldCheck, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2 } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, BarChart3, Search, Ban, ShieldCheck, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2, Mail, Send } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
@@ -731,7 +731,7 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
 }
 
 // --- Yönetici (Admin) Modalı Bileşeni ---
-const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, reports }) => {
+const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, reports, messagesList, adminReplyText, setAdminReplyText, handleAdminReply, handleAdminDeleteMessage }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(null);
@@ -1113,6 +1113,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
           <button onClick={() => setActiveTab('review')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><ListTodo size={18} /> Öneriler {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{suggestions.length}</span>}</button>
           <button onClick={() => setActiveTab('stats')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'stats' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><BarChart3 size={18} /> Üyeler / İstatistik</button>
           <button onClick={() => setActiveTab('reports')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'reports' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Flag size={18} /> Bildirimler {reports && reports.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{reports.length}</span>}</button>
+          <button onClick={() => setActiveTab('messages')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'messages' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
+    <Mail size={18} /> Mesajlar {messagesList?.filter(m => !m.isReadAdmin).length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{messagesList.filter(m => !m.isReadAdmin).length}</span>}
+  </button>
           <button onClick={() => setActiveTab('add')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Edit3 size={18} /> Tek Ekle</button>
           <button onClick={() => setActiveTab('import')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Upload size={18} /> Toplu Yükle</button>
         </div>
@@ -1159,7 +1162,56 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
             )}
           </div>
         )}
-        
+        {/* MESAJLAR İÇERİĞİ */}
+        {activeTab === 'messages' && (
+          <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            {!messagesList || messagesList.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center">
+                <CheckCircle2 size={48} className="mb-4 text-green-300" />
+                Şu an bekleyen hiçbir mesaj yok.
+              </div>
+            ) : (
+              messagesList.map(msg => (
+                <div key={msg.id} className="bg-blue-50 rounded-2xl p-4 border-2 border-blue-100 mb-4 shadow-sm flex flex-col">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-black text-xl text-blue-900">{msg.username}</h4>
+                      <span className="text-sm font-semibold text-gray-500">{msg.userEmail}</span>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs font-semibold text-gray-500">{new Date(msg.lastUpdatedAt).toLocaleString('tr-TR')}</span>
+                      {!msg.isReadAdmin && <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded font-bold mt-1">YENİ</span>}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-inner flex-1 max-h-40 overflow-y-auto mb-3 space-y-2">
+                    {(msg.thread || []).map((t, i) => (
+                      <div key={i} className={`flex flex-col ${t.sender === 'admin' ? 'items-end' : 'items-start'}`}>
+                        <span className={`px-3 py-1.5 rounded-xl text-sm font-medium max-w-[85%] ${t.sender === 'admin' ? 'bg-purple-100 text-purple-800 rounded-tr-none' : 'bg-gray-100 text-gray-800 rounded-tl-none'}`}>
+                          {t.text}
+                        </span>
+                        <span className="text-[9px] text-gray-400 mt-0.5">{new Date(t.timestamp).toLocaleTimeString('tr-TR')}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 items-center pt-2 border-t border-blue-200">
+                    <input 
+                      type="text" 
+                      value={adminReplyText[msg.id] || ""} 
+                      onChange={(e) => setAdminReplyText(prev => ({...prev, [msg.id]: e.target.value}))} 
+                      onKeyDown={(e) => e.key === 'Enter' && handleAdminReply(msg.id)}
+                      placeholder="Kullanıcıya cevap yaz..." 
+                      className="flex-1 border-2 border-white rounded-lg p-2 font-medium focus:outline-none focus:border-blue-400 shadow-sm"
+                    />
+                    <button onClick={() => handleAdminReply(msg.id)} className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition-colors shadow-sm"><Send size={20}/></button>
+                    <button onClick={() => handleAdminDeleteMessage(msg.id)} className="bg-red-100 text-red-600 p-2 rounded-lg hover:bg-red-200 transition-colors shadow-sm"><Trash2 size={20}/></button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
         {/* İSTATİSTİKLER VE ÜYELER SEKMESİ */}
         {activeTab === 'stats' && (
           <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
@@ -1576,7 +1628,11 @@ export default function Deme() {
   const [username, setUsername] = useState("");
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState("");
-
+  // --- MESAJLAŞMA STATE'LERİ ---
+  const [messagesList, setMessagesList] = useState([]);
+  const [isMessageOpen, setIsMessageOpen] = useState(false);
+  const [userMsgText, setUserMsgText] = useState("");
+  const [adminReplyText, setAdminReplyText] = useState({});
   // Kullanıcı adını veritabanından çekme ve senkronize etme
   useEffect(() => {
     let unsub = () => {};
@@ -1683,7 +1739,13 @@ export default function Deme() {
       const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
       arr.sort((a,b) => b.timestamp - a.timestamp); setReports(arr);
     });
-
+    const msgsRef = collection(db, 'artifacts', appId, 'messages');
+    const unsubMsgs = onSnapshot(msgsRef, (snapshot) => {
+      const arr = [];
+      snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
+      arr.sort((a,b) => b.lastUpdatedAt - a.lastUpdatedAt);
+      setMessagesList(arr);
+    });
     const pubCustomRef = collection(db, 'artifacts', appId, 'public', 'data', 'customGames');
     const unsubPubCustom = onSnapshot(pubCustomRef, (snapshot) => {
       const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data(), type: 'public' })); setCustomPublicGames(arr);
@@ -1697,7 +1759,7 @@ export default function Deme() {
       });
     } else { setCustomPrivateGames([]); }
     
-    return () => { unsubWords(); unsubSuggs(); unsubPubCustom(); unsubPrivCustom(); unsubReports();};
+    return () => { unsubWords(); unsubSuggs(); unsubPubCustom(); unsubPrivCustom(); unsubReports(); unsubMsgs();};
   }, [user]);
 
   useEffect(() => {
@@ -1861,12 +1923,66 @@ export default function Deme() {
       setTimeout(() => { setShowReportModal(false); setReportReason(""); setReportStatus(null); }, 2000);
     } catch(e) { setReportStatus({ type: 'error', msg: "Hata oluştu: " + e.message }); }
   };
+  // --- MESAJLAŞMA FONKSİYONLARI ---
+  const handleSendMessage = async () => {
+    if (!userMsgText.trim()) return;
+    const msgRef = doc(db, 'artifacts', appId, 'messages', user.uid);
+    const newMessage = { sender: 'user', text: userMsgText.trim(), timestamp: Date.now() };
 
+    try {
+      const existing = messagesList.find(m => m.id === user.uid);
+      if (existing) {
+        await updateDoc(msgRef, {
+          thread: [...(existing.thread || []), newMessage],
+          lastUpdatedAt: Date.now(),
+          isReadAdmin: false
+        });
+      } else {
+        await setDoc(msgRef, {
+          userId: user.uid, userEmail: user.email,
+          username: username || user.email?.split('@')[0] || "İsimsiz",
+          thread: [newMessage], lastUpdatedAt: Date.now(),
+          isReadAdmin: false, isReadUser: true
+        });
+      }
+      setUserMsgText("");
+    } catch (e) { alert("Mesaj gönderilemedi: " + e.message); }
+  };
+
+  const handleAdminReply = async (userId) => {
+    const text = adminReplyText[userId];
+    if (!text || !text.trim()) return;
+    
+    const msgRef = doc(db, 'artifacts', appId, 'messages', userId);
+    const existing = messagesList.find(m => m.id === userId);
+    const newMessage = { sender: 'admin', text: text.trim(), timestamp: Date.now() };
+
+    try {
+      await updateDoc(msgRef, {
+        thread: [...(existing.thread || []), newMessage],
+        lastUpdatedAt: Date.now(),
+        isReadUser: false, isReadAdmin: true
+      });
+      setAdminReplyText(prev => ({ ...prev, [userId]: "" }));
+    } catch(e) { alert("Cevap gönderilemedi: " + e.message); }
+  };
+
+  const handleAdminDeleteMessage = async (userId) => {
+    try { await deleteDoc(doc(db, 'artifacts', appId, 'messages', userId)); } 
+    catch(e) { alert("Silinemedi: " + e.message); }
+  };
+
+  const markUserMessageAsRead = async () => {
+    const existing = messagesList.find(m => m.id === user?.uid);
+    if (existing && !existing.isReadUser) {
+      try { await updateDoc(doc(db, 'artifacts', appId, 'messages', user.uid), { isReadUser: true }); } 
+      catch(e) {}
+    }
+  };
   /* ==========================================
      BÖLÜM 6: RENDER (ARAYÜZ ÇİZİMİ)
   ============================================= */
-
-  if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} />;
+  if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} messagesList={messagesList} adminReplyText={adminReplyText} setAdminReplyText={setAdminReplyText} handleAdminReply={handleAdminReply} handleAdminDeleteMessage={handleAdminDeleteMessage} />;
   if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
   
   const myGames = [...customPublicGames, ...customPrivateGames].filter(g => g.ownerId === user?.uid);
@@ -1915,57 +2031,97 @@ export default function Deme() {
     );
   }
 // --- KULLANICI PROFİL MENÜSÜ ---
-  if (showProfileMenu) {
+ if (showProfileMenu) {
+    const myMsgDoc = messagesList.find(m => m.id === user?.uid);
+    const hasUnread = myMsgDoc && !myMsgDoc.isReadUser;
+
     return (
       <div className="fixed inset-0 w-full h-screen bg-gray-900/60 flex items-center justify-center p-4 z-[110] backdrop-blur-sm">
         <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl relative border-4 border-blue-200 animate-bounce-short">
-          <button onClick={() => {setShowProfileMenu(false); setIsEditingUsername(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+          
+          {/* Kapat Butonu */}
+          <button onClick={() => {setShowProfileMenu(false); setIsEditingUsername(false); setIsMessageOpen(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
             <X size={28} />
           </button>
-          
-          <div className="text-center mb-8 mt-2">
-            <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md">
-              <User size={40} />
-            </div>
 
-            {isEditingUsername ? (
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <input 
-                  type="text" 
-                  maxLength={10}
-                  value={tempUsername}
-                  onChange={(e) => setTempUsername(e.target.value)}
-                  className="border-2 border-blue-300 rounded-lg px-2 py-1 text-center font-black text-gray-800 w-32 focus:outline-none focus:border-blue-500 uppercase"
-                  autoFocus
-                />
-                <button onClick={handleSaveUsername} className="bg-green-500 text-white p-1.5 rounded-lg hover:bg-green-600 transition-colors"><Check size={16}/></button>
-                <button onClick={() => setIsEditingUsername(false)} className="bg-red-500 text-white p-1.5 rounded-lg hover:bg-red-600 transition-colors"><X size={16}/></button>
-              </div>
-            ) : (
-              <div 
-                className="flex items-center justify-center gap-2 mb-2 group cursor-pointer" 
-                onClick={() => { setTempUsername(username); setIsEditingUsername(true); }}
-                title="Kullanıcı adını değiştir"
-              >
-                <h2 className="font-black text-2xl text-gray-800 uppercase tracking-wide">{username}</h2>
-                <Edit2 size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
-              </div>
+          {/* Mesaj (Zarf) Butonu */}
+          <button 
+            onClick={() => { setIsMessageOpen(!isMessageOpen); if (!isMessageOpen) markUserMessageAsRead(); }} 
+            className="absolute top-4 left-4 text-gray-400 hover:text-blue-500 transition-colors relative"
+          >
+            <Mail size={28} />
+            {hasUnread && !isMessageOpen && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse">1</span>
             )}
+          </button>
 
-            <h3 className="font-bold text-gray-500 text-sm truncate px-2 mb-2">{user?.email}</h3>
-            <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full border border-green-200 inline-block shadow-sm">
-              Aktif Üye
-            </span>
-          </div>
+          {!isMessageOpen ? (
+            <>
+              {/* --- PROFİL GÖRÜNÜMÜ --- */}
+              <div className="text-center mb-8 mt-2">
+                <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md">
+                  <User size={40} />
+                </div>
+                {isEditingUsername ? (
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <input type="text" maxLength={10} value={tempUsername} onChange={(e) => setTempUsername(e.target.value)} className="border-2 border-blue-300 rounded-lg px-2 py-1 text-center font-black text-gray-800 w-32 focus:outline-none focus:border-blue-500 uppercase" autoFocus />
+                    <button onClick={handleSaveUsername} className="bg-green-500 text-white p-1.5 rounded-lg hover:bg-green-600 transition-colors"><Check size={16}/></button>
+                    <button onClick={() => setIsEditingUsername(false)} className="bg-red-500 text-white p-1.5 rounded-lg hover:bg-red-600 transition-colors"><X size={16}/></button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 mb-2 group cursor-pointer" onClick={() => { setTempUsername(username); setIsEditingUsername(true); }} title="Kullanıcı adını değiştir">
+                    <h2 className="font-black text-2xl text-gray-800 uppercase tracking-wide">{username}</h2>
+                    <Edit2 size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  </div>
+                )}
+                <h3 className="font-bold text-gray-500 text-sm truncate px-2 mb-2">{user?.email}</h3>
+                <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full border border-green-200 inline-block shadow-sm">Aktif Üye</span>
+              </div>
+              <div className="space-y-3">
+                <button onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} className="w-full bg-blue-50 hover:bg-blue-500 hover:text-white text-blue-600 font-black py-4 rounded-xl transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-3 group">
+                  <Gamepad2 size={24} className="group-hover:scale-110 transition-transform" /> OYUNLARIM
+                </button>
+                <button onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} className="w-full bg-yellow-50 hover:bg-yellow-400 hover:text-gray-900 text-yellow-600 font-black py-4 rounded-xl transition-all shadow-sm border border-yellow-100 flex items-center justify-center gap-3 group">
+                  <MessageSquarePlus size={24} className="group-hover:scale-110 transition-transform" /> KELİME ÖNER
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* --- MESAJLAŞMA GÖRÜNÜMÜ --- */}
+              <div className="flex flex-col h-72 mt-8">
+                <h3 className="font-black text-lg text-blue-800 mb-2 border-b border-blue-100 pb-2 flex items-center gap-2"><Mail size={18}/> Yöneticiye Mesaj</h3>
+                
+                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  {myMsgDoc?.thread?.length > 0 ? (
+                    myMsgDoc.thread.map((t, idx) => (
+                      <div key={idx} className={`flex flex-col ${t.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                        <div className={`px-3 py-2 rounded-xl text-sm font-medium max-w-[85%] ${t.sender === 'user' ? 'bg-blue-500 text-white rounded-tr-none shadow-sm' : 'bg-white text-gray-800 rounded-tl-none border border-gray-200 shadow-sm'}`}>
+                          {t.text}
+                        </div>
+                        <span className="text-[9px] text-gray-400 mt-1">{new Date(t.timestamp).toLocaleTimeString('tr-TR')}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-center text-sm font-bold text-gray-400">Henüz mesajlaşma yok.<br/>İlk mesajınızı aşağıdan gönderebilirsiniz.</div>
+                  )}
+                </div>
 
-          <div className="space-y-3">
-            <button onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} className="w-full bg-blue-50 hover:bg-blue-500 hover:text-white text-blue-600 font-black py-4 rounded-xl transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-3 group">
-              <Gamepad2 size={24} className="group-hover:scale-110 transition-transform" /> OYUNLARIM
-            </button>
-            <button onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} className="w-full bg-yellow-50 hover:bg-yellow-400 hover:text-gray-900 text-yellow-600 font-black py-4 rounded-xl transition-all shadow-sm border border-yellow-100 flex items-center justify-center gap-3 group">
-              <MessageSquarePlus size={24} className="group-hover:scale-110 transition-transform" /> KELİME ÖNER
-            </button>
-          </div>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    maxLength={200}
+                    value={userMsgText} 
+                    onChange={(e) => setUserMsgText(e.target.value)} 
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Yöneticiye mesaj göndermek isterseniz tıklayın..." 
+                    className="flex-1 border-2 border-gray-200 rounded-xl p-2 text-xs font-medium focus:outline-none focus:border-blue-500"
+                  />
+                  <button onClick={handleSendMessage} className="bg-blue-500 text-white p-2 rounded-xl hover:bg-blue-600 transition-all shadow-sm"><Send size={20}/></button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
