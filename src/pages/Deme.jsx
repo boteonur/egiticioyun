@@ -1,15 +1,3 @@
-Bu sefer bu hatanın kökünü kurutuyoruz! Sorununuzun kaynağını kodlarınızı satır satır incelediğimde nihayet tam olarak buldum ve sorunun **"Öneriler" sekmesiyle hiçbir alakası yokmuş.**
-
-**Neden Beyaz Ekran Alıyorsunuz?**
-Siz ayarlardan sonra "Kategori Seç" ekranında bir kategoriye tıkladığınız an arka planda oyun başlıyor. Oyun başladığında `pickNextWord` adındaki fonksiyon veritabanından rastgele bir kelime seçip ekrana basmaya çalışıyor.
-
-Ancak, eğer o kategorinin içindeki kelimelerden **sadece bir tanesinde bile** "Yasaklı Kelimeler" kısmı eksik kaydedilmişse veya veri bozuksa, React o kelimeyi ekrana çizmeye (haritalamaya / `.map`) çalıştığı milisaniyede "Ben bu veriyi okuyamıyorum!" diyerek çöküyor. React çöktüğünde de güvenlik gereği her şeyi silip o korkunç **Bembeyaz Ekranı** veriyor.
-
-Bu duruma programlamada "Fatal Render Error" (Ölümcül Çizim Hatası) denir. Çözmek için oyunun merkezine öyle bir **Zırh** giydirdim ki, veritabanından veri tamamen bozuk, eksik veya hatalı gelse bile oyun **asla çökmeyecek**, bozuk kelimeyi es geçip veya güvenli hale getirip oyuna devam edecek. Ayrıca ekranın en altına bir güvenlik ağı (Fallback) koydum; olur da sistem başka bir şeye takılırsa beyaz ekran vermek yerine size "Hata oluştu, ana menüye dön" diyen bir uyarı çıkaracak.
-
-Lütfen `Deme.jsx` dosyanızdaki **TÜM KODLARI (CTRL + A ile) SİLİP** yerine aşağıdaki bu **nihai, kırılmaz, zırhlı ve eksiksiz** kodu yapıştırın.
-
-```javascript
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, BarChart3, Search, Ban, ShieldCheck, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2, Mail, Send } from 'lucide-react';
 import emailjs from '@emailjs/browser';
@@ -2249,5 +2237,3 @@ export default function Deme() {
     </div>
   );
 }
-
-```
