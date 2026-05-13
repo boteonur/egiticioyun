@@ -1569,7 +1569,7 @@ export default function Deme() {
 
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
-
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const gameRootRef = useRef(null); 
 
   // --- EFFECTS ---
@@ -1869,7 +1869,43 @@ export default function Deme() {
       </div>
     );
   }
+// --- KULLANICI PROFİL MENÜSÜ ---
+  if (showProfileMenu) {
+    return (
+      <div className="fixed inset-0 w-full h-screen bg-gray-900/60 flex items-center justify-center p-4 z-[110] backdrop-blur-sm">
+        <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl relative border-4 border-blue-200 animate-bounce-short">
+          <button onClick={() => setShowProfileMenu(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+            <X size={28} />
+          </button>
+          
+          <div className="text-center mb-8 mt-2">
+            <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md">
+              <User size={40} />
+            </div>
+            <h3 className="font-black text-gray-800 text-lg truncate px-2 mb-1">{user?.email}</h3>
+            <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full border border-green-200 inline-block shadow-sm">
+              Aktif Üye
+            </span>
+          </div>
 
+          <div className="space-y-3">
+            <button 
+              onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} 
+              className="w-full bg-blue-50 hover:bg-blue-500 hover:text-white text-blue-600 font-black py-4 rounded-xl transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-3 group"
+            >
+              <Gamepad2 size={24} className="group-hover:scale-110 transition-transform" /> OYUNLARIM
+            </button>
+            <button 
+              onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} 
+              className="w-full bg-yellow-50 hover:bg-yellow-400 hover:text-gray-900 text-yellow-600 font-black py-4 rounded-xl transition-all shadow-sm border border-yellow-100 flex items-center justify-center gap-3 group"
+            >
+              <MessageSquarePlus size={24} className="group-hover:scale-110 transition-transform" /> KELİME ÖNER
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const visiblePublicGames = customPublicGames.filter(g => g.status === 'approved' || g.ownerId === user?.uid);
   const customCategoriesList = [...visiblePublicGames, ...customPrivateGames];
 
@@ -1913,15 +1949,20 @@ export default function Deme() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-wrap justify-center items-center gap-3">
-                      <button onClick={() => setShowSuggestionModal(true)} className="px-5 py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl text-sm font-bold transition-all shadow-md flex items-center gap-2 hover:scale-105 border border-white/30">
-                        <MessageSquarePlus size={18} /> Kelime Öner
+                    <div className="flex items-center justify-center gap-3 w-full">
+                      <button 
+                        onClick={() => setShowProfileMenu(true)} 
+                        className="flex-1 px-4 py-3.5 bg-white text-blue-600 font-black rounded-xl shadow-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2 hover:scale-105 whitespace-nowrap text-sm sm:text-base border-b-4 border-blue-200 active:border-b-0 active:translate-y-1"
+                      >
+                        <User size={20} /> Profilim
                       </button>
-                      <button onClick={() => setShowMyGamesModal(true)} className="px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:translate-y-[-2px] transition-all flex items-center gap-2">
-                        <Gamepad2 size={18} /> Oyunlarım
-                      </button>
-                      <button onClick={handleLogout} className="p-3 bg-red-500/80 hover:bg-red-500 text-white rounded-xl transition-all shadow-md hover:scale-105 border border-red-400/50" title="Çıkış Yap">
-                        <LogOut size={18} />
+                      
+                      <button 
+                        onClick={handleLogout} 
+                        className="p-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all shadow-lg hover:scale-105 border-b-4 border-red-700 active:border-b-0 active:translate-y-1 flex-shrink-0" 
+                        title="Çıkış Yap"
+                      >
+                        <LogOut size={20} />
                       </button>
                     </div>
                   )}
