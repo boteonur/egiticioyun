@@ -178,7 +178,7 @@ const playTimeUpSound = () => {
 ============================================= */
 
 // --- Oyunlarım Modalı ---
-const MyGamesModal = ({ onClose, user, myGames }) => {
+const MyGamesModal = ({ onClose, user, myGames, username }) => {
   const [view, setView] = useState('list'); 
   const [addMode, setAddMode] = useState('single');
   const [selectedGame, setSelectedGame] = useState(null);
@@ -318,8 +318,10 @@ const MyGamesModal = ({ onClose, user, myGames }) => {
       
       const gameData = {
         name: categoryName.trim(),
-        words: addedWords, // Zaten sıralı
-        ownerId: user.uid, ownerEmail: user.email || "Üye",
+        words: addedWords,
+        ownerId: user.uid, 
+        ownerEmail: user.email || "Üye",
+        ownerUsername: username || "Üye", // EKLENDİ
         visibility: visibility,
         status: visibility === 'public' ? (view === 'edit' ? (selectedGame?.status || 'pending') : 'pending') : 'private',
         updatedAt: Date.now(),
@@ -1253,7 +1255,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                           <div className="font-black text-lg text-blue-800">{game.name}</div>
                           <div className="flex gap-2 mt-1">
                             <span className="text-[10px] font-bold text-blue-600 bg-blue-200 px-2 py-0.5 rounded">{game.words?.length || 0} Kelime</span>
-                            <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
+                            <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-2 py-0.5 rounded">@{game.ownerUsername || game.ownerEmail?.split('@')[0]}</span>
                           </div>
                         </div>
                         <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-bold flex items-center gap-2 shadow-sm"><Edit2 size={16} /> Düzenle</button>
@@ -1571,7 +1573,50 @@ export default function Deme() {
   const [touchEnd, setTouchEnd] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const gameRootRef = useRef(null); 
+  const [username, setUsername] = useState("");
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [tempUsername, setTempUsername] = useState("");
 
+  // Kullanıcı adını veritabanından çekme ve senkronize etme
+  useEffect(() => {
+    let unsub = () => {};
+    if (user && !user.isAnonymous) {
+      const userRef = doc(db, 'artifacts', appId, 'userProfiles', user.uid);
+      unsub = onSnapshot(userRef, (docSnap) => {
+        if (docSnap.exists() && docSnap.data().username) {
+          setUsername(docSnap.data().username);
+        } else if (user.email) {
+          // Eğer özel kullanıcı adı yoksa @'ten öncesini (Maks 10 karakter) varsayılan yap
+          setUsername(user.email.split('@')[0].substring(0, 10));
+        }
+      });
+    } else {
+      setUsername("");
+    }
+    return () => unsub();
+  }, [user]);
+
+  // Kullanıcı adını kaydetme ve kısıtlama kuralları
+  const handleSaveUsername = async () => {
+    const forbiddenList = ["yönetici", "admin", "egiticioyun", "deme"];
+    const newName = tempUsername.trim();
+    
+    if (newName.length === 0) {
+      alert("Kullanıcı adı boş olamaz!"); return;
+    }
+    if (forbiddenList.some(fw => newName.toLowerCase().includes(fw))) {
+      alert("Bu ismi kullanıcı adı olarak alamazsınız!"); return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'userProfiles', user.uid), {
+        username: newName
+      });
+      setIsEditingUsername(false);
+    } catch (error) {
+      alert("Kullanıcı adı güncellenirken hata oluştu.");
+    }
+  };
   // --- EFFECTS ---
   useEffect(() => { document.title = "Deme"; }, []);
 
@@ -1825,7 +1870,7 @@ export default function Deme() {
   if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
   
   const myGames = [...customPublicGames, ...customPrivateGames].filter(g => g.ownerId === user?.uid);
-  if (showMyGamesModal) return <MyGamesModal onClose={() => setShowMyGamesModal(false)} user={user} myGames={myGames} />;
+  if (showMyGamesModal) return <MyGamesModal onClose={() => setShowMyGamesModal(false)} user={user} myGames={myGames} username={username} />;
 
   if (showAuthModal) {
     return (
@@ -1874,7 +1919,7 @@ export default function Deme() {
     return (
       <div className="fixed inset-0 w-full h-screen bg-gray-900/60 flex items-center justify-center p-4 z-[110] backdrop-blur-sm">
         <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl relative border-4 border-blue-200 animate-bounce-short">
-          <button onClick={() => setShowProfileMenu(false)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
+          <button onClick={() => {setShowProfileMenu(false); setIsEditingUsername(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
             <X size={28} />
           </button>
           
@@ -1882,23 +1927,42 @@ export default function Deme() {
             <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md">
               <User size={40} />
             </div>
-            <h3 className="font-black text-gray-800 text-lg truncate px-2 mb-1">{user?.email}</h3>
+
+            {isEditingUsername ? (
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <input 
+                  type="text" 
+                  maxLength={10}
+                  value={tempUsername}
+                  onChange={(e) => setTempUsername(e.target.value)}
+                  className="border-2 border-blue-300 rounded-lg px-2 py-1 text-center font-black text-gray-800 w-32 focus:outline-none focus:border-blue-500 uppercase"
+                  autoFocus
+                />
+                <button onClick={handleSaveUsername} className="bg-green-500 text-white p-1.5 rounded-lg hover:bg-green-600 transition-colors"><Check size={16}/></button>
+                <button onClick={() => setIsEditingUsername(false)} className="bg-red-500 text-white p-1.5 rounded-lg hover:bg-red-600 transition-colors"><X size={16}/></button>
+              </div>
+            ) : (
+              <div 
+                className="flex items-center justify-center gap-2 mb-2 group cursor-pointer" 
+                onClick={() => { setTempUsername(username); setIsEditingUsername(true); }}
+                title="Kullanıcı adını değiştir"
+              >
+                <h2 className="font-black text-2xl text-gray-800 uppercase tracking-wide">{username}</h2>
+                <Edit2 size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+              </div>
+            )}
+
+            <h3 className="font-bold text-gray-500 text-sm truncate px-2 mb-2">{user?.email}</h3>
             <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full border border-green-200 inline-block shadow-sm">
               Aktif Üye
             </span>
           </div>
 
           <div className="space-y-3">
-            <button 
-              onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} 
-              className="w-full bg-blue-50 hover:bg-blue-500 hover:text-white text-blue-600 font-black py-4 rounded-xl transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-3 group"
-            >
+            <button onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} className="w-full bg-blue-50 hover:bg-blue-500 hover:text-white text-blue-600 font-black py-4 rounded-xl transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-3 group">
               <Gamepad2 size={24} className="group-hover:scale-110 transition-transform" /> OYUNLARIM
             </button>
-            <button 
-              onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} 
-              className="w-full bg-yellow-50 hover:bg-yellow-400 hover:text-gray-900 text-yellow-600 font-black py-4 rounded-xl transition-all shadow-sm border border-yellow-100 flex items-center justify-center gap-3 group"
-            >
+            <button onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} className="w-full bg-yellow-50 hover:bg-yellow-400 hover:text-gray-900 text-yellow-600 font-black py-4 rounded-xl transition-all shadow-sm border border-yellow-100 flex items-center justify-center gap-3 group">
               <MessageSquarePlus size={24} className="group-hover:scale-110 transition-transform" /> KELİME ÖNER
             </button>
           </div>
@@ -2146,7 +2210,7 @@ export default function Deme() {
                         </div>
                         <div className="flex flex-col items-center gap-1 mt-1">
                           {custom.type === 'public' && custom.ownerEmail && (
-                            <span className="text-[9px] md:text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">@{custom.ownerEmail.split('@')[0]}</span>
+                            <span className="text-[9px] md:text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">@{custom.ownerUsername || custom.ownerEmail?.split('@')[0]}</span>
                           )}
                           {custom.type === 'private' && (
                             <span className="text-[9px] md:text-[11px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">Bana Özel</span>
