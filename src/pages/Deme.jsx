@@ -705,8 +705,7 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
 }
 
 // --- Yönetici (Admin) Modalı Bileşeni ---
-const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, reports, messagesList, adminReplyText, setAdminReplyText, handleAdminReply, handleAdminDeleteMessage }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGames, reports, messagesList, adminReplyText, setAdminReplyText, handleAdminReply, handleAdminDeleteMessage }) => {  const [isAuthenticated, setIsAuthenticated] = useState(user?.email === "boteonur@gmail.com");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(null);
   const [activeTab, setActiveTab] = useState('categories'); 
@@ -1841,8 +1840,7 @@ export default function Deme() {
   /* =========================================================================================
      BÖLÜM 7: RENDER (EKRANLARIN ÇİZİMİ)
   ========================================================================================= */
-  if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} messagesList={messagesList} adminReplyText={adminReplyText} setAdminReplyText={setAdminReplyText} handleAdminReply={handleAdminReply} handleAdminDeleteMessage={handleAdminDeleteMessage} />;
-  if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
+if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} messagesList={messagesList} adminReplyText={adminReplyText} setAdminReplyText={setAdminReplyText} handleAdminReply={handleAdminReply} handleAdminDeleteMessage={handleAdminDeleteMessage} />;  if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
   
   const myGames = [...customPublicGames, ...customPrivateGames].filter(g => g.ownerId === user?.uid);
   if (showMyGamesModal) return <MyGamesModal onClose={() => setShowMyGamesModal(false)} user={user} myGames={myGames} username={username} />;
@@ -1903,6 +1901,12 @@ export default function Deme() {
               <div className="space-y-3">
                 <button onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} className="w-full bg-blue-50 text-blue-600 font-black py-4 rounded-xl flex items-center justify-center gap-3"><Gamepad2 size={24} /> OYUNLARIM</button>
                 <button onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} className="w-full bg-yellow-50 text-yellow-600 font-black py-4 rounded-xl flex items-center justify-center gap-3"><MessageSquarePlus size={24} /> KELİME ÖNER</button>
+                {/* SADECE YÖNETİCİYE GÖZÜKEN BUTON */}
+                {user?.email === "boteonur@gmail.com" && (
+                  <button onClick={() => { setShowProfileMenu(false); setShowAdmin(true); }} className="w-full bg-purple-50 hover:bg-purple-500 hover:text-white text-purple-600 font-black py-4 rounded-xl transition-all shadow-sm border border-purple-100 flex items-center justify-center gap-3 group">
+                    <Database size={24} className="group-hover:scale-110 transition-transform" /> YÖNETİCİ PANELİ
+                  </button>
+                )}
               </div>
             </>
           ) : (
