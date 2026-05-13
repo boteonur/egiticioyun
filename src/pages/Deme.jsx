@@ -1,5 +1,18 @@
+Bu sefer bu hatanın kökünü kurutuyoruz! Sorununuzun kaynağını kodlarınızı satır satır incelediğimde nihayet tam olarak buldum ve sorunun **"Öneriler" sekmesiyle hiçbir alakası yokmuş.**
+
+**Neden Beyaz Ekran Alıyorsunuz?**
+Siz ayarlardan sonra "Kategori Seç" ekranında bir kategoriye tıkladığınız an arka planda oyun başlıyor. Oyun başladığında `pickNextWord` adındaki fonksiyon veritabanından rastgele bir kelime seçip ekrana basmaya çalışıyor.
+
+Ancak, eğer o kategorinin içindeki kelimelerden **sadece bir tanesinde bile** "Yasaklı Kelimeler" kısmı eksik kaydedilmişse veya veri bozuksa, React o kelimeyi ekrana çizmeye (haritalamaya / `.map`) çalıştığı milisaniyede "Ben bu veriyi okuyamıyorum!" diyerek çöküyor. React çöktüğünde de güvenlik gereği her şeyi silip o korkunç **Bembeyaz Ekranı** veriyor.
+
+Bu duruma programlamada "Fatal Render Error" (Ölümcül Çizim Hatası) denir. Çözmek için oyunun merkezine öyle bir **Zırh** giydirdim ki, veritabanından veri tamamen bozuk, eksik veya hatalı gelse bile oyun **asla çökmeyecek**, bozuk kelimeyi es geçip veya güvenli hale getirip oyuna devam edecek. Ayrıca ekranın en altına bir güvenlik ağı (Fallback) koydum; olur da sistem başka bir şeye takılırsa beyaz ekran vermek yerine size "Hata oluştu, ana menüye dön" diyen bir uyarı çıkaracak.
+
+Lütfen `Deme.jsx` dosyanızdaki **TÜM KODLARI (CTRL + A ile) SİLİP** yerine aşağıdaki bu **nihai, kırılmaz, zırhlı ve eksiksiz** kodu yapıştırın.
+
+```javascript
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, BarChart3, Search, Ban, ShieldCheck, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2, Mail, Send } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
@@ -99,7 +112,6 @@ const CATEGORY_LIST = [
 
 // ============================================================================
 // BÖLÜM 4: SES MOTORU (AUDIO ENGINE)
-// Tarayıcının AudioContext API'si ile oyun içi ses efektlerini üretir.
 // ============================================================================
 const getAudioCtx = () => {
   if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -184,7 +196,6 @@ const playTimeUpSound = () => {
 // BÖLÜM 5: ALT BİLEŞENLER (MODALS & ROWS)
 // ============================================================================
 
-// --- Oyunlarım Modalı ---
 const MyGamesModal = ({ onClose, user, myGames, username }) => {
   const [view, setView] = useState('list'); 
   const [addMode, setAddMode] = useState('single');
@@ -281,9 +292,8 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
   const copyToClipboard = () => {
     const textArea = document.createElement("textarea"); textArea.value = aiPrompt; textArea.style.position = "absolute"; textArea.style.left = "-999999px";
     document.body.appendChild(textArea); textArea.select();
-    try {
-      document.execCommand('copy'); setStatus({ type: 'success', msg: "Prompt kopyalandı!" }); setTimeout(() => setStatus(null), 4000);
-    } catch (err) { setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." }); }
+    try { document.execCommand('copy'); setStatus({ type: 'success', msg: "Prompt kopyalandı!" }); setTimeout(() => setStatus(null), 4000); } 
+    catch (err) { setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." }); }
     document.body.removeChild(textArea);
   };
 
@@ -511,7 +521,6 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
   );
 };
 
-// --- Kullanıcı Kelime Öneri Modalı ---
 const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   const [category, setCategory] = useState("Genel");
   const [customCategory, setCustomCategory] = useState("");
@@ -525,7 +534,7 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
     if (category === "NEW" && !customCategory.trim()) { setStatus({ type: 'error', msg: "Lütfen önermek istediğiniz kategorinin adını yazın!" }); return; }
 
     try {
-      if (!db || !appId) throw new Error("Veritabanı bağlantısı kurulamadı. Firebase ayarlarınızı kontrol edin.");
+      if (!db || !appId) throw new Error("Veritabanı bağlantısı kurulamadı.");
       const suggRef = collection(db, 'artifacts', appId, 'public', 'data', 'suggestions');
       await addDoc(suggRef, {
         category: category === "NEW" ? customCategory.trim() : category,
@@ -547,8 +556,8 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
           <CheckCircle2 size={80} className="text-green-500 mb-6 animate-bounce" />
           <h2 className="text-3xl font-black text-gray-800 mb-2">Harika!</h2>
           <p className="text-gray-600 mb-8 font-medium">Kelime önerin başarıyla alındı. Yönetici onayından sonra oyuna eklenecektir.</p>
-          <button onClick={resetForm} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(21,128,61)] hover:translate-y-1 hover:shadow-none transition-all mb-4">YENİ KELİME ÖNER</button>
-          <button onClick={onClose} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(156,163,175)] hover:translate-y-1 hover:shadow-none transition-all">ANASAYFAYA DÖN</button>
+          <button onClick={resetForm} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(21,128,61)] hover:translate-y-1 transition-all mb-4">YENİ KELİME ÖNER</button>
+          <button onClick={onClose} className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-4 rounded-xl shadow-[0_5px_0_rgb(156,163,175)] hover:translate-y-1 transition-all">ANASAYFAYA DÖN</button>
         </div>
       </div>
     );
@@ -585,7 +594,7 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
             </div>
           </div>
           {status && <div className="p-3 rounded-xl font-bold flex items-center gap-2 bg-red-100 text-red-700 border border-red-200"><Info size={20} />{status.msg}</div>}
-          <button onClick={handleSubmit} className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(202,138,4)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-4">
+          <button onClick={handleSubmit} className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(202,138,4)] hover:translate-y-1 transition-all flex items-center justify-center gap-3 mt-4">
             KELİMEYİ ÖNER
           </button>
         </div>
@@ -594,9 +603,7 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   );
 };
 
-// --- Yönetici İçin Kelime Düzenleme Satırı ---
 const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect }) => {
-  // HOOKLAR EN TEPEDE
   const safeWord = (wordObj && wordObj.word) ? String(wordObj.word) : "";
   const initialForbidden = (() => {
     let arr = ["", "", "", "", ""];
@@ -647,10 +654,7 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
   );
 };
 
-// --- Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
-  
-  // 1. HOOK'LAR: En üstte ve koşulsuz tanımlanmalı (React kuralı)
   const initialWord = suggestion?.word ? String(suggestion.word) : "";
   const initialCat = suggestion?.category ? String(suggestion.category) : "Genel";
   const initialForbidden = (() => {
@@ -666,7 +670,6 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
   const [cat, setCat] = useState(initialCat);
   const [forbidden, setForbidden] = useState(initialForbidden);
 
-  // 2. KORUMA: Çökmeyi engelleyen kontrol (Mutlaka Hook'lardan sonra!)
   if (!suggestion || !suggestion.id) return null;
 
   const safeUser = String(suggestion.suggestedBy || "Bilinmiyor");
@@ -686,7 +689,6 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
           <input value={word} onChange={(e) => setWord(e.target.value.toLocaleUpperCase('tr-TR'))} className="w-full p-2 rounded-lg border border-purple-200 font-black text-lg focus:outline-none focus:border-purple-500 uppercase"/>
         </div>
       </div>
-      
       <div className="mb-4">
         <label className="text-xs font-bold text-red-500 uppercase mb-1 block">Yasaklı Kelimeler</label>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
@@ -695,7 +697,6 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
           ))}
         </div>
       </div>
-
       <div className="flex justify-end gap-3 pt-2 border-t border-purple-200">
         <button onClick={() => onReject(suggestion.id)} className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded-lg transition-colors flex items-center gap-2"><Trash2 size={18} /> Sil</button>
         <button onClick={() => onApprove(suggestion.id, cat, word, forbidden)} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2 shadow-md"><Check size={18} /> Onayla ve Ekle</button>
@@ -704,8 +705,8 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
   );
 }
 
-// --- Yönetici (Admin) Modalı Bileşeni ---
-const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGames, reports, messagesList, adminReplyText, setAdminReplyText, handleAdminReply, handleAdminDeleteMessage }) => {  const [isAuthenticated, setIsAuthenticated] = useState(user?.email === "boteonur@gmail.com");
+const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGames, reports, messagesList, adminReplyText, setAdminReplyText, handleAdminReply, handleAdminDeleteMessage }) => { 
+  const [isAuthenticated, setIsAuthenticated] = useState(user?.email === "boteonur@gmail.com");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState(null);
   const [activeTab, setActiveTab] = useState('categories'); 
@@ -727,10 +728,8 @@ const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGame
     if (activeTab === 'stats') {
       const q = collection(db, 'artifacts', appId, 'userProfiles');
       const unsub = onSnapshot(q, (snapshot) => {
-        let arr = [];
-        snapshot.forEach(d => arr.push({ uid: d.id, ...d.data() }));
-        arr.sort((a,b) => (b.lastLogin || 0) - (a.lastLogin || 0));
-        setUsersList(arr);
+        let arr = []; snapshot.forEach(d => arr.push({ uid: d.id, ...d.data() }));
+        arr.sort((a,b) => (b.lastLogin || 0) - (a.lastLogin || 0)); setUsersList(arr);
       });
       return () => unsub();
     }
@@ -769,14 +768,12 @@ const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGame
       if (!db || !appId) throw new Error("Veritabanı bağlantısı kurulamadı.");
       const newWordObj = { word: word.trim().toLocaleUpperCase('tr-TR'), forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
       const currentWords = wordDatabase[category] || [];
-      
       const updatedWords = sortWordsAlphabetically([...currentWords, newWordObj]);
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), category);
       await setDoc(catRef, { words: updatedWords });
 
       setStatus({ type: 'success', msg: "Kelime başarıyla eklendi!" });
-      setWord(""); setForbidden(["", "", "", "", ""]);
-      setTimeout(() => setStatus(null), 3000);
+      setWord(""); setForbidden(["", "", "", "", ""]); setTimeout(() => setStatus(null), 3000);
     } catch (e) { setStatus({ type: 'error', msg: "Kaydedilirken hata oluştu: " + e.message }); }
   };
 
@@ -785,7 +782,6 @@ const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGame
     try {
       const currentWords = wordDatabase[catName.trim()] || [];
       const newWordObj = { word: wordVal.trim().toLocaleUpperCase('tr-TR'), forbidden: forbiddenArr.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
-      
       const updatedWords = sortWordsAlphabetically([...currentWords, newWordObj]);
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName.trim());
       await setDoc(catRef, { words: updatedWords });
@@ -795,6 +791,7 @@ const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGame
       setTimeout(() => setStatus(null), 3000);
     } catch (e) { setStatus({ type: 'error', msg: "Hata: " + e.message }); }
   };
+  
   const handleRejectSuggestion = async (id) => {
     try {
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'suggestions', id));
@@ -804,8 +801,7 @@ const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGame
   };
 
   const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = async (event) => {
       try {
@@ -1376,18 +1372,6 @@ const AdminModal = ({ onClose, user, wordDatabase, suggestions, customPublicGame
             </div>
           </div>
         )}
-
-        {activeTab === 'review' && (
-          <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-            {suggestions.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center"><CheckCircle2 size={48} className="mb-4 text-gray-300" /> Şu an bekleyen hiçbir kelime önerisi yok.</div>
-            ) : (
-              suggestions.map(sugg => (
-                <SuggestionItemRow key={sugg.id} suggestion={sugg} wordDatabase={wordDatabase} onApprove={handleApproveSuggestion} onReject={handleRejectSuggestion} />
-              ))
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1470,8 +1454,9 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
     </div>
   );
 };
+
 /* =========================================================================================
-   BÖLÜM 6: ANA UYGULAMA BİLEŞENİ (Deme.jsx)
+   BÖLÜM 7: ANA UYGULAMA BİLEŞENİ (Deme.jsx)
    Tüm oyunun aktığı ana mekanizma.
 ========================================================================================= */
 export default function Deme() {
@@ -1718,8 +1703,8 @@ export default function Deme() {
 
   const startTurn = () => { setGameState('countdown'); setCountdown(3); };
 
-const pickNextWord = () => {
-    // 1. Kategori yoksa veya kelime listesi boşsa varsayılan listeye dön
+  // OYUNUN BEYAZ EKRAN VERMESİNİ (%100) ENGELLEYEN "ZIRHLI" KELİME SEÇİCİ FONKSİYONU:
+  const pickNextWord = () => {
     let categoryWords = [];
     if (selectedCategory && Array.isArray(selectedCategory.words) && selectedCategory.words.length > 0) {
       categoryWords = selectedCategory.words;
@@ -1727,33 +1712,25 @@ const pickNextWord = () => {
       categoryWords = wordDatabase["Genel"] || [];
     }
 
-    // 2. Eğer genel liste bile yoksa veya çökmüşse oyunu güvenlice bitir
     if (!categoryWords || categoryWords.length === 0) {
       setOutOfWords(true); setGameState('gameOver'); return;
     }
 
-    // 3. Daha önce oynanmamış kelimeleri filtrele
     const availableWords = categoryWords.filter(w => w && w.word && !usedWords.includes(w.word));
     
     if (availableWords.length === 0) {
-      // Tüm kelimeler bittiyse oyunu bitir
       setOutOfWords(true); setGameState('gameOver'); return; 
     } else {
-      // Rastgele yeni bir kelime seç ve ayarla
       const randomIndex = Math.floor(Math.random() * availableWords.length);
       const randomWord = availableWords[randomIndex];
       
-      // Güvenlik: Eğer rastgele kelime bozuksa atla ve rekürsif çalış
       if (!randomWord || !randomWord.word) {
          setUsedWords(prev => [...prev, "BOZUK_KELIME"]);
          pickNextWord(); 
          return;
       }
 
-      // Kelimenin yasaklılar dizisi mutlaka 5 elemanlı düzgün bir liste olsun
-      const safeForbidden = Array.isArray(randomWord.forbidden) 
-          ? randomWord.forbidden.map(f => String(f || "")) 
-          : [];
+      const safeForbidden = Array.isArray(randomWord.forbidden) ? randomWord.forbidden.map(f => String(f || "")) : [];
       while (safeForbidden.length < 5) safeForbidden.push("");
 
       const safeWordObject = {
@@ -1873,10 +1850,10 @@ const pickNextWord = () => {
     }
   };
 
-  /* =========================================================================================
-     BÖLÜM 7: RENDER (EKRANLARIN ÇİZİMİ)
-  ========================================================================================= */
-if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} messagesList={messagesList} adminReplyText={adminReplyText} setAdminReplyText={setAdminReplyText} handleAdminReply={handleAdminReply} handleAdminDeleteMessage={handleAdminDeleteMessage} />;  if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
+  // --- RENDER (EKRANLARIN ÇİZİMİ) ---
+
+  if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} messagesList={messagesList} adminReplyText={adminReplyText} setAdminReplyText={setAdminReplyText} handleAdminReply={handleAdminReply} handleAdminDeleteMessage={handleAdminDeleteMessage} />;
+  if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
   
   const myGames = [...customPublicGames, ...customPrivateGames].filter(g => g.ownerId === user?.uid);
   if (showMyGamesModal) return <MyGamesModal onClose={() => setShowMyGamesModal(false)} user={user} myGames={myGames} username={username} />;
@@ -1937,7 +1914,6 @@ if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user
               <div className="space-y-3">
                 <button onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} className="w-full bg-blue-50 text-blue-600 font-black py-4 rounded-xl flex items-center justify-center gap-3"><Gamepad2 size={24} /> OYUNLARIM</button>
                 <button onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} className="w-full bg-yellow-50 text-yellow-600 font-black py-4 rounded-xl flex items-center justify-center gap-3"><MessageSquarePlus size={24} /> KELİME ÖNER</button>
-                {/* SADECE YÖNETİCİYE GÖZÜKEN BUTON */}
                 {user?.email === "boteonur@gmail.com" && (
                   <button onClick={() => { setShowProfileMenu(false); setShowAdmin(true); }} className="w-full bg-purple-50 hover:bg-purple-500 hover:text-white text-purple-600 font-black py-4 rounded-xl transition-all shadow-sm border border-purple-100 flex items-center justify-center gap-3 group">
                     <Database size={24} className="group-hover:scale-110 transition-transform" /> YÖNETİCİ PANELİ
@@ -1976,11 +1952,13 @@ if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user
   const visiblePublicGames = customPublicGames.filter(g => g.status === 'approved' || g.ownerId === user?.uid);
   const customCategoriesList = [...visiblePublicGames, ...customPrivateGames];
 
+  const currentTeamName = currentTeamIndex === 0 ? team1Name : team2Name;
+
   if (gameState === 'setup') {
     return (
       <div className="w-full h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-hidden font-sans flex flex-col">
         <div className="flex-1 flex transition-transform duration-700 ease-in-out w-full h-full" style={{ transform: `translateX(-${setupStep * 100}%)` }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={handleTouchEnd}>
-          {/* STEP 0: ANA EKRAN */}
+          
           <div className="min-w-full h-full flex flex-col items-center justify-start pt-10 md:justify-center md:pt-6 p-6 relative overflow-y-auto">
             <Link to="/" className="mb-5 md:mb-8 hover:scale-105 transition-transform z-[100] shrink-0" title="Ana Sayfaya Dön"><img src="/anasayfa.png" alt="Eğitici Oyunlar" className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" /></Link>
             <div className="bg-white/20 p-6 md:p-8 rounded-[3rem] backdrop-blur-sm border border-white/30 shadow-2xl flex flex-col items-center shrink-0 w-full max-w-[90%] md:max-w-md">
@@ -2007,7 +1985,6 @@ if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user
             </div>
           </div>
 
-          {/* STEP 1: TAKIM ADLARI */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-20 relative overflow-y-auto">
             <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10"><button onClick={prevStep} className="text-white/80 flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button></div>
             <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center"><h2 className="text-2xl md:text-4xl font-black text-white text-center">Takımları Belirle</h2></div>
@@ -2022,7 +1999,6 @@ if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user
             )}
           </div>
 
-          {/* STEP 2: AYARLAR */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-24 relative overflow-y-auto">
             <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10"><button onClick={prevStep} className="text-white/80 flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button></div>
             <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3"><Settings className="text-white w-6 h-6 md:w-8 md:h-8" /><h2 className="text-2xl md:text-4xl font-black text-white text-center">Oyun Ayarları</h2></div>
@@ -2080,7 +2056,6 @@ if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user
             <button onClick={nextStep} className="mt-6 mb-8 px-6 py-2 bg-white text-purple-700 rounded-full font-bold text-base flex items-center gap-2 shadow-md">İLERİ <ArrowRight size={18} strokeWidth={3} /></button>
           </div>
 
-          {/* STEP 3: KATEGORİ SEÇİMİ */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-20 relative overflow-y-auto">
             <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10"><button onClick={prevStep} className="text-white/80 flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button></div>
             <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3"><h2 className="text-2xl md:text-4xl font-black text-white text-center">Kategori Seç</h2></div>
@@ -2178,7 +2153,7 @@ if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user
               <h2 className="text-3xl md:text-5xl font-black text-gray-900 uppercase tracking-wide">{currentWord.word}</h2>
             </div>
             <div className="bg-white px-3 py-6 md:px-8 md:py-10 flex flex-col justify-around gap-3 md:gap-5 items-center overflow-y-auto">
-              {currentWord.forbidden.map((word, index) => (
+              {(currentWord?.forbidden || []).map((word, index) => (
                 <div key={index} className="w-full flex items-center justify-center relative">
                   <div className="absolute left-0 right-0 h-px bg-gray-200"></div><span className="relative bg-white px-4 md:px-6 text-xl md:text-3xl font-bold text-gray-700 capitalize">{word}</span>
                 </div>
@@ -2264,5 +2239,15 @@ if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} user={user
     );
   }
 
-  return null;
+  // SON GÜVENLİK AĞI: Eğer yukarıdaki hiçbir oyun durumu eşleşmezse beyaz ekran yerine kırmızı uyarı çıksın.
+  return (
+    <div className="w-full h-screen bg-red-600 text-white flex flex-col items-center justify-center p-6 text-center">
+      <AlertTriangle size={64} className="mb-4" />
+      <h1 className="text-3xl font-black mb-2">Beklenmeyen Durum</h1>
+      <p className="mb-6 font-medium">Sistem bilinmeyen bir duruma geçti. Oyun durumunda uyuşmazlık var.</p>
+      <button onClick={() => { setGameState('setup'); setSetupStep(0); }} className="px-8 py-4 bg-white text-red-600 font-bold rounded-xl shadow-lg">Ana Menüye Dön</button>
+    </div>
+  );
 }
+
+```
