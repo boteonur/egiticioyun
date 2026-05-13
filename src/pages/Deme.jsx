@@ -707,25 +707,23 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
 // --- Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
   
-  // EĞER VERİ TAMAMEN BOZUK VEYA EKSİKSE HİÇ ÇİZME, ÇÖKMEYİ ENGELLE:
+  // 1. HOOK'LAR (useState) HER ZAMAN EN ÜSTTE VE KOŞULSUZ ÇALIŞMALIDIR:
+  const [word, setWord] = useState(() => suggestion?.word ? String(suggestion.word) : "");
+  const [cat, setCat] = useState(() => suggestion?.category ? String(suggestion.category) : "Genel");
+  const [forbidden, setForbidden] = useState(() => {
+    let arr = ["", "", "", "", ""];
+    if (suggestion && Array.isArray(suggestion.forbidden)) {
+      arr = suggestion.forbidden.map(f => String(f || ""));
+    }
+    while (arr.length < 5) arr.push("");
+    return arr.slice(0, 5);
+  });
+
+  // 2. ÇÖKMEYİ ENGELLEYEN KONTROL (Hook'lardan SONRA gelmeli!)
   if (!suggestion || !suggestion.id) return null;
 
-  // NE OLURSA OLSUN ÇÖKMESİN DİYE GELEN HER ŞEYİ ZORLA DÜZ YAZIYA (STRING) ÇEVİRİYORUZ:
-  const safeWord = String(suggestion.word || "");
-  const safeCat = String(suggestion.category || "Genel");
+  // 3. GÜVENLİ KULLANICI ADI:
   const safeUser = String(suggestion.suggestedBy || "Bilinmiyor");
-  
-  let safeForbidden = ["", "", "", "", ""];
-  if (Array.isArray(suggestion.forbidden)) {
-    // Sadece dizi ise içindekileri metne çevir ve al
-    safeForbidden = suggestion.forbidden.map(f => String(f || ""));
-  }
-  // Mutlaka 5 kutucuğa tamamla
-  while (safeForbidden.length < 5) safeForbidden.push("");
-
-  const [word, setWord] = useState(safeWord);
-  const [cat, setCat] = useState(safeCat);
-  const [forbidden, setForbidden] = useState(safeForbidden.slice(0, 5));
 
   return (
     <div className="bg-purple-50 rounded-2xl p-4 border-2 border-purple-100 mb-4 shadow-sm">
@@ -766,7 +764,6 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
     </div>
   );
 }
-
 // --- Yönetici (Admin) Modalı Bileşeni ---
 const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, reports, messagesList, adminReplyText, setAdminReplyText, handleAdminReply, handleAdminDeleteMessage }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
