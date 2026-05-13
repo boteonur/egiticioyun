@@ -693,19 +693,22 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
 
 // --- Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
-  // GÜVENLİK ÖNLEMİ: Veritabanındaki eski test verileri bozuk/eksik olabilir.
-  // React'in çökmesini engellemek için gelen her veriyi filtreliyoruz.
   
-  const safeWord = typeof suggestion?.word === 'string' ? suggestion.word : "";
-  const safeCat = typeof suggestion?.category === 'string' ? suggestion.category : "Genel";
-  const safeUser = typeof suggestion?.suggestedBy === 'string' ? suggestion.suggestedBy : "Bilinmiyor";
+  // EĞER VERİ TAMAMEN BOZUK VEYA EKSİKSE HİÇ ÇİZME, ÇÖKMEYİ ENGELLE:
+  if (!suggestion || !suggestion.id) return null;
+
+  // NE OLURSA OLSUN ÇÖKMESİN DİYE GELEN HER ŞEYİ ZORLA DÜZ YAZIYA (STRING) ÇEVİRİYORUZ:
+  const safeWord = String(suggestion.word || "");
+  const safeCat = String(suggestion.category || "Genel");
+  const safeUser = String(suggestion.suggestedBy || "Bilinmiyor");
   
   let safeForbidden = ["", "", "", "", ""];
-  if (Array.isArray(suggestion?.forbidden)) {
-    // Sadece string olanları al ve mutlaka 5 kutuya tamamla
-    safeForbidden = suggestion.forbidden.map(f => typeof f === 'string' ? f : "");
-    while (safeForbidden.length < 5) safeForbidden.push("");
+  if (Array.isArray(suggestion.forbidden)) {
+    // Sadece dizi ise içindekileri metne çevir ve al
+    safeForbidden = suggestion.forbidden.map(f => String(f || ""));
   }
+  // Mutlaka 5 kutucuğa tamamla
+  while (safeForbidden.length < 5) safeForbidden.push("");
 
   const [word, setWord] = useState(safeWord);
   const [cat, setCat] = useState(safeCat);
