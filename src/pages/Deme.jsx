@@ -1551,7 +1551,7 @@ export default function Deme() {
   const [team1Players, setTeam1Players] = useState(2);
   const [team2Players, setTeam2Players] = useState(2);
   const [settings, setSettings] = useState({
-    timeLimit: 60, penalty: 1, passLimit: 3, endType: 'rounds', endRoundsValue: 5, endScoreValue: 50,
+    timeLimit: 60, penalty: 1, passLimit: 3, endType: 'rounds', endRoundsValue: 6, endScoreValue: 50,
   });
   
   const [gameState, setGameState] = useState('setup'); 
