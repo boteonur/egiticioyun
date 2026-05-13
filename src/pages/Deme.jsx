@@ -693,15 +693,23 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
 
 // --- Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
-  const [word, setWord] = useState(suggestion.word || "");
-  const [cat, setCat] = useState(suggestion.category || "Genel");
+  // GÜVENLİK ÖNLEMİ: Veritabanındaki eski test verileri bozuk/eksik olabilir.
+  // React'in çökmesini engellemek için gelen her veriyi filtreliyoruz.
   
-  // GÜVENLİK ÖNLEMİ: Veritabanından gelen veri hatalıysa sayfanın çökmesini engelle
-  const safeForbidden = Array.isArray(suggestion.forbidden) 
-    ? suggestion.forbidden 
-    : ["", "", "", "", ""];
-    
-  const [forbidden, setForbidden] = useState(safeForbidden);
+  const safeWord = typeof suggestion?.word === 'string' ? suggestion.word : "";
+  const safeCat = typeof suggestion?.category === 'string' ? suggestion.category : "Genel";
+  const safeUser = typeof suggestion?.suggestedBy === 'string' ? suggestion.suggestedBy : "Bilinmiyor";
+  
+  let safeForbidden = ["", "", "", "", ""];
+  if (Array.isArray(suggestion?.forbidden)) {
+    // Sadece string olanları al ve mutlaka 5 kutuya tamamla
+    safeForbidden = suggestion.forbidden.map(f => typeof f === 'string' ? f : "");
+    while (safeForbidden.length < 5) safeForbidden.push("");
+  }
+
+  const [word, setWord] = useState(safeWord);
+  const [cat, setCat] = useState(safeCat);
+  const [forbidden, setForbidden] = useState(safeForbidden.slice(0, 5));
 
   return (
     <div className="bg-purple-50 rounded-2xl p-4 border-2 border-purple-100 mb-4 shadow-sm">
@@ -709,7 +717,9 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
         <div className="flex-1">
           <div className="flex justify-between items-center mb-1">
             <label className="text-xs font-bold text-purple-600 uppercase block">Kategori</label>
-            {suggestion.suggestedBy && <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">Öneren: {suggestion.suggestedBy}</span>}
+            <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">
+              Öneren: {safeUser}
+            </span>
           </div>
           <input value={cat} onChange={(e) => setCat(e.target.value)} className="w-full p-2 rounded-lg border border-purple-200 font-bold focus:outline-none focus:border-purple-500"/>
         </div>
@@ -723,7 +733,12 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
         <label className="text-xs font-bold text-red-500 uppercase mb-1 block">Yasaklı Kelimeler</label>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {forbidden.map((fw, i) => (
-            <input key={i} value={fw || ""} onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} className="w-full p-2 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none focus:border-red-500 capitalize" />
+            <input 
+              key={i} 
+              value={fw} 
+              onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} 
+              className="w-full p-2 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none focus:border-red-500 capitalize" 
+            />
           ))}
         </div>
       </div>
