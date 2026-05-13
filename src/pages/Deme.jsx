@@ -694,8 +694,14 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
 // --- Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
   const [word, setWord] = useState(suggestion.word || "");
-  const [forbidden, setForbidden] = useState(suggestion.forbidden || []);
   const [cat, setCat] = useState(suggestion.category || "Genel");
+  
+  // GÜVENLİK ÖNLEMİ: Veritabanından gelen veri hatalıysa sayfanın çökmesini engelle
+  const safeForbidden = Array.isArray(suggestion.forbidden) 
+    ? suggestion.forbidden 
+    : ["", "", "", "", ""];
+    
+  const [forbidden, setForbidden] = useState(safeForbidden);
 
   return (
     <div className="bg-purple-50 rounded-2xl p-4 border-2 border-purple-100 mb-4 shadow-sm">
@@ -717,7 +723,7 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
         <label className="text-xs font-bold text-red-500 uppercase mb-1 block">Yasaklı Kelimeler</label>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {forbidden.map((fw, i) => (
-            <input key={i} value={fw} onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} className="w-full p-2 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none focus:border-red-500 capitalize" />
+            <input key={i} value={fw || ""} onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} className="w-full p-2 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none focus:border-red-500 capitalize" />
           ))}
         </div>
       </div>
