@@ -11,8 +11,12 @@ const isUsingUserFirebase = true;
 
 // YENİ EKLENEN: Her yerde kullanılabilecek, Türkçe uyumlu global alfabetik sıralama fonksiyonu
 const sortWordsAlphabetically = (wordsArray) => {
-  if (!wordsArray) return [];
-  return [...wordsArray].sort((a, b) => (a.word || "").localeCompare(b.word || "", 'tr-TR'));
+  if (!Array.isArray(wordsArray)) return [];
+  return [...wordsArray].sort((a, b) => {
+    const wordA = (a && typeof a === 'object' && a.word) ? String(a.word) : "";
+    const wordB = (b && typeof b === 'object' && b.word) ? String(b.word) : "";
+    return wordA.localeCompare(wordB, 'tr-TR');
+  });
 };
 
 /* ==========================================
@@ -652,8 +656,17 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
 // --- Yönetici İçin Kelime Düzenleme Satırı ---
 const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [word, setWord] = useState(wordObj.word);
-  const [forbidden, setForbidden] = useState([...wordObj.forbidden]);
+  
+  // GÜVENLİK ÖNLEMİ: Hatalı veya eski test verileri varsa çökmeyi engelle
+  const safeWord = (wordObj && wordObj.word) ? String(wordObj.word) : "";
+  let safeForbidden = ["", "", "", "", ""];
+  if (wordObj && Array.isArray(wordObj.forbidden)) {
+    safeForbidden = wordObj.forbidden.map(f => f ? String(f) : "");
+  }
+  while (safeForbidden.length < 5) safeForbidden.push("");
+
+  const [word, setWord] = useState(safeWord);
+  const [forbidden, setForbidden] = useState(safeForbidden.slice(0, 5));
 
   const handleSave = () => { onSave({ word, forbidden }); setIsEditing(false); };
 
