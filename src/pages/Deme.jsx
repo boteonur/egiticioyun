@@ -1718,15 +1718,51 @@ export default function Deme() {
 
   const startTurn = () => { setGameState('countdown'); setCountdown(3); };
 
-  const pickNextWord = () => {
-    const categoryWords = selectedCategory?.words && selectedCategory.words.length > 0 ? selectedCategory.words : wordDatabase["Genel"];
-    const availableWords = categoryWords.filter(w => !usedWords.includes(w.word));
+const pickNextWord = () => {
+    // 1. Kategori yoksa veya kelime listesi boşsa varsayılan listeye dön
+    let categoryWords = [];
+    if (selectedCategory && Array.isArray(selectedCategory.words) && selectedCategory.words.length > 0) {
+      categoryWords = selectedCategory.words;
+    } else {
+      categoryWords = wordDatabase["Genel"] || [];
+    }
+
+    // 2. Eğer genel liste bile yoksa veya çökmüşse oyunu güvenlice bitir
+    if (!categoryWords || categoryWords.length === 0) {
+      setOutOfWords(true); setGameState('gameOver'); return;
+    }
+
+    // 3. Daha önce oynanmamış kelimeleri filtrele
+    const availableWords = categoryWords.filter(w => w && w.word && !usedWords.includes(w.word));
     
     if (availableWords.length === 0) {
+      // Tüm kelimeler bittiyse oyunu bitir
       setOutOfWords(true); setGameState('gameOver'); return; 
     } else {
-      const randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
-      setCurrentWord(randomWord); setUsedWords(prev => [...prev, randomWord.word]);
+      // Rastgele yeni bir kelime seç ve ayarla
+      const randomIndex = Math.floor(Math.random() * availableWords.length);
+      const randomWord = availableWords[randomIndex];
+      
+      // Güvenlik: Eğer rastgele kelime bozuksa atla ve rekürsif çalış
+      if (!randomWord || !randomWord.word) {
+         setUsedWords(prev => [...prev, "BOZUK_KELIME"]);
+         pickNextWord(); 
+         return;
+      }
+
+      // Kelimenin yasaklılar dizisi mutlaka 5 elemanlı düzgün bir liste olsun
+      const safeForbidden = Array.isArray(randomWord.forbidden) 
+          ? randomWord.forbidden.map(f => String(f || "")) 
+          : [];
+      while (safeForbidden.length < 5) safeForbidden.push("");
+
+      const safeWordObject = {
+          word: String(randomWord.word),
+          forbidden: safeForbidden.slice(0, 5)
+      };
+
+      setCurrentWord(safeWordObject);
+      setUsedWords(prev => [...prev, safeWordObject.word]);
     }
   };
 
