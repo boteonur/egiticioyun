@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, ChevronRight, ChevronLeft, ArrowRight, Settings, BarChart3, Search, Ban, ShieldCheck, Check, X, SkipForward, Info, Trophy, RotateCcw, Maximize2, Minus, Plus, Globe, Medal, Film, Cpu, Landmark, Smile, Database, Save, Lock, MessageSquarePlus, CheckCircle2, ListTodo, Trash2, Edit3, Upload, FileJson, AlertTriangle, User, LogOut, LogIn, UserPlus, Gamepad2, Eye, Edit2, ArrowLeft, Users, FolderTree, Copy, Flag, Minimize2, Mail, Send } from 'lucide-react';
-import emailjs from '@emailjs/browser';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously, signInWithCustomToken, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, doc, setDoc, onSnapshot, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { auth, db, app, appId } from '../config/firebase.js';
 
-// --- GENEL AYARLAR ---
+// ============================================================================
+// BÖLÜM 1: GENEL AYARLAR VE YARDIMCI FONKSİYONLAR
+// ============================================================================
 const isUsingUserFirebase = true;
 
-// --- GLOBAL YARDIMCI FONKSİYONLAR ---
-// Dizileri Türkçe karakterlere uyumlu şekilde alfabetik (A-Z) sıralar
+// Türkçe karakterleri bozmadan A'dan Z'ye sıralama yapan global yardımcı fonksiyon
 const sortWordsAlphabetically = (wordsArray) => {
   if (!Array.isArray(wordsArray)) return [];
   return [...wordsArray].sort((a, b) => {
@@ -20,10 +20,9 @@ const sortWordsAlphabetically = (wordsArray) => {
   });
 };
 
-/* ==========================================
-   BÖLÜM 1: SABİT VERİLER (CONSTANTS)
-   Oyunun varsayılan kelime havuzu ve ayarları.
-============================================= */
+// ============================================================================
+// BÖLÜM 2: SABİT VERİLER VE OYUN İÇERİĞİ (SEED DATA)
+// ============================================================================
 const DEFAULT_WORD_DATABASE = {
   "Genel": [
     { word: "BİLGİSAYAR", forbidden: ["Klavye", "Ekran", "Fare", "İnternet", "Oyun"] },
@@ -63,9 +62,9 @@ const DEFAULT_WORD_DATABASE = {
 const ADJECTIVES = ["Cesur", "Uçan", "Gizemli", "Hızlı", "Zeki", "Korkusuz", "Muhteşem", "Çılgın", "Efsanevi", "Yenilmez", "Kızgın", "Süper", "Görünmez", "Komik"];
 const NOUNS = ["Aslanlar", "Kartallar", "Ejderhalar", "Kaplanlar", "Büyücüler", "Savaşçılar", "Dahiler", "Ninjalar", "Korsanlar", "Şövalyeler", "Robotlar", "Zombiler"];
 
-/* ==========================================
-   BÖLÜM 2: GÖRSEL BİLEŞENLER VE KATEGORİLER
-============================================= */
+// ============================================================================
+// BÖLÜM 3: GÖRSEL BİLEŞENLER VE EMOJİLER
+// ============================================================================
 const ScalableEmoji = ({ emoji, className }) => (
   <svg viewBox="0 0 100 100" className={className} style={{ overflow: 'visible' }}>
     <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fontSize="75" style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.15))' }}>{emoji}</text>
@@ -98,9 +97,10 @@ const CATEGORY_LIST = [
   { name: "Türkiye'm", icon: WolfEmoji, color: "text-red-600", gradient: "from-red-100 to-red-200" }
 ];
 
-/* ==========================================
-   BÖLÜM 3: SES MOTORU (AUDIO ENGINE)
-============================================= */
+// ============================================================================
+// BÖLÜM 4: SES MOTORU (AUDIO ENGINE)
+// Tarayıcının AudioContext API'si ile oyun içi ses efektlerini üretir.
+// ============================================================================
 const getAudioCtx = () => {
   if (!window.audioCtx) window.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (window.audioCtx.state === 'suspended') window.audioCtx.resume();
@@ -179,21 +179,24 @@ const playTimeUpSound = () => {
     osc.start(); osc.stop(audioCtx.currentTime + 0.5);
   } catch (e) {}
 };
-/* ==========================================
-   BÖLÜM 4: ALT BİLEŞENLER (MODALS & ROWS)
-============================================= */
 
-// --- 4.1 Oyunlarım Modalı ---
+// ============================================================================
+// BÖLÜM 5: ALT BİLEŞENLER (MODALS & ROWS)
+// ============================================================================
+
+// --- Oyunlarım Modalı ---
 const MyGamesModal = ({ onClose, user, myGames, username }) => {
   const [view, setView] = useState('list'); 
   const [addMode, setAddMode] = useState('single');
   const [selectedGame, setSelectedGame] = useState(null);
+
   const [categoryName, setCategoryName] = useState("");
   const [visibility, setVisibility] = useState("public");
   const [word, setWord] = useState("");
   const [forbidden, setForbidden] = useState(["", "", "", "", ""]);
   const [addedWords, setAddedWords] = useState([]);
   const [status, setStatus] = useState(null);
+  
   const [editingWordIndex, setEditingWordIndex] = useState(null);
   const [confirmDeleteGame, setConfirmDeleteGame] = useState(false);
 
@@ -210,6 +213,7 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
 
   const openAddChoice = () => { resetForm(); setView('add-choice'); };
   const openView = (game) => { setSelectedGame(game); setView('view'); };
+
   const openEdit = (game) => {
     setSelectedGame(game); setCategoryName(game.name); setVisibility(game.type || 'public');
     setAddedWords(game.words || []); setWord(""); setForbidden(["", "", "", "", ""]);
@@ -217,16 +221,23 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
   };
 
   const handleAddOrUpdateWord = () => {
-    if (!word.trim() || forbidden.some(f => !f.trim())) { setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi doldurun!" }); return; }
-    const newWordObj = { word: word.trim().toLocaleUpperCase('tr-TR'), forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
+    if (!word.trim() || forbidden.some(f => !f.trim())) {
+      setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" }); return;
+    }
+    const newWordObj = {
+      word: word.trim().toLocaleUpperCase('tr-TR'),
+      forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR'))
+    };
+
     let updatedList = [];
     if (editingWordIndex !== null) {
       updatedList = [...addedWords]; updatedList[editingWordIndex] = newWordObj; setStatus({ type: 'success', msg: "Kelime güncellendi!" });
     } else {
       updatedList = [newWordObj, ...addedWords]; setStatus({ type: 'success', msg: "Kelime eklendi!" });
     }
-    updatedList = sortWordsAlphabetically(updatedList); setAddedWords(updatedList);
-    setEditingWordIndex(null); setWord(""); setForbidden(["", "", "", "", ""]); setTimeout(() => setStatus(null), 2000);
+    
+    updatedList = sortWordsAlphabetically(updatedList);
+    setAddedWords(updatedList); setEditingWordIndex(null); setWord(""); setForbidden(["", "", "", "", ""]); setTimeout(() => setStatus(null), 2000);
   };
 
   const handleEditWordClick = (index) => {
@@ -245,19 +256,24 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target.result);
-        if (!Array.isArray(data)) throw new Error("Geçersiz format.");
+        if (!Array.isArray(data)) throw new Error("Geçersiz format. Lütfen geçerli bir JSON yükleyin.");
+
         let newWords = []; let detectedCategory = "";
         data.forEach(item => {
           if (item.word && Array.isArray(item.forbidden) && item.forbidden.length > 0) {
-            newWords.push({ word: item.word.trim().toLocaleUpperCase('tr-TR'), forbidden: item.forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')) });
+            newWords.push({
+              word: item.word.trim().toLocaleUpperCase('tr-TR'),
+              forbidden: item.forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR'))
+            });
             if (!detectedCategory && item.category) detectedCategory = item.category.trim();
           }
         });
         if (newWords.length === 0) throw new Error("Geçerli kelime bulunamadı.");
+
         setAddedWords(prev => sortWordsAlphabetically([...newWords, ...prev]));
         if (!categoryName && detectedCategory) setCategoryName(detectedCategory);
         setStatus({ type: 'success', msg: `${newWords.length} kelime başarıyla eklendi!` }); e.target.value = null; 
-      } catch (error) { setStatus({ type: 'error', msg: "Hata: " + error.message }); e.target.value = null; }
+      } catch (error) { setStatus({ type: 'error', msg: "Yükleme Hatası: " + error.message }); e.target.value = null; }
     };
     reader.readAsText(file);
   };
@@ -265,14 +281,15 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
   const copyToClipboard = () => {
     const textArea = document.createElement("textarea"); textArea.value = aiPrompt; textArea.style.position = "absolute"; textArea.style.left = "-999999px";
     document.body.appendChild(textArea); textArea.select();
-    try { document.execCommand('copy'); setStatus({ type: 'success', msg: "Prompt kopyalandı!" }); setTimeout(() => setStatus(null), 4000); } 
-    catch (err) { setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." }); }
+    try {
+      document.execCommand('copy'); setStatus({ type: 'success', msg: "Prompt kopyalandı!" }); setTimeout(() => setStatus(null), 4000);
+    } catch (err) { setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." }); }
     document.body.removeChild(textArea);
   };
 
   const handleFinish = async () => {
-    if (!categoryName.trim()) { setStatus({ type: 'error', msg: "Lütfen bir kategori ismi girin!" }); return; }
-    if (addedWords.length === 0) { setStatus({ type: 'error', msg: "Oyununuza hiç kelime eklemediniz!" }); return; }
+    if (!categoryName.trim()) { setStatus({ type: 'error', msg: "Lütfen bir kategori (oyun) ismi girin!" }); return; }
+    if (addedWords.length === 0) { setStatus({ type: 'error', msg: "Oyununuza henüz hiç kelime eklemediniz!" }); return; }
 
     try {
       setStatus({ type: 'info', msg: "Kaydediliyor..." });
@@ -288,10 +305,8 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
         if (oldColl !== newColl) {
           await deleteDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id));
           await setDoc(doc(db, 'artifacts', appId, ...newColl.split('/'), selectedGame.id), gameData);
-        } else {
-          await setDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id), gameData);
-        }
-        setStatus({ type: 'success', msg: "Değişiklikler kaydedildi!" });
+        } else { await setDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id), gameData); }
+        setStatus({ type: 'success', msg: "Değişiklikler başarıyla kaydedildi!" });
       } else {
         const coll = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
         await addDoc(collection(db, 'artifacts', appId, ...coll.split('/')), gameData);
@@ -315,13 +330,14 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
     <div className="fixed inset-0 w-full h-screen bg-gray-900/95 flex items-center justify-center p-4 z-50 backdrop-blur-md overflow-y-auto">
       <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-2xl shadow-2xl relative border-4 border-blue-300 my-auto">
         <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors z-10"><X size={32} /></button>
-        {/* LİSTE GÖRÜNÜMÜ */}
         {view === 'list' && (
           <div className="animate-fade-in">
             <h2 className="text-3xl font-black text-blue-600 mb-6 flex items-center gap-3"><Gamepad2 size={36} /> Oyunlarım</h2>
             <button onClick={openAddChoice} className="w-full mb-6 bg-blue-50 border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-600 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"><Plus size={24} /> Yeni Oyun Ekle</button>
             <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-              {myGames.length === 0 ? <div className="text-center py-8 text-gray-400 font-medium">Henüz bir oyun eklemediniz.</div> : (
+              {myGames.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 font-medium">Henüz bir oyun eklemediniz.</div>
+              ) : (
                 myGames.map(game => (
                   <div key={game.id} className="bg-white border-2 border-gray-100 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-blue-200 transition-all">
                     <div>
@@ -465,7 +481,12 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
                   <input type="radio" checked={visibility === 'private'} onChange={() => setVisibility('private')} className="hidden" /><Lock size={20} className={visibility === 'private' ? 'text-purple-500' : 'text-gray-400'} /><span className={`font-bold text-sm md:text-base ${visibility === 'private' ? 'text-purple-700' : 'text-gray-500'}`}>Bana Özel</span>
                 </label>
               </div>
-              {status && <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>{status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}</div>}
+
+              {status && (
+                <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
+                  {status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}
+                </div>
+              )}
             </div>
 
             <div className="pt-4 border-t border-gray-100 flex flex-col md:flex-row gap-3 flex-shrink-0">
@@ -490,7 +511,7 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
   );
 };
 
-// --- 4.2 Kullanıcı Kelime Öneri Modalı ---
+// --- Kullanıcı Kelime Öneri Modalı ---
 const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   const [category, setCategory] = useState("Genel");
   const [customCategory, setCustomCategory] = useState("");
@@ -573,20 +594,22 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   );
 };
 
-// --- 4.3 Yönetici İçin Kelime Düzenleme Satırı ---
+// --- Yönetici İçin Kelime Düzenleme Satırı ---
 const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  
-  // GÜVENLİK ÖNLEMİ: Hatalı veya eski test verileri varsa çökmeyi engelle
+  // HOOKLAR EN TEPEDE
   const safeWord = (wordObj && wordObj.word) ? String(wordObj.word) : "";
-  let safeForbidden = ["", "", "", "", ""];
-  if (wordObj && Array.isArray(wordObj.forbidden)) {
-    safeForbidden = wordObj.forbidden.map(f => f ? String(f) : "");
-  }
-  while (safeForbidden.length < 5) safeForbidden.push("");
+  const initialForbidden = (() => {
+    let arr = ["", "", "", "", ""];
+    if (wordObj && Array.isArray(wordObj.forbidden)) {
+      arr = wordObj.forbidden.map(f => f ? String(f) : "");
+    }
+    while (arr.length < 5) arr.push("");
+    return arr.slice(0, 5);
+  })();
 
+  const [isEditing, setIsEditing] = useState(false);
   const [word, setWord] = useState(safeWord);
-  const [forbidden, setForbidden] = useState(safeForbidden.slice(0, 5));
+  const [forbidden, setForbidden] = useState(initialForbidden);
 
   const handleSave = () => { onSave({ word, forbidden }); setIsEditing(false); };
 
@@ -613,7 +636,7 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
         <input type="checkbox" checked={isSelected} onChange={onToggleSelect} className="w-5 h-5 cursor-pointer accent-purple-600 flex-shrink-0" />
         <div className="flex-1">
           <span className="font-black text-lg text-gray-800">{wordObj.word}</span>
-          <div className="text-sm text-red-500 font-medium">{wordObj.forbidden.join(', ')}</div>
+          <div className="text-sm text-red-500 font-medium">{(wordObj.forbidden || []).join(', ')}</div>
         </div>
       </div>
       <div className="flex gap-2 w-full md:w-auto ml-8 md:ml-0">
@@ -624,7 +647,7 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
   );
 };
 
-// --- 4.4 Yönetici Paneli Öneri Satırı Bileşeni ---
+// --- Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
   
   // 1. HOOK'LAR: En üstte ve koşulsuz tanımlanmalı (React kuralı)
@@ -680,9 +703,8 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
     </div>
   );
 }
-/* ==========================================
-   BÖLÜM 4.5: YÖNETİCİ (ADMIN) MODALI
-============================================= */
+
+// --- Yönetici (Admin) Modalı Bileşeni ---
 const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, reports, messagesList, adminReplyText, setAdminReplyText, handleAdminReply, handleAdminDeleteMessage }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -749,9 +771,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       const newWordObj = { word: word.trim().toLocaleUpperCase('tr-TR'), forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
       const currentWords = wordDatabase[category] || [];
       
-      // Alfabetik sırala
       const updatedWords = sortWordsAlphabetically([...currentWords, newWordObj]);
-
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), category);
       await setDoc(catRef, { words: updatedWords });
 
@@ -767,9 +787,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       const currentWords = wordDatabase[catName.trim()] || [];
       const newWordObj = { word: wordVal.trim().toLocaleUpperCase('tr-TR'), forbidden: forbiddenArr.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
       
-      // Alfabetik sırala
       const updatedWords = sortWordsAlphabetically([...currentWords, newWordObj]);
-      
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName.trim());
       await setDoc(catRef, { words: updatedWords });
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'suggestions', id));
@@ -1060,7 +1078,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         {activeTab === 'reports' && (
           <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {!reports || reports.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center"><CheckCircle2 size={48} className="mb-4 text-green-300" />Şu an bekleyen hiçbir hata bildirimi yok. Harika!</div>
+              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center">
+                <CheckCircle2 size={48} className="mb-4 text-green-300" /> Şu an bekleyen hiçbir hata bildirimi yok. Harika!
+              </div>
             ) : (
               reports.map(report => (
                 <div key={report.id} className="bg-red-50 rounded-2xl p-4 border-2 border-red-100 mb-4 shadow-sm flex flex-col">
@@ -1094,7 +1114,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         {activeTab === 'messages' && (
           <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {!messagesList || messagesList.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center"><CheckCircle2 size={48} className="mb-4 text-green-300" />Şu an bekleyen hiçbir mesaj yok.</div>
+              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center">
+                <CheckCircle2 size={48} className="mb-4 text-green-300" /> Şu an bekleyen hiçbir mesaj yok.
+              </div>
             ) : (
               messagesList.map(msg => (
                 <div key={msg.id} className="bg-blue-50 rounded-2xl p-4 border-2 border-blue-100 mb-4 shadow-sm flex flex-col">
@@ -1122,8 +1144,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
 
                   <div className="flex gap-2 items-center pt-2 border-t border-blue-200">
                     <input 
-                      type="text" 
-                      value={adminReplyText[msg.id] || ""} 
+                      type="text" value={adminReplyText[msg.id] || ""} 
                       onChange={(e) => setAdminReplyText(prev => ({...prev, [msg.id]: e.target.value}))} 
                       onKeyDown={(e) => e.key === 'Enter' && handleAdminReply(msg.id)}
                       placeholder="Kullanıcıya cevap yaz..." 
@@ -1175,7 +1196,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                         <span className={`font-black text-lg ${userObj.isBanned ? 'text-red-700 line-through' : 'text-gray-800'}`}>{userObj.email}</span>
                         <span className="text-xs font-bold text-gray-400 mt-1">Son Giriş: {userObj.lastLogin ? new Date(userObj.lastLogin).toLocaleString('tr-TR') : 'Bilinmiyor'}</span>
                       </div>
-                      
                       <button onClick={() => handleToggleBan(userObj.uid, userObj.isBanned)} className={`px-4 py-2 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${userObj.isBanned ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
                         {userObj.isBanned ? <><ShieldCheck size={18} /> Engeli Kaldır</> : <><Ban size={18} /> Engelle</>}
                       </button>
@@ -1183,7 +1203,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                   ))
               )}
             </div>
-            
           </div>
         )}
 
@@ -1231,7 +1250,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
                           <div className="font-black text-lg text-orange-800">{game.name}</div>
                           <div className="flex gap-2 mt-1">
                             <span className="text-[10px] font-bold text-orange-600 bg-orange-200 px-2 py-0.5 rounded">{game.words?.length || 0} Kelime</span>
-                            <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">@{game.ownerEmail?.split('@')[0]}</span>
+                            <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">@{game.ownerUsername || game.ownerEmail?.split('@')[0]}</span>
                           </div>
                         </div>
                         <button onClick={() => handleOpenCat('custom', game)} className="p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-bold flex items-center gap-2 shadow-sm"><Eye size={16} /> İncele</button>
@@ -1366,9 +1385,11 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       </div>
     </div>
   );
-};/* ==========================================
-   BÖLÜM 4.6: TAKIM KURULUM KARTI (TEAM SETUP)
-============================================= */
+};
+
+// ============================================================================
+// BÖLÜM 6: TAKIM KURULUM KARTI (TEAM SETUP)
+// ============================================================================
 const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCount, theme = "orange", otherTeamName }) => {
   const [history, setHistory] = useState([teamName || "Takım"]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -1376,22 +1397,8 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
   const [animClassLeft, setAnimClassLeft] = useState('scale-100');
 
   const themeColors = {
-    orange: {
-      text: 'text-orange-600', badgeBg: 'bg-gradient-to-r from-orange-400 to-orange-500',
-      buttonGradient: 'bg-[radial-gradient(circle,white_30%,#fdba74_130%)]',
-      buttonHover: 'hover:bg-[radial-gradient(circle,white_10%,#fb923c_120%)]',
-      border: 'border-orange-200', focusBorder: 'focus:border-orange-400',
-      divider: 'bg-orange-200', iconHover: 'hover:bg-orange-100 text-orange-500 hover:text-orange-600',
-      glow: 'shadow-[0_0_20px_rgba(249,115,22,0.5)]'
-    },
-    turquoise: {
-      text: 'text-teal-600', badgeBg: 'bg-gradient-to-r from-teal-400 to-teal-500',
-      buttonGradient: 'bg-[radial-gradient(circle,white_30%,#5eead4_130%)]',
-      buttonHover: 'hover:bg-[radial-gradient(circle,white_10%,#2dd4bf_120%)]',
-      border: 'border-teal-200', focusBorder: 'focus:border-teal-400',
-      divider: 'bg-teal-200', iconHover: 'hover:bg-teal-100 text-teal-500 hover:text-teal-600',
-      glow: 'shadow-[0_0_20px_rgba(20,184,166,0.5)]'
-    }
+    orange: { text: 'text-orange-600', badgeBg: 'bg-gradient-to-r from-orange-400 to-orange-500', buttonGradient: 'bg-[radial-gradient(circle,white_30%,#fdba74_130%)]', buttonHover: 'hover:bg-[radial-gradient(circle,white_10%,#fb923c_120%)]', border: 'border-orange-200', focusBorder: 'focus:border-orange-400', divider: 'bg-orange-200', iconHover: 'hover:bg-orange-100 text-orange-500 hover:text-orange-600', glow: 'shadow-[0_0_20px_rgba(249,115,22,0.5)]' },
+    turquoise: { text: 'text-teal-600', badgeBg: 'bg-gradient-to-r from-teal-400 to-teal-500', buttonGradient: 'bg-[radial-gradient(circle,white_30%,#5eead4_130%)]', buttonHover: 'hover:bg-[radial-gradient(circle,white_10%,#2dd4bf_120%)]', border: 'border-teal-200', focusBorder: 'focus:border-teal-400', divider: 'bg-teal-200', iconHover: 'hover:bg-teal-100 text-teal-500 hover:text-teal-600', glow: 'shadow-[0_0_20px_rgba(20,184,166,0.5)]' }
   };
 
   const colors = themeColors[theme];
@@ -1414,12 +1421,8 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
 
   const handleRight = () => {
     triggerAnim('right');
-    if (historyIndex < history.length - 1) {
-      const nextIndex = historyIndex + 1; setHistoryIndex(nextIndex); setTeamName(history[nextIndex]);
-    } else {
-      const newName = generateName(); const newHistory = [...history, newName];
-      setHistory(newHistory); setHistoryIndex(newHistory.length - 1); setTeamName(newName);
-    }
+    if (historyIndex < history.length - 1) { const nextIndex = historyIndex + 1; setHistoryIndex(nextIndex); setTeamName(history[nextIndex]); } 
+    else { const newName = generateName(); const newHistory = [...history, newName]; setHistory(newHistory); setHistoryIndex(newHistory.length - 1); setTeamName(newName); }
   };
 
   const handleLeft = () => {
@@ -1427,9 +1430,7 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
   };
 
   const handlePlayerChange = (increment) => {
-    playClickSound();
-    const newValue = playerCount + increment;
-    if (newValue >= 2 && newValue <= 10) setPlayerCount(newValue);
+    playClickSound(); const newValue = playerCount + increment; if (newValue >= 2 && newValue <= 10) setPlayerCount(newValue);
   };
 
   const isDuplicate = teamName.trim().toLowerCase() === (otherTeamName || "").trim().toLowerCase();
@@ -1444,16 +1445,7 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
         <button onClick={handleLeft} disabled={historyIndex === 0} className={`p-2 md:p-3 rounded-full transition-all duration-200 shadow-md flex-shrink-0 ${animClassLeft} ${historyIndex === 0 ? 'bg-[radial-gradient(circle,white_40%,#e5e7eb_140%)] text-gray-400 cursor-not-allowed opacity-70' : `${colors.text} ${colors.buttonGradient} ${colors.buttonHover}`}`}>
           <ChevronLeft className="w-5 h-5 md:w-7 md:h-7" />
         </button>
-        
-        <input 
-          type="text" 
-          value={teamName} 
-          onChange={(e) => setTeamName(e.target.value)} 
-          onFocus={(e) => e.target.select()}
-          className={`flex-1 min-w-0 text-center text-lg md:text-2xl font-black py-2 px-1 md:py-3 md:px-2 rounded-xl md:rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`} 
-          placeholder="Takım Adı" 
-        />
-        
+        <input type="text" value={teamName} onChange={(e) => setTeamName(e.target.value)} onFocus={(e) => e.target.select()} className={`flex-1 min-w-0 text-center text-lg md:text-2xl font-black py-2 px-1 md:py-3 md:px-2 rounded-xl md:rounded-2xl bg-transparent border-2 ${isDuplicate ? 'border-red-500 text-red-600 focus:border-red-600 focus:bg-red-50' : `border-transparent ${colors.focusBorder} ${colors.text}`} focus:bg-white focus:outline-none transition-colors truncate`} placeholder="Takım Adı" />
         <button onClick={handleRight} className={`p-2 md:p-3 rounded-full flex-shrink-0 ${colors.text} ${colors.buttonGradient} ${colors.buttonHover} shadow-md transition-all duration-200 ${animClassRight}`}>
           <ChevronRight className="w-5 h-5 md:w-7 md:h-7" />
         </button>
@@ -1464,25 +1456,19 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
       <div className="flex items-center justify-between px-1 md:px-2">
         <span className="text-gray-500 font-extrabold text-sm md:text-lg tracking-wide">Kişi Sayısı</span>
         <div className={`flex items-center gap-1 md:gap-2 bg-gray-50/80 rounded-xl md:rounded-2xl p-1 border-2 ${colors.border}`}>
-          <button onClick={() => handlePlayerChange(-1)} disabled={playerCount <= 2} className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all ${playerCount <= 2 ? 'text-gray-300 cursor-not-allowed' : colors.iconHover}`}>
-            <Minus className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} />
-          </button>
+          <button onClick={() => handlePlayerChange(-1)} disabled={playerCount <= 2} className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all ${playerCount <= 2 ? 'text-gray-300 cursor-not-allowed' : colors.iconHover}`}><Minus className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} /></button>
           <span className={`font-black text-lg md:text-2xl w-6 md:w-8 text-center ${colors.text}`}>{playerCount}</span>
-          <button onClick={() => handlePlayerChange(1)} disabled={playerCount >= 10} className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all ${playerCount >= 10 ? 'text-gray-300 cursor-not-allowed' : colors.iconHover}`}>
-            <Plus className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} />
-          </button>
+          <button onClick={() => handlePlayerChange(1)} disabled={playerCount >= 10} className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all ${playerCount >= 10 ? 'text-gray-300 cursor-not-allowed' : colors.iconHover}`}><Plus className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} /></button>
         </div>
       </div>
     </div>
   );
 };
-
-/* ==========================================
-   BÖLÜM 5: ANA UYGULAMA BİLEŞENİ (Deme.jsx)
+/* =========================================================================================
+   BÖLÜM 6: ANA UYGULAMA BİLEŞENİ (Deme.jsx)
    Tüm oyunun aktığı ana mekanizma.
-============================================= */
+========================================================================================= */
 export default function Deme() {
-  // --- 1. UYGULAMA VE VERİTABANI DURUMLARI (STATES) ---
   const [user, setUser] = useState(null);
   const [wordDatabase, setWordDatabase] = useState(DEFAULT_WORD_DATABASE);
   const [suggestions, setSuggestions] = useState([]);
@@ -1491,7 +1477,6 @@ export default function Deme() {
   const [reports, setReports] = useState([]); 
   const [dbError, setDbError] = useState(""); 
 
-  // --- 2. ARAYÜZ VE MODAL DURUMLARI ---
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
@@ -1502,7 +1487,6 @@ export default function Deme() {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // --- 3. FORMLAR VE MESAJLAŞMA DURUMLARI ---
   const [reportReason, setReportReason] = useState(""); 
   const [reportStatus, setReportStatus] = useState(null); 
   const [authEmail, setAuthEmail] = useState("");
@@ -1511,22 +1495,19 @@ export default function Deme() {
   const [username, setUsername] = useState("");
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState("");
+  
   const [messagesList, setMessagesList] = useState([]);
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [userMsgText, setUserMsgText] = useState("");
   const [adminReplyText, setAdminReplyText] = useState({});
 
-  // --- 4. OYUN KURULUM DURUMLARI ---
   const [setupStep, setSetupStep] = useState(0); 
   const [team1Name, setTeam1Name] = useState("Kırmızı Ejderler");
   const [team2Name, setTeam2Name] = useState("Mavi Aslanlar");
   const [team1Players, setTeam1Players] = useState(2);
   const [team2Players, setTeam2Players] = useState(2);
-  const [settings, setSettings] = useState({
-    timeLimit: 60, penalty: 1, passLimit: 3, endType: 'rounds', endRoundsValue: 6, endScoreValue: 50,
-  });
+  const [settings, setSettings] = useState({ timeLimit: 60, penalty: 1, passLimit: 3, endType: 'rounds', endRoundsValue: 6, endScoreValue: 50 });
   
-  // --- 5. AKTİF OYUN DURUMLARI ---
   const [gameState, setGameState] = useState('setup'); 
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0); 
@@ -1540,15 +1521,10 @@ export default function Deme() {
   const [turnStats, setTurnStats] = useState({ correct: 0, taboo: 0, pass: 0 });
   const [passesLeft, setPassesLeft] = useState(0);
 
-  // --- KAYDIRMA (SWIPE) DURUMLARI ---
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
-
   const gameRootRef = useRef(null); 
 
-  /* ==========================================
-     KULLANICI PROFİLİ VE GİRİŞ EFEKTLERİ
-  ============================================= */
   useEffect(() => { document.title = "Deme"; }, []);
 
   useEffect(() => {
@@ -1556,15 +1532,10 @@ export default function Deme() {
     if (user && !user.isAnonymous) {
       const userRef = doc(db, 'artifacts', appId, 'userProfiles', user.uid);
       unsub = onSnapshot(userRef, (docSnap) => {
-        if (docSnap.exists() && docSnap.data().username) {
-          setUsername(docSnap.data().username);
-        } else if (user.email) {
-          setUsername(user.email.split('@')[0].substring(0, 10));
-        }
+        if (docSnap.exists() && docSnap.data().username) { setUsername(docSnap.data().username); } 
+        else if (user.email) { setUsername(user.email.split('@')[0].substring(0, 10)); }
       });
-    } else {
-      setUsername("");
-    }
+    } else { setUsername(""); }
     return () => unsub();
   }, [user]);
 
@@ -1575,8 +1546,7 @@ export default function Deme() {
         if (isUsingUserFirebase) { await signInAnonymously(auth); } 
         else {
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            try { await signInWithCustomToken(auth, __initial_auth_token); } 
-            catch (tokenError) { await signInAnonymously(auth); }
+            try { await signInWithCustomToken(auth, __initial_auth_token); } catch (tokenError) { await signInAnonymously(auth); }
           } else { await signInAnonymously(auth); }
         }
       } catch (e) {
@@ -1596,32 +1566,21 @@ export default function Deme() {
         } catch(e) {}
       }
     });
-    
     return () => unsubscribe();
   }, []);
 
-  /* ==========================================
-     VERİTABANI (FIRESTORE) EFEKTLERİ
-  ============================================= */
   useEffect(() => {
     if (!user || !db) return;
-    
     const wordsRef = collection(db, 'artifacts', appId, 'public', 'data', 'categories');
     const unsubWords = onSnapshot(wordsRef, (snapshot) => {
       setDbError(""); 
       if (snapshot.empty) {
-        Object.keys(DEFAULT_WORD_DATABASE).forEach(cat => {
-          setDoc(doc(wordsRef, cat), { words: DEFAULT_WORD_DATABASE[cat] }).catch(() => {});
-        });
+        Object.keys(DEFAULT_WORD_DATABASE).forEach(cat => { setDoc(doc(wordsRef, cat), { words: DEFAULT_WORD_DATABASE[cat] }).catch(() => {}); });
       } else {
-        const newDB = {};
-        snapshot.forEach(document => { newDB[document.id] = document.data().words; });
-        setWordDatabase(newDB);
+        const newDB = {}; snapshot.forEach(document => { newDB[document.id] = document.data().words; }); setWordDatabase(newDB);
       }
     }, (error) => {
-      if (error.code === 'permission-denied' || error.message.includes('permission')) {
-        setDbError("Veritabanı İzin Hatası: Lütfen Firebase Console'da veritabanınızı Test Moduna alın.");
-      }
+      if (error.code === 'permission-denied' || error.message.includes('permission')) { setDbError("Veritabanı İzin Hatası: Lütfen Firebase Console'da veritabanınızı Test Moduna alın."); }
     });
 
     const suggsRef = collection(db, 'artifacts', appId, 'public', 'data', 'suggestions');
@@ -1631,14 +1590,12 @@ export default function Deme() {
 
     const reportsRef = collection(db, 'artifacts', appId, 'public', 'data', 'reports');
     const unsubReports = onSnapshot(reportsRef, (snapshot) => {
-      const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
-      arr.sort((a,b) => b.timestamp - a.timestamp); setReports(arr);
+      const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data() })); arr.sort((a,b) => b.timestamp - a.timestamp); setReports(arr);
     });
 
     const msgsRef = collection(db, 'artifacts', appId, 'messages');
     const unsubMsgs = onSnapshot(msgsRef, (snapshot) => {
-      const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
-      arr.sort((a,b) => b.lastUpdatedAt - a.lastUpdatedAt); setMessagesList(arr);
+      const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data() })); arr.sort((a,b) => b.lastUpdatedAt - a.lastUpdatedAt); setMessagesList(arr);
     });
 
     const pubCustomRef = collection(db, 'artifacts', appId, 'public', 'data', 'customGames');
@@ -1657,14 +1614,9 @@ export default function Deme() {
     return () => { unsubWords(); unsubSuggs(); unsubPubCustom(); unsubPrivCustom(); unsubReports(); unsubMsgs();};
   }, [user]);
 
-  /* ==========================================
-     ZAMANLAYICI VE OYUN İÇİ EFEKTLER
-  ============================================= */
   useEffect(() => {
     const handlePopState = (event) => {
-      if (setupStep > 0) { 
-        event.preventDefault(); setShowExitConfirmModal(true); window.history.pushState(null, '', window.location.href); 
-      }
+      if (setupStep > 0) { event.preventDefault(); setShowExitConfirmModal(true); window.history.pushState(null, '', window.location.href); }
     };
     if (setupStep > 0) { window.history.pushState(null, '', window.location.href); window.addEventListener('popstate', handlePopState); }
     return () => window.removeEventListener('popstate', handlePopState);
@@ -1693,9 +1645,6 @@ export default function Deme() {
     return () => { clearTimeout(mainTimer); soundTimers.forEach(clearTimeout); };
   }, [gameState, timeLeft, showReportModal]); 
 
-  /* ==========================================
-     FONKSİYONLAR - OYUN MANTIĞI VE YÖNETİM
-  ============================================= */
   const minSwipeDistance = 50;
   const nextStep = () => setSetupStep(prev => prev + 1);
   const prevStep = () => setSetupStep(prev => Math.max(0, prev - 1));
@@ -1881,10 +1830,10 @@ export default function Deme() {
       catch(e) {}
     }
   };
-/* ==========================================
-     BÖLÜM 6: RENDER (ARAYÜZ ÇİZİMİ)
-  ============================================= */
 
+  /* =========================================================================================
+     BÖLÜM 7: RENDER (EKRANLARIN ÇİZİMİ)
+  ========================================================================================= */
   if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} messagesList={messagesList} adminReplyText={adminReplyText} setAdminReplyText={setAdminReplyText} handleAdminReply={handleAdminReply} handleAdminDeleteMessage={handleAdminDeleteMessage} />;
   if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
   
@@ -1896,45 +1845,24 @@ export default function Deme() {
       <div className="fixed inset-0 w-full h-screen bg-gray-900/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
         <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl relative border-4 border-purple-200">
           <button onClick={() => {setShowAuthModal(false); setAuthStatus(null);}} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors"><X size={32} /></button>
-          
           <h2 className="text-3xl font-black text-purple-900 mb-6 flex items-center gap-3">
-            {isLoginMode ? <LogIn className="text-purple-500" size={36} /> : <UserPlus className="text-purple-500" size={36} />}
-            {isLoginMode ? "Giriş Yap" : "Kayıt Ol"}
+            {isLoginMode ? <LogIn className="text-purple-500" size={36} /> : <UserPlus className="text-purple-500" size={36} />} {isLoginMode ? "Giriş Yap" : "Kayıt Ol"}
           </h2>
-
           <form onSubmit={handleAuthSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-500 mb-1 font-bold">E-posta</label>
-              <input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-500 mb-1 font-bold">Şifre</label>
-              <input type="password" required minLength="6" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" />
-            </div>
-            
-            {authStatus && (
-              <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${authStatus.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : authStatus.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-                {authStatus.type === 'success' ? <Check size={20} /> : <Info size={20} />} {authStatus.msg}
-              </div>
-            )}
-
-            <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xl py-4 rounded-xl shadow-[0_5px_0_rgb(67,56,202)] hover:translate-y-1 hover:shadow-none transition-all flex items-center justify-center gap-3 mt-2">
-              {isLoginMode ? "GİRİŞ YAP" : "KAYIT OL"}
-            </button>
+            <div><label className="block text-sm text-gray-500 mb-1 font-bold">E-posta</label><input type="email" required value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" /></div>
+            <div><label className="block text-sm text-gray-500 mb-1 font-bold">Şifre</label><input type="password" required minLength="6" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 font-bold text-gray-800 focus:border-purple-500 outline-none shadow-inner" /></div>
+            {authStatus && (<div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${authStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} border`}>{authStatus.msg}</div>)}
+            <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xl py-4 rounded-xl transition-all mt-2">{isLoginMode ? "GİRİŞ YAP" : "KAYIT OL"}</button>
           </form>
-
           <div className="mt-6 text-center border-t border-gray-100 pt-4">
             <p className="text-gray-500 text-sm font-bold">{isLoginMode ? "Hesabınız yok mu?" : "Zaten bir hesabınız var mı?"}</p>
-            <button type="button" onClick={() => { setIsLoginMode(!isLoginMode); setAuthStatus(null); }} className="text-purple-600 hover:text-purple-800 font-black mt-1 transition-colors">
-              {isLoginMode ? "Yeni Hesap Oluştur" : "Mevcut Hesaba Giriş Yap"}
-            </button>
+            <button type="button" onClick={() => { setIsLoginMode(!isLoginMode); setAuthStatus(null); }} className="text-purple-600 font-black mt-1">{isLoginMode ? "Yeni Hesap Oluştur" : "Mevcut Hesaba Giriş Yap"}</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // --- PROFİL MENÜSÜ GÖRÜNÜMÜ ---
   if (showProfileMenu) {
     const myMsgDoc = messagesList.find(m => m.id === user?.uid);
     const hasUnread = myMsgDoc && !myMsgDoc.isReadUser;
@@ -1942,46 +1870,32 @@ export default function Deme() {
     return (
       <div className="fixed inset-0 w-full h-screen bg-gray-900/60 flex items-center justify-center p-4 z-[110] backdrop-blur-sm">
         <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl relative border-4 border-blue-200 animate-bounce-short">
-          
-          <button onClick={() => {setShowProfileMenu(false); setIsEditingUsername(false); setIsMessageOpen(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
-            <X size={28} />
-          </button>
-
+          <button onClick={() => {setShowProfileMenu(false); setIsEditingUsername(false); setIsMessageOpen(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors"><X size={28} /></button>
           <button onClick={() => { setIsMessageOpen(!isMessageOpen); if (!isMessageOpen) markUserMessageAsRead(); }} className="absolute top-4 left-4 text-gray-400 hover:text-blue-500 transition-colors relative">
             <Mail size={28} />
-            {hasUnread && !isMessageOpen && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse">1</span>
-            )}
+            {hasUnread && !isMessageOpen && (<span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse">1</span>)}
           </button>
-
           {!isMessageOpen ? (
             <>
               <div className="text-center mb-8 mt-2">
-                <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md">
-                  <User size={40} />
-                </div>
+                <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md"><User size={40} /></div>
                 {isEditingUsername ? (
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <input type="text" maxLength={10} value={tempUsername} onChange={(e) => setTempUsername(e.target.value)} className="border-2 border-blue-300 rounded-lg px-2 py-1 text-center font-black text-gray-800 w-32 focus:outline-none focus:border-blue-500 uppercase" autoFocus />
-                    <button onClick={handleSaveUsername} className="bg-green-500 text-white p-1.5 rounded-lg hover:bg-green-600 transition-colors"><Check size={16}/></button>
-                    <button onClick={() => setIsEditingUsername(false)} className="bg-red-500 text-white p-1.5 rounded-lg hover:bg-red-600 transition-colors"><X size={16}/></button>
+                    <button onClick={handleSaveUsername} className="bg-green-500 text-white p-1.5 rounded-lg"><Check size={16}/></button>
+                    <button onClick={() => setIsEditingUsername(false)} className="bg-red-500 text-white p-1.5 rounded-lg"><X size={16}/></button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2 mb-2 group cursor-pointer" onClick={() => { setTempUsername(username); setIsEditingUsername(true); }} title="Kullanıcı adını değiştir">
-                    <h2 className="font-black text-2xl text-gray-800 uppercase tracking-wide">{username}</h2>
-                    <Edit2 size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <h2 className="font-black text-2xl text-gray-800 uppercase tracking-wide">{username}</h2><Edit2 size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
                   </div>
                 )}
                 <h3 className="font-bold text-gray-500 text-sm truncate px-2 mb-2">{user?.email}</h3>
                 <span className="text-xs font-bold text-green-600 bg-green-100 px-3 py-1 rounded-full border border-green-200 inline-block shadow-sm">Aktif Üye</span>
               </div>
               <div className="space-y-3">
-                <button onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} className="w-full bg-blue-50 hover:bg-blue-500 hover:text-white text-blue-600 font-black py-4 rounded-xl transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-3 group">
-                  <Gamepad2 size={24} className="group-hover:scale-110 transition-transform" /> OYUNLARIM
-                </button>
-                <button onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} className="w-full bg-yellow-50 hover:bg-yellow-400 hover:text-gray-900 text-yellow-600 font-black py-4 rounded-xl transition-all shadow-sm border border-yellow-100 flex items-center justify-center gap-3 group">
-                  <MessageSquarePlus size={24} className="group-hover:scale-110 transition-transform" /> KELİME ÖNER
-                </button>
+                <button onClick={() => { setShowProfileMenu(false); setShowMyGamesModal(true); }} className="w-full bg-blue-50 text-blue-600 font-black py-4 rounded-xl flex items-center justify-center gap-3"><Gamepad2 size={24} /> OYUNLARIM</button>
+                <button onClick={() => { setShowProfileMenu(false); setShowSuggestionModal(true); }} className="w-full bg-yellow-50 text-yellow-600 font-black py-4 rounded-xl flex items-center justify-center gap-3"><MessageSquarePlus size={24} /> KELİME ÖNER</button>
               </div>
             </>
           ) : (
@@ -1992,9 +1906,7 @@ export default function Deme() {
                   {myMsgDoc?.thread?.length > 0 ? (
                     myMsgDoc.thread.map((t, idx) => (
                       <div key={idx} className={`flex flex-col ${t.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                        <div className={`px-3 py-2 rounded-xl text-sm font-medium max-w-[85%] ${t.sender === 'user' ? 'bg-blue-500 text-white rounded-tr-none shadow-sm' : 'bg-white text-gray-800 rounded-tl-none border border-gray-200 shadow-sm'}`}>
-                          {t.text}
-                        </div>
+                        <div className={`px-3 py-2 rounded-xl text-sm font-medium max-w-[85%] ${t.sender === 'user' ? 'bg-blue-500 text-white rounded-tr-none shadow-sm' : 'bg-white text-gray-800 rounded-tl-none border border-gray-200 shadow-sm'}`}>{t.text}</div>
                         <span className="text-[9px] text-gray-400 mt-1">{new Date(t.timestamp).toLocaleTimeString('tr-TR')}</span>
                       </div>
                     ))
@@ -2004,7 +1916,7 @@ export default function Deme() {
                 </div>
                 <div className="flex gap-2">
                   <input type="text" maxLength={200} value={userMsgText} onChange={(e) => setUserMsgText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Yöneticiye mesaj göndermek isterseniz tıklayın..." className="flex-1 border-2 border-gray-200 rounded-xl p-2 text-xs font-medium focus:outline-none focus:border-blue-500" />
-                  <button onClick={handleSendMessage} className="bg-blue-500 text-white p-2 rounded-xl hover:bg-blue-600 transition-all shadow-sm"><Send size={20}/></button>
+                  <button onClick={handleSendMessage} className="bg-blue-500 text-white p-2 rounded-xl"><Send size={20}/></button>
                 </div>
               </div>
             </>
@@ -2020,50 +1932,27 @@ export default function Deme() {
   if (gameState === 'setup') {
     return (
       <div className="w-full h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-hidden font-sans flex flex-col">
-        <div 
-          className="flex-1 flex transition-transform duration-700 ease-in-out w-full h-full"
-          style={{ transform: `translateX(-${setupStep * 100}%)` }}
-          onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={handleTouchEnd}
-        >
+        <div className="flex-1 flex transition-transform duration-700 ease-in-out w-full h-full" style={{ transform: `translateX(-${setupStep * 100}%)` }} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={handleTouchEnd}>
           {/* STEP 0: ANA EKRAN */}
           <div className="min-w-full h-full flex flex-col items-center justify-start pt-10 md:justify-center md:pt-6 p-6 relative overflow-y-auto">
-            <Link to="/" className="mb-5 md:mb-8 hover:scale-105 transition-transform z-[100] shrink-0" title="Ana Sayfaya Dön">
-                <img src="/anasayfa.png" alt="Eğitici Oyunlar" className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" />
-            </Link>
-
+            <Link to="/" className="mb-5 md:mb-8 hover:scale-105 transition-transform z-[100] shrink-0" title="Ana Sayfaya Dön"><img src="/anasayfa.png" alt="Eğitici Oyunlar" className="w-48 sm:w-64 md:w-80 object-contain drop-shadow-xl rounded-3xl" /></Link>
             <div className="bg-white/20 p-6 md:p-8 rounded-[3rem] backdrop-blur-sm border border-white/30 shadow-2xl flex flex-col items-center shrink-0 w-full max-w-[90%] md:max-w-md">
               <img src="/deme_logo.png" alt="Oyun Logosu" className="w-full max-w-[280px] md:max-w-[400px] h-auto mb-6 drop-shadow-2xl hover:scale-105 transition-transform duration-300" />
               <p className="text-white/90 text-xl md:text-2xl mb-8 md:mb-12 text-center font-medium">Yasaklı kelimeleri kullanmadan takım arkadaşlarına kelimeyi anlat!</p>
               <div className="w-32 h-[2px] bg-white/30 mb-8 rounded-full"></div>
-              
               <div className="flex flex-col items-center gap-4 w-full">
-                {dbError && (
-                  <div className="bg-red-500/90 text-white p-4 rounded-xl shadow-lg border-2 border-red-300 text-sm max-w-md text-center mb-2 animate-pulse flex flex-col items-center gap-2">
-                    <Info size={24} /> <p className="font-bold">{dbError}</p>
-                  </div>
-                )}
-                <button onClick={nextStep} className="group relative px-12 py-6 bg-yellow-400 hover:bg-yellow-300 text-purple-900 text-3xl font-bold rounded-full shadow-[0_10px_0_rgb(202,138,4)] hover:shadow-[0_5px_0_rgb(202,138,4)] hover:translate-y-1 transition-all flex items-center gap-4 mb-2">
-                  <Play fill="currentColor" size={32} /> OYNA
-                </button>
-
+                {dbError && (<div className="bg-red-500/90 text-white p-4 rounded-xl shadow-lg border-2 border-red-300 text-sm max-w-md text-center mb-2 flex flex-col items-center gap-2"><Info size={24} /> <p className="font-bold">{dbError}</p></div>)}
+                <button onClick={nextStep} className="group relative px-12 py-6 bg-yellow-400 text-purple-900 text-3xl font-bold rounded-full shadow-[0_10px_0_rgb(202,138,4)] hover:translate-y-1 transition-all flex items-center gap-4 mb-2"><Play fill="currentColor" size={32} /> OYNA</button>
                 <div className="flex flex-col items-center gap-4 mt-2 w-full max-w-[320px]">
                   {(!user || user.isAnonymous) ? (
                     <div className="flex items-center justify-center gap-2 w-full">
-                      <button onClick={() => { setShowAuthModal(true); setIsLoginMode(true); }} className="flex-1 px-4 py-3.5 bg-white text-purple-700 font-bold rounded-xl shadow-lg hover:bg-gray-100 transition-all flex items-center justify-center gap-2 hover:scale-105 whitespace-nowrap text-sm sm:text-base">
-                        <User size={20} /> Giriş Yap / Kayıt Ol
-                      </button>
-                      <button onClick={() => setShowAdmin(true)} className="p-3.5 bg-transparent hover:bg-white/10 text-white/80 hover:text-white rounded-xl transition-colors flex items-center justify-center border border-white/30 shadow-sm hover:scale-105 flex-shrink-0" title="Yönetici Girişi">
-                        <Lock size={20} />
-                      </button>
+                      <button onClick={() => { setShowAuthModal(true); setIsLoginMode(true); }} className="flex-1 px-4 py-3.5 bg-white text-purple-700 font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 whitespace-nowrap text-sm sm:text-base"><User size={20} /> Giriş Yap / Kayıt Ol</button>
+                      <button onClick={() => setShowAdmin(true)} className="p-3.5 bg-transparent text-white/80 rounded-xl border border-white/30 flex-shrink-0" title="Yönetici Girişi"><Lock size={20} /></button>
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-3 w-full">
-                      <button onClick={() => setShowProfileMenu(true)} className="flex-1 px-4 py-3.5 bg-white text-blue-600 font-black rounded-xl shadow-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2 hover:scale-105 whitespace-nowrap text-sm sm:text-base border-b-4 border-blue-200 active:border-b-0 active:translate-y-1">
-                        <User size={20} /> Profilim
-                      </button>
-                      <button onClick={handleLogout} className="p-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all shadow-lg hover:scale-105 border-b-4 border-red-700 active:border-b-0 active:translate-y-1 flex-shrink-0" title="Çıkış Yap">
-                        <LogOut size={20} />
-                      </button>
+                      <button onClick={() => setShowProfileMenu(true)} className="flex-1 px-4 py-3.5 bg-white text-blue-600 font-black rounded-xl shadow-lg flex items-center justify-center gap-2 whitespace-nowrap text-sm sm:text-base border-b-4 border-blue-200 active:border-b-0 active:translate-y-1"><User size={20} /> Profilim</button>
+                      <button onClick={handleLogout} className="p-3.5 bg-red-500 text-white rounded-xl shadow-lg border-b-4 border-red-700 active:border-b-0 active:translate-y-1 flex-shrink-0" title="Çıkış Yap"><LogOut size={20} /></button>
                     </div>
                   )}
                 </div>
@@ -2073,151 +1962,92 @@ export default function Deme() {
 
           {/* STEP 1: TAKIM ADLARI */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-20 relative overflow-y-auto">
-            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
-              <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold">
-                <ChevronLeft size={24} /> Geri
-              </button>
-            </div>
-            
-            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
-              <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Takımları Belirle</h2>
-            </div>
-            
+            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10"><button onClick={prevStep} className="text-white/80 flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button></div>
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center"><h2 className="text-2xl md:text-4xl font-black text-white text-center">Takımları Belirle</h2></div>
             <div className="w-full max-w-md flex flex-col gap-6 md:gap-12 mt-2 flex-shrink-0">
               <TeamSetupCard title="1. TAKIM" teamName={team1Name} setTeamName={setTeam1Name} playerCount={team1Players} setPlayerCount={setTeam1Players} theme="orange" otherTeamName={team2Name} />
               <TeamSetupCard title="2. TAKIM" teamName={team2Name} setTeamName={setTeam2Name} playerCount={team2Players} setPlayerCount={setTeam2Players} theme="turquoise" otherTeamName={team1Name} />
             </div>
-            
             {team1Name.trim().toLowerCase() === team2Name.trim().toLowerCase() ? (
-              <div className="mt-8 bg-red-500/90 text-white px-6 py-3 rounded-full font-bold shadow-lg backdrop-blur-sm animate-bounce flex items-center gap-2 border-2 border-white/50 flex-shrink-0">
-                <Info size={20} /> Takım isimleri birbirinden farklı olmalıdır!
-              </div>
+              <div className="mt-8 bg-red-500/90 text-white px-6 py-3 rounded-full font-bold shadow-lg flex items-center gap-2 border-2 border-white/50"><Info size={20} /> Takım isimleri farklı olmalıdır!</div>
             ) : (
-              <button onClick={nextStep} className="mt-6 px-6 py-2 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-bold text-base flex items-center gap-2 transition-all shadow-md hover:scale-105 hover:shadow-lg flex-shrink-0">
-                İLERİ <ArrowRight size={18} strokeWidth={3} />
-              </button>
+              <button onClick={nextStep} className="mt-6 px-6 py-2 bg-white text-purple-700 rounded-full font-bold text-base flex items-center gap-2 shadow-md">İLERİ <ArrowRight size={18} strokeWidth={3} /></button>
             )}
           </div>
 
           {/* STEP 2: AYARLAR */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-24 relative overflow-y-auto">
-            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
-              <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button>
-            </div>
-            
-            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
-              <Settings className="text-white w-6 h-6 md:w-8 md:h-8" />
-              <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Oyun Ayarları</h2>
-            </div>
-            
+            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10"><button onClick={prevStep} className="text-white/80 flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button></div>
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3"><Settings className="text-white w-6 h-6 md:w-8 md:h-8" /><h2 className="text-2xl md:text-4xl font-black text-white text-center">Oyun Ayarları</h2></div>
             <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-3xl shadow-2xl flex-shrink-0">
               <div className="space-y-8">
                 <div className="bg-purple-50 p-5 rounded-2xl border border-purple-100 shadow-sm">
                   <label className="block text-lg font-bold text-purple-900 mb-3">Anlatma Süresi (Saniye)</label>
                   <div className="flex flex-wrap gap-2">
                     {[15, 30, 45, 60, 75, 90, 105, 120].map(val => (
-                      <button key={val} onClick={() => setSettings({...settings, timeLimit: val})} className={`px-4 py-2 rounded-xl font-bold transition-all ${settings.timeLimit === val ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-white text-purple-700 border border-purple-200 hover:bg-purple-100 shadow-sm'}`}>
-                        {val}
-                      </button>
+                      <button key={val} onClick={() => setSettings({...settings, timeLimit: val})} className={`px-4 py-2 rounded-xl font-bold ${settings.timeLimit === val ? 'bg-purple-600 text-white shadow-lg' : 'bg-white text-purple-700 border border-purple-200'}`}>{val}</button>
                     ))}
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-red-50 p-5 rounded-2xl border border-red-100 shadow-sm">
                     <label className="block text-lg font-bold text-red-900 mb-3">Dedim Cezası</label>
                     <div className="flex gap-2">
-                      {[1, 2, 3, 4].map(val => (
-                        <button key={val} onClick={() => setSettings({...settings, penalty: val})} className={`flex-1 py-3 rounded-xl font-bold transition-all ${settings.penalty === val ? 'bg-red-500 text-white shadow-lg scale-105' : 'bg-white text-red-600 border border-red-200 hover:bg-red-100 shadow-sm'}`}>
-                          -{val}
-                        </button>
-                      ))}
+                      {[1, 2, 3, 4].map(val => (<button key={val} onClick={() => setSettings({...settings, penalty: val})} className={`flex-1 py-3 rounded-xl font-bold ${settings.penalty === val ? 'bg-red-500 text-white shadow-lg' : 'bg-white text-red-600 border border-red-200'}`}>-{val}</button>))}
                     </div>
                   </div>
                   <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 shadow-sm">
                     <label className="block text-lg font-bold text-amber-900 mb-3">Pas Hakkı</label>
                     <div className="flex flex-wrap gap-2">
-                      {[1, 2, 3, 4, 5, 999].map(val => (
-                        <button key={val} onClick={() => setSettings({...settings, passLimit: val})} className={`px-3 py-3 flex-1 rounded-xl font-bold transition-all ${settings.passLimit === val ? 'bg-yellow-400 text-gray-900 shadow-lg scale-105' : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-100 shadow-sm'}`}>
-                          {val === 999 ? 'Limitsiz' : val}
-                        </button>
-                      ))}
+                      {[1, 2, 3, 4, 5, 999].map(val => (<button key={val} onClick={() => setSettings({...settings, passLimit: val})} className={`px-3 py-3 flex-1 rounded-xl font-bold ${settings.passLimit === val ? 'bg-yellow-400 text-gray-900 shadow-lg' : 'bg-white text-amber-700 border border-amber-200'}`}>{val === 999 ? 'Limitsiz' : val}</button>))}
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-gray-50 p-5 rounded-2xl border border-gray-200 shadow-sm">
                   <label className="block text-xl font-bold text-gray-800 mb-4">Oyun Nasıl Biter?</label>
                   <div className="space-y-4">
-                    <label className={`flex items-start md:items-center gap-3 md:gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${settings.endType === 'rounds' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
-                      <input type="radio" name="endType" checked={settings.endType === 'rounds'} onChange={() => setSettings({...settings, endType: 'rounds'})} className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0" />
+                    <label className={`flex items-start md:items-center gap-3 md:gap-4 p-4 rounded-xl cursor-pointer border-2 ${settings.endType === 'rounds' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
+                      <input type="radio" name="endType" checked={settings.endType === 'rounds'} onChange={() => setSettings({...settings, endType: 'rounds'})} className="w-5 h-5 text-purple-600 flex-shrink-0" />
                       <div className="flex-1 flex flex-wrap items-center gap-x-2 gap-y-2 text-base md:text-lg">
-                        <span className="font-semibold text-gray-700 whitespace-nowrap">Her takım</span>
-                        <select disabled={settings.endType !== 'rounds'} value={settings.endRoundsValue} onChange={(e) => setSettings({...settings, endRoundsValue: parseInt(e.target.value)})} className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
+                        <span className="font-semibold text-gray-700">Her takım</span>
+                        <select disabled={settings.endType !== 'rounds'} value={settings.endRoundsValue} onChange={(e) => setSettings({...settings, endRoundsValue: parseInt(e.target.value)})} className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
                           {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
-                        <span className="font-semibold text-gray-700 whitespace-nowrap">kez anlattığında.</span>
+                        <span className="font-semibold text-gray-700">kez anlattığında.</span>
                       </div>
                     </label>
-
-                    <label className={`flex items-start md:items-center gap-3 md:gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${settings.endType === 'score' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
-                      <input type="radio" name="endType" checked={settings.endType === 'score'} onChange={() => setSettings({...settings, endType: 'score'})} className="w-5 h-5 text-purple-600 mt-1 md:mt-0 flex-shrink-0" />
+                    <label className={`flex items-start md:items-center gap-3 md:gap-4 p-4 rounded-xl cursor-pointer border-2 ${settings.endType === 'score' ? 'border-purple-500 bg-purple-50' : 'border-transparent bg-white shadow-sm'}`}>
+                      <input type="radio" name="endType" checked={settings.endType === 'score'} onChange={() => setSettings({...settings, endType: 'score'})} className="w-5 h-5 text-purple-600 flex-shrink-0" />
                       <div className="flex-1 flex flex-wrap items-center gap-x-2 gap-y-2 text-base md:text-lg">
-                        <span className="font-semibold text-gray-700 whitespace-nowrap">Toplam skor</span>
-                        <select disabled={settings.endType !== 'score'} value={settings.endScoreValue} onChange={(e) => setSettings({...settings, endScoreValue: parseInt(e.target.value)})} className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm">
+                        <span className="font-semibold text-gray-700">Toplam skor</span>
+                        <select disabled={settings.endType !== 'score'} value={settings.endScoreValue} onChange={(e) => setSettings({...settings, endScoreValue: parseInt(e.target.value)})} className="bg-white border rounded-lg px-2 py-1 font-bold text-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
                           {Array.from({length: 20}, (_, i) => (i+1)*5).map(n => <option key={n} value={n}>{n}</option>)}
                         </select>
-                        <span className="font-semibold text-gray-700 whitespace-nowrap">olduğunda.</span>
+                        <span className="font-semibold text-gray-700">olduğunda.</span>
                       </div>
                     </label>
                   </div>
                 </div>
               </div>
             </div>
-
-            <button onClick={nextStep} className="mt-6 mb-8 px-6 py-2 bg-white text-purple-700 hover:bg-gray-100 rounded-full font-bold text-base flex items-center gap-2 transition-all shadow-md hover:scale-105 hover:shadow-lg flex-shrink-0">
-              İLERİ <ArrowRight size={18} strokeWidth={3} />
-            </button>
+            <button onClick={nextStep} className="mt-6 mb-8 px-6 py-2 bg-white text-purple-700 rounded-full font-bold text-base flex items-center gap-2 shadow-md">İLERİ <ArrowRight size={18} strokeWidth={3} /></button>
           </div>
 
           {/* STEP 3: KATEGORİ SEÇİMİ */}
           <div className="min-w-full h-full flex flex-col items-center justify-start p-4 pt-14 md:p-6 md:pt-20 pb-20 relative overflow-y-auto">
-            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10">
-              <button onClick={prevStep} className="text-white/80 hover:text-white flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button>
-            </div>
-            
-            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3">
-              <h2 className="text-2xl md:text-4xl font-black text-white tracking-wide text-center">Kategori Seç</h2>
-            </div>
-            
+            <div className="absolute top-3 left-3 md:top-6 md:left-6 z-10"><button onClick={prevStep} className="text-white/80 flex items-center text-lg font-bold"><ChevronLeft size={24} /> Geri</button></div>
+            <div className="bg-white/20 backdrop-blur-md px-6 md:px-10 py-2 md:py-4 rounded-2xl border border-white/30 shadow-lg mb-6 md:mb-8 flex-shrink-0 flex items-center justify-center gap-2 md:gap-3"><h2 className="text-2xl md:text-4xl font-black text-white text-center">Kategori Seç</h2></div>
             <div className="w-full max-w-5xl px-2 md:px-4 flex flex-col items-center">
-              
               <div className="w-full mb-8 md:mb-12">
-                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 border-b border-white/20 pb-2 md:pb-3">
-                  <Database className="text-yellow-400 w-6 h-6 md:w-7 md:h-7" />
-                  <h3 className="text-xl md:text-3xl font-bold text-white/90 text-left">Resmi Kategoriler</h3>
-                </div>
-                
+                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 border-b border-white/20 pb-2 md:pb-3"><Database className="text-yellow-400 w-6 h-6 md:w-7 md:h-7" /><h3 className="text-xl md:text-3xl font-bold text-white/90 text-left">Resmi Kategoriler</h3></div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
                   {Object.keys(wordDatabase).map((catName) => {
-                    const defaultCat = CATEGORY_LIST.find(c => c.name === catName);
-                    const Icon = defaultCat ? defaultCat.icon : Database;
-                    const color = defaultCat ? defaultCat.color : "text-blue-500";
-                    const gradient = defaultCat ? defaultCat.gradient : "from-blue-100 to-blue-200";
-
+                    const defaultCat = CATEGORY_LIST.find(c => c.name === catName); const Icon = defaultCat ? defaultCat.icon : Database; const color = defaultCat ? defaultCat.color : "text-blue-500"; const gradient = defaultCat ? defaultCat.gradient : "from-blue-100 to-blue-200";
                     return (
-                      <button
-                        key={catName} onClick={() => startGameFlow(catName, catName, wordDatabase[catName] || [])}
-                        className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-2xl md:rounded-[2.5rem] p-4 md:p-10 flex flex-col items-center justify-center gap-3 md:gap-6 shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)] hover:-translate-y-2 md:hover:-translate-y-3 transition-all duration-300 group border-2 md:border-4 border-white/40"
-                      >
-                        <Icon className={`absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 group-hover:opacity-10 group-hover:scale-125 transition-all duration-500 ${color} w-24 h-24 md:w-48 md:h-48`} />
-                        <div className={`w-14 h-14 md:w-32 md:h-32 bg-gradient-to-br ${gradient} rounded-xl md:rounded-[2rem] flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-inner relative z-10 border-2 md:border-4 border-white`}>
-                          <Icon className={`${color} drop-shadow-md w-6 h-6 md:w-16 md:h-16`} strokeWidth={2.5} />
-                        </div>
-                        <div className="flex flex-col items-center relative z-10">
-                          <span className="text-base md:text-3xl font-black tracking-wide text-center leading-tight">{catName}</span>
-                          <span className="text-[11px] md:text-sm font-bold text-gray-500 mt-1">({wordDatabase[catName] ? wordDatabase[catName].length : 0} Kelime)</span>
-                        </div>
+                      <button key={catName} onClick={() => startGameFlow(catName, catName, wordDatabase[catName] || [])} className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-2xl md:rounded-[2.5rem] p-4 md:p-10 flex flex-col items-center justify-center gap-3 md:gap-6 shadow-[0_8px_16px_rgba(0,0,0,0.1)] group border-2 md:border-4 border-white/40">
+                        <Icon className={`absolute -bottom-4 -right-4 md:-bottom-8 md:-right-8 opacity-5 group-hover:scale-125 transition-all duration-500 ${color} w-24 h-24 md:w-48 md:h-48`} />
+                        <div className={`w-14 h-14 md:w-32 md:h-32 bg-gradient-to-br ${gradient} rounded-xl md:rounded-[2rem] flex items-center justify-center group-hover:scale-110 shadow-inner relative z-10 border-2 md:border-4 border-white`}><Icon className={`${color} drop-shadow-md w-6 h-6 md:w-16 md:h-16`} strokeWidth={2.5} /></div>
+                        <div className="flex flex-col items-center relative z-10"><span className="text-base md:text-3xl font-black text-center">{catName}</span><span className="text-[11px] md:text-sm font-bold text-gray-500 mt-1">({wordDatabase[catName] ? wordDatabase[catName].length : 0} Kelime)</span></div>
                       </button>
                     );
                   })}
@@ -2226,34 +2056,16 @@ export default function Deme() {
 
               {customCategoriesList.length > 0 && (
                 <div className="w-full">
-                  <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 border-b border-white/20 pb-2 md:pb-3">
-                    <Users className="text-blue-300 w-6 h-6 md:w-7 md:h-7" />
-                    <h3 className="text-xl md:text-3xl font-bold text-white/90 text-left">Üyelerden & Oyunlarım</h3>
-                  </div>
-
+                  <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6 border-b border-white/20 pb-2 md:pb-3"><Users className="text-blue-300 w-6 h-6 md:w-7 md:h-7" /><h3 className="text-xl md:text-3xl font-bold text-white/90 text-left">Üyelerden & Oyunlarım</h3></div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-8">
                     {customCategoriesList.map((custom) => (
-                      <button
-                        key={custom.id} onClick={() => startGameFlow(custom.id, custom.name, custom.words)}
-                        className="relative overflow-hidden bg-white/95 backdrop-blur-sm text-gray-800 rounded-2xl md:rounded-[2.5rem] p-4 md:p-8 flex flex-col items-center justify-center gap-2 md:gap-4 shadow-[0_8px_16px_rgba(0,0,0,0.1)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)] hover:-translate-y-2 transition-all duration-300 group border-2 md:border-4 border-white/40"
-                      >
-                        <div className={`w-12 h-12 md:w-20 md:h-20 bg-gradient-to-br ${custom.type === 'private' ? 'from-purple-100 to-purple-200' : 'from-blue-100 to-blue-200'} rounded-xl md:rounded-3xl flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-inner border-2 border-white`}>
-                          {custom.type === 'private' ? <Lock className="text-purple-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" /> : <Gamepad2 className="text-blue-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" />}
-                        </div>
-                        <div className="flex flex-col items-center mt-1 md:mt-2">
-                          <span className="text-sm md:text-2xl font-black tracking-wide text-center leading-tight">{custom.name}</span>
-                          <span className="text-[10px] md:text-sm font-bold text-gray-500 mt-1">({custom.words?.length || 0} Kelime)</span>
-                        </div>
+                      <button key={custom.id} onClick={() => startGameFlow(custom.id, custom.name, custom.words)} className="relative overflow-hidden bg-white/95 text-gray-800 rounded-2xl md:rounded-[2.5rem] p-4 md:p-8 flex flex-col items-center justify-center gap-2 md:gap-4 shadow-[0_8px_16px_rgba(0,0,0,0.1)] group border-2 md:border-4 border-white/40">
+                        <div className={`w-12 h-12 md:w-20 md:h-20 bg-gradient-to-br ${custom.type === 'private' ? 'from-purple-100 to-purple-200' : 'from-blue-100 to-blue-200'} rounded-xl md:rounded-3xl flex items-center justify-center shadow-inner border-2 border-white`}>{custom.type === 'private' ? <Lock className="text-purple-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" /> : <Gamepad2 className="text-blue-500 drop-shadow-md w-6 h-6 md:w-9 md:h-9" />}</div>
+                        <div className="flex flex-col items-center mt-1 md:mt-2"><span className="text-sm md:text-2xl font-black text-center">{custom.name}</span><span className="text-[10px] md:text-sm font-bold text-gray-500 mt-1">({custom.words?.length || 0} Kelime)</span></div>
                         <div className="flex flex-col items-center gap-1 mt-1">
-                          {custom.type === 'public' && custom.ownerEmail && (
-                            <span className="text-[9px] md:text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">@{custom.ownerUsername || custom.ownerEmail?.split('@')[0]}</span>
-                          )}
-                          {custom.type === 'private' && (
-                            <span className="text-[9px] md:text-[11px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">Bana Özel</span>
-                          )}
-                          {custom.type === 'public' && custom.status === 'pending' && (
-                            <span className="text-[9px] md:text-[11px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 mt-0.5 md:mt-1">Onay Bekliyor</span>
-                          )}
+                          {custom.type === 'public' && custom.ownerEmail && (<span className="text-[9px] md:text-[11px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">@{custom.ownerUsername || custom.ownerEmail?.split('@')[0]}</span>)}
+                          {custom.type === 'private' && (<span className="text-[9px] md:text-[11px] font-bold text-purple-500 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">Bana Özel</span>)}
+                          {custom.type === 'public' && custom.status === 'pending' && (<span className="text-[9px] md:text-[11px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded border border-amber-200 mt-0.5 md:mt-1">Onay Bekliyor</span>)}
                         </div>
                       </button>
                     ))}
@@ -2267,31 +2079,22 @@ export default function Deme() {
     );
   }
 
-  const currentTeamName = currentTeamIndex === 0 ? team1Name : team2Name;
-
   if (gameState === 'preGame') {
     return (
       <div className="w-full h-screen bg-blue-900 text-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="mb-8">
-          <p className="text-2xl text-blue-300 font-bold mb-2">Sıra şu takımda:</p>
-          <h1 className="text-6xl font-black text-yellow-400 drop-shadow-lg">{currentTeamName}</h1>
-        </div>
+        <div className="mb-8"><p className="text-2xl text-blue-300 font-bold mb-2">Sıra şu takımda:</p><h1 className="text-6xl font-black text-yellow-400 drop-shadow-lg">{currentTeamName}</h1></div>
         <div className="flex gap-12 mb-16 opacity-80">
           <div><p className="text-sm uppercase tracking-wider">{team1Name}</p><p className="text-3xl font-bold">{scores[0]} Puan</p></div>
           <div className="w-px bg-white/20"></div>
           <div><p className="text-sm uppercase tracking-wider">{team2Name}</p><p className="text-3xl font-bold">{scores[1]} Puan</p></div>
         </div>
-        <button onClick={startTurn} className="px-16 py-6 bg-green-500 hover:bg-green-400 text-white text-4xl font-bold rounded-full shadow-[0_10px_0_rgb(22,163,74)] hover:shadow-[0_5px_0_rgb(22,163,74)] hover:translate-y-1 transition-all">HAZIRIZ, BAŞLA!</button>
+        <button onClick={startTurn} className="px-16 py-6 bg-green-500 text-white text-4xl font-bold rounded-full shadow-[0_10px_0_rgb(22,163,74)]">HAZIRIZ, BAŞLA!</button>
       </div>
     );
   }
 
   if (gameState === 'countdown') {
-    return (
-      <div className="w-full h-screen bg-purple-600 text-white flex items-center justify-center">
-        <h1 className="text-[15rem] font-black animate-ping">{countdown}</h1>
-      </div>
-    );
+    return (<div className="w-full h-screen bg-purple-600 text-white flex items-center justify-center"><h1 className="text-[15rem] font-black animate-ping">{countdown}</h1></div>);
   }
 
   if (gameState === 'playing' && currentWord) {
@@ -2305,40 +2108,32 @@ export default function Deme() {
                <textarea value={reportReason} onChange={e => setReportReason(e.target.value)} className="w-full border-2 border-gray-200 rounded-xl p-3 font-medium text-gray-800 focus:border-red-400 outline-none shadow-inner resize-none h-28 mb-4" placeholder="Bildirme sebebiniz..." />
                {reportStatus && (<div className={`p-3 rounded-xl font-bold flex items-center gap-2 mb-4 ${reportStatus.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} border`}>{reportStatus.msg}</div>)}
                <div className="flex gap-3">
-                 <button onClick={() => { setShowReportModal(false); setReportReason(""); setReportStatus(null); }} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-xl transition-colors">İptal</button>
-                 <button onClick={handleReportSubmit} className="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-colors flex justify-center items-center gap-2"><Flag size={18} /> Bildir</button>
+                 <button onClick={() => { setShowReportModal(false); setReportReason(""); setReportStatus(null); }} className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl">İptal</button>
+                 <button onClick={handleReportSubmit} className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2"><Flag size={18} /> Bildir</button>
                </div>
             </div>
           </div>
         )}
 
         <div className="bg-white shadow-sm p-4 flex justify-between items-center px-4 md:px-6 border-b flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-lg md:text-xl">{timeLeft}</div>
-            <span className="font-bold text-gray-500 hidden md:block">Saniye Kaldı</span>
-          </div>
+          <div className="flex items-center gap-3"><div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-lg md:text-xl">{timeLeft}</div><span className="font-bold text-gray-500 hidden md:block">Saniye Kaldı</span></div>
           <div className="text-lg md:text-xl font-black text-purple-900 truncate px-2">{currentTeamName} Oynuyor</div>
           <div className="flex gap-2 items-center">
-            {!isFullscreen ? (
-              <button onClick={handleRequestFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekran"><Maximize2 size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>
-            ) : (
-              <button onClick={handleExitFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors shadow-sm" title="Tam Ekrandan Çık"><Minimize2 size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>
-            )}
-            <button onClick={() => setShowExitConfirmModal(true)} className="p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Oyunu Sonlandır"><LogOut size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>
+            {!isFullscreen ? (<button onClick={handleRequestFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full" title="Tam Ekran"><Maximize2 size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>) : (<button onClick={handleExitFullscreen} className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-full" title="Tam Ekrandan Çık"><Minimize2 size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>)}
+            <button onClick={() => setShowExitConfirmModal(true)} className="p-1.5 md:p-2 bg-red-100 text-red-600 rounded-full" title="Oyunu Sonlandır"><LogOut size={20} className="w-5 h-5 md:w-6 md:h-6" /></button>
           </div>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center p-3 md:p-8 overflow-hidden">
           <div className="bg-white rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full max-w-lg overflow-hidden border-4 md:border-8 border-yellow-400 flex flex-col max-h-[70vh] relative mb-2">
             <div className="bg-yellow-400 text-center py-2 md:py-8 px-4 flex-shrink-0 relative">
-              <button onClick={() => setShowReportModal(true)} className="absolute top-2 right-2 md:top-4 md:right-4 text-yellow-700 hover:text-red-600 bg-white/30 hover:bg-white/50 p-2 rounded-full transition-colors flex items-center justify-center" title="Hatalı Kelimeyi Bildir"><Flag size={20} /></button>
+              <button onClick={() => setShowReportModal(true)} className="absolute top-2 right-2 md:top-4 md:right-4 text-yellow-700 hover:text-red-600 bg-white/30 p-2 rounded-full flex items-center justify-center" title="Hatalı Kelimeyi Bildir"><Flag size={20} /></button>
               <h2 className="text-3xl md:text-5xl font-black text-gray-900 uppercase tracking-wide">{currentWord.word}</h2>
             </div>
             <div className="bg-white px-3 py-6 md:px-8 md:py-10 flex flex-col justify-around gap-3 md:gap-5 items-center overflow-y-auto">
               {currentWord.forbidden.map((word, index) => (
                 <div key={index} className="w-full flex items-center justify-center relative">
-                  <div className="absolute left-0 right-0 h-px bg-gray-200"></div>
-                  <span className="relative bg-white px-4 md:px-6 text-xl md:text-3xl font-bold text-gray-700 capitalize">{word}</span>
+                  <div className="absolute left-0 right-0 h-px bg-gray-200"></div><span className="relative bg-white px-4 md:px-6 text-xl md:text-3xl font-bold text-gray-700 capitalize">{word}</span>
                 </div>
               ))}
             </div>
@@ -2351,13 +2146,13 @@ export default function Deme() {
         </div>
 
         <div className="bg-white p-3 md:p-6 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] flex justify-center gap-3 md:gap-6 flex-shrink-0">
-          <button onClick={() => handleAction('taboo')} className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] md:shadow-[0_8px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2">
+          <button onClick={() => handleAction('taboo')} className="flex-1 max-w-xs py-3 md:py-6 bg-red-500 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(185,28,28)] active:shadow-none active:translate-y-2 flex flex-col items-center gap-1 md:gap-2">
             <X size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DEDİM (-{settings.penalty})</span><span className="hidden md:inline">DEDİM (-{settings.penalty})</span>
           </button>
-          <button onClick={() => handleAction('pass')} className={`flex-1 max-w-[90px] md:max-w-[120px] py-3 md:py-6 rounded-2xl md:rounded-3xl font-black text-base md:text-xl flex flex-col items-center justify-center gap-1 md:gap-2 transition-all ${passesLeft > 0 || settings.passLimit === 999 ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900 shadow-[0_6px_0_rgb(202,138,4)] md:shadow-[0_8px_0_rgb(202,138,4)] active:shadow-none active:translate-y-2' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+          <button onClick={() => handleAction('pass')} className={`flex-1 max-w-[90px] md:max-w-[120px] py-3 md:py-6 rounded-2xl md:rounded-3xl font-black text-base md:text-xl flex flex-col items-center justify-center gap-1 md:gap-2 ${passesLeft > 0 || settings.passLimit === 999 ? 'bg-yellow-400 text-gray-900 shadow-[0_6px_0_rgb(202,138,4)] active:shadow-none active:translate-y-2' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
             <SkipForward size={24} className="md:w-8 md:h-8" /> <span className="text-xs md:text-base">PAS ({settings.passLimit === 999 ? '∞' : passesLeft})</span>
           </button>
-          <button onClick={() => handleAction('correct')} className="flex-1 max-w-xs py-3 md:py-6 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(21,128,61)] md:shadow-[0_8px_0_rgb(21,128,61)] active:shadow-none active:translate-y-2 transition-all flex flex-col items-center gap-1 md:gap-2">
+          <button onClick={() => handleAction('correct')} className="flex-1 max-w-xs py-3 md:py-6 bg-green-500 text-white rounded-2xl md:rounded-3xl font-black text-lg md:text-3xl shadow-[0_6px_0_rgb(21,128,61)] active:shadow-none active:translate-y-2 flex flex-col items-center gap-1 md:gap-2">
             <Check size={28} className="md:w-9 md:h-9" /> <span className="md:hidden">DOĞRU (+1)</span><span className="hidden md:inline">DOĞRU (+1)</span>
           </button>
         </div>
@@ -2369,8 +2164,8 @@ export default function Deme() {
               <h2 className="text-xl font-black text-neutral-800 mb-2">Oyundan Çıkış</h2>
               <p className="text-sm font-bold text-neutral-600 mb-6">Oyundan çıkmak istediğinize emin misiniz? İlerlemeniz kaybolacaktır.</p>
               <div className="flex gap-3">
-                <button onClick={() => setShowExitConfirmModal(false)} className="flex-1 py-3 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-black rounded-xl transition-all shadow-sm">Hayır, Kal</button>
-                <button onClick={handleConfirmExit} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md transition-all transform hover:scale-105">Evet, Çık</button>
+                <button onClick={() => setShowExitConfirmModal(false)} className="flex-1 py-3 bg-neutral-200 text-neutral-700 font-black rounded-xl">Hayır, Kal</button>
+                <button onClick={handleConfirmExit} className="flex-1 py-3 bg-red-600 text-white font-black rounded-xl">Evet, Çık</button>
               </div>
             </div>
           </div>
@@ -2417,8 +2212,7 @@ export default function Deme() {
           <div className="w-1 bg-white/30 rounded-full"></div>
           <div className={`flex flex-col items-center ${scores[1] > scores[0] ? 'font-black scale-110' : 'opacity-80'}`}><span className="text-sm uppercase tracking-widest mb-2">{team2Name}</span><span>{scores[1]}</span></div>
         </div>
-
-        <button onClick={returnToMainMenu} className="px-10 py-5 bg-white text-orange-600 hover:bg-orange-50 text-2xl font-bold rounded-full shadow-2xl hover:scale-105 transition-transform flex items-center gap-3 shrink-0"><RotateCcw /> Ana Menüye Dön</button>
+        <button onClick={returnToMainMenu} className="px-10 py-5 bg-white text-orange-600 hover:bg-orange-50 text-2xl font-bold rounded-full shadow-2xl flex items-center gap-3 shrink-0"><RotateCcw /> Ana Menüye Dön</button>
       </div>
     );
   }
