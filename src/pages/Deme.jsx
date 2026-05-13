@@ -9,7 +9,8 @@ import { auth, db, app, appId } from '../config/firebase.js';
 // --- GENEL AYARLAR ---
 const isUsingUserFirebase = true;
 
-// YENİ EKLENEN: Her yerde kullanılabilecek, Türkçe uyumlu global alfabetik sıralama fonksiyonu
+// --- GLOBAL YARDIMCI FONKSİYONLAR ---
+// Dizileri Türkçe karakterlere uyumlu şekilde alfabetik (A-Z) sıralar
 const sortWordsAlphabetically = (wordsArray) => {
   if (!Array.isArray(wordsArray)) return [];
   return [...wordsArray].sort((a, b) => {
@@ -21,6 +22,7 @@ const sortWordsAlphabetically = (wordsArray) => {
 
 /* ==========================================
    BÖLÜM 1: SABİT VERİLER (CONSTANTS)
+   Oyunun varsayılan kelime havuzu ve ayarları.
 ============================================= */
 const DEFAULT_WORD_DATABASE = {
   "Genel": [
@@ -62,7 +64,7 @@ const ADJECTIVES = ["Cesur", "Uçan", "Gizemli", "Hızlı", "Zeki", "Korkusuz", 
 const NOUNS = ["Aslanlar", "Kartallar", "Ejderhalar", "Kaplanlar", "Büyücüler", "Savaşçılar", "Dahiler", "Ninjalar", "Korsanlar", "Şövalyeler", "Robotlar", "Zombiler"];
 
 /* ==========================================
-   BÖLÜM 2: GÖRSEL BİLEŞENLER (UI HELPERS)
+   BÖLÜM 2: GÖRSEL BİLEŞENLER VE KATEGORİLER
 ============================================= */
 const ScalableEmoji = ({ emoji, className }) => (
   <svg viewBox="0 0 100 100" className={className} style={{ overflow: 'visible' }}>
@@ -178,22 +180,20 @@ const playTimeUpSound = () => {
   } catch (e) {}
 };
 /* ==========================================
-   BÖLÜM 4: ALT BİLEŞENLER (SUB-COMPONENTS)
+   BÖLÜM 4: ALT BİLEŞENLER (MODALS & ROWS)
 ============================================= */
 
-// --- Oyunlarım Modalı ---
+// --- 4.1 Oyunlarım Modalı ---
 const MyGamesModal = ({ onClose, user, myGames, username }) => {
   const [view, setView] = useState('list'); 
   const [addMode, setAddMode] = useState('single');
   const [selectedGame, setSelectedGame] = useState(null);
-
   const [categoryName, setCategoryName] = useState("");
   const [visibility, setVisibility] = useState("public");
   const [word, setWord] = useState("");
   const [forbidden, setForbidden] = useState(["", "", "", "", ""]);
   const [addedWords, setAddedWords] = useState([]);
   const [status, setStatus] = useState(null);
-  
   const [editingWordIndex, setEditingWordIndex] = useState(null);
   const [confirmDeleteGame, setConfirmDeleteGame] = useState(false);
 
@@ -210,139 +210,88 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
 
   const openAddChoice = () => { resetForm(); setView('add-choice'); };
   const openView = (game) => { setSelectedGame(game); setView('view'); };
-
   const openEdit = (game) => {
-    setSelectedGame(game);
-    setCategoryName(game.name);
-    setVisibility(game.type || 'public');
-    setAddedWords(game.words || []);
-    setWord(""); setForbidden(["", "", "", "", ""]);
-    setEditingWordIndex(null); setStatus(null); setConfirmDeleteGame(false);
-    setAddMode('single'); setView('edit');
+    setSelectedGame(game); setCategoryName(game.name); setVisibility(game.type || 'public');
+    setAddedWords(game.words || []); setWord(""); setForbidden(["", "", "", "", ""]);
+    setEditingWordIndex(null); setStatus(null); setConfirmDeleteGame(false); setAddMode('single'); setView('edit');
   };
 
   const handleAddOrUpdateWord = () => {
-    if (!word.trim() || forbidden.some(f => !f.trim())) {
-      setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi eksiksiz doldurun!" }); return;
-    }
-    const newWordObj = {
-      word: word.trim().toLocaleUpperCase('tr-TR'),
-      forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR'))
-    };
-
+    if (!word.trim() || forbidden.some(f => !f.trim())) { setStatus({ type: 'error', msg: "Lütfen kelimeyi ve 5 yasaklı kelimeyi doldurun!" }); return; }
+    const newWordObj = { word: word.trim().toLocaleUpperCase('tr-TR'), forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
     let updatedList = [];
     if (editingWordIndex !== null) {
-      updatedList = [...addedWords];
-      updatedList[editingWordIndex] = newWordObj;
-      setStatus({ type: 'success', msg: "Kelime güncellendi!" });
+      updatedList = [...addedWords]; updatedList[editingWordIndex] = newWordObj; setStatus({ type: 'success', msg: "Kelime güncellendi!" });
     } else {
-      updatedList = [newWordObj, ...addedWords];
-      setStatus({ type: 'success', msg: "Kelime eklendi!" });
+      updatedList = [newWordObj, ...addedWords]; setStatus({ type: 'success', msg: "Kelime eklendi!" });
     }
-    
-    // Alfabetik sırala
-    updatedList = sortWordsAlphabetically(updatedList);
-    setAddedWords(updatedList);
-    setEditingWordIndex(null);
-    setWord(""); setForbidden(["", "", "", "", ""]);
-    setTimeout(() => setStatus(null), 2000);
+    updatedList = sortWordsAlphabetically(updatedList); setAddedWords(updatedList);
+    setEditingWordIndex(null); setWord(""); setForbidden(["", "", "", "", ""]); setTimeout(() => setStatus(null), 2000);
   };
 
   const handleEditWordClick = (index) => {
-    const w = addedWords[index];
-    setWord(w.word); setForbidden([...w.forbidden]);
-    setEditingWordIndex(index);
-    setStatus({ type: 'info', msg: "Kelimeyi düzenliyorsunuz..." });
+    const w = addedWords[index]; setWord(w.word); setForbidden([...w.forbidden]);
+    setEditingWordIndex(index); setStatus({ type: 'info', msg: "Kelimeyi düzenliyorsunuz..." });
   };
 
   const handleDeleteWordClick = (index) => {
     setAddedWords(addedWords.filter((_, i) => i !== index));
-    if (editingWordIndex === index) {
-      setWord(""); setForbidden(["", "", "", "", ""]); setEditingWordIndex(null);
-    }
+    if (editingWordIndex === index) { setWord(""); setForbidden(["", "", "", "", ""]); setEditingWordIndex(null); }
   };
 
   const handleUserJSONUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target.result);
-        if (!Array.isArray(data)) throw new Error("Geçersiz format. Lütfen geçerli bir JSON yükleyin.");
-
-        let newWords = [];
-        let detectedCategory = "";
-
+        if (!Array.isArray(data)) throw new Error("Geçersiz format.");
+        let newWords = []; let detectedCategory = "";
         data.forEach(item => {
           if (item.word && Array.isArray(item.forbidden) && item.forbidden.length > 0) {
-            newWords.push({
-              word: item.word.trim().toLocaleUpperCase('tr-TR'),
-              forbidden: item.forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR'))
-            });
+            newWords.push({ word: item.word.trim().toLocaleUpperCase('tr-TR'), forbidden: item.forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')) });
             if (!detectedCategory && item.category) detectedCategory = item.category.trim();
           }
         });
-
         if (newWords.length === 0) throw new Error("Geçerli kelime bulunamadı.");
-
-        // Alfabetik sırala
         setAddedWords(prev => sortWordsAlphabetically([...newWords, ...prev]));
-        
         if (!categoryName && detectedCategory) setCategoryName(detectedCategory);
-        setStatus({ type: 'success', msg: `${newWords.length} kelime başarıyla eklendi! İsterseniz kelimeleri düzenleyebilir veya silebilirsiniz.` });
-        e.target.value = null; 
-      } catch (error) {
-        setStatus({ type: 'error', msg: "Yükleme Hatası: " + error.message });
-        e.target.value = null;
-      }
+        setStatus({ type: 'success', msg: `${newWords.length} kelime başarıyla eklendi!` }); e.target.value = null; 
+      } catch (error) { setStatus({ type: 'error', msg: "Hata: " + error.message }); e.target.value = null; }
     };
     reader.readAsText(file);
   };
 
   const copyToClipboard = () => {
-    const textArea = document.createElement("textarea"); textArea.value = aiPrompt;
-    textArea.style.position = "absolute"; textArea.style.left = "-999999px";
+    const textArea = document.createElement("textarea"); textArea.value = aiPrompt; textArea.style.position = "absolute"; textArea.style.left = "-999999px";
     document.body.appendChild(textArea); textArea.select();
-    try {
-      document.execCommand('copy');
-      setStatus({ type: 'success', msg: "Prompt kopyalandı! Yeni sekmede açılan Gemini'a yapıştırabilirsiniz (Basılı Tut / Ctrl+V)." });
-      setTimeout(() => setStatus(null), 4000);
-    } catch (err) { setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." }); }
+    try { document.execCommand('copy'); setStatus({ type: 'success', msg: "Prompt kopyalandı!" }); setTimeout(() => setStatus(null), 4000); } 
+    catch (err) { setStatus({ type: 'error', msg: "Kopyalama başarısız oldu." }); }
     document.body.removeChild(textArea);
   };
 
   const handleFinish = async () => {
-    if (!categoryName.trim()) { setStatus({ type: 'error', msg: "Lütfen bir kategori (oyun) ismi girin!" }); return; }
-    if (addedWords.length === 0) { setStatus({ type: 'error', msg: "Oyununuza henüz hiç kelime eklemediniz!" }); return; }
+    if (!categoryName.trim()) { setStatus({ type: 'error', msg: "Lütfen bir kategori ismi girin!" }); return; }
+    if (addedWords.length === 0) { setStatus({ type: 'error', msg: "Oyununuza hiç kelime eklemediniz!" }); return; }
 
     try {
       setStatus({ type: 'info', msg: "Kaydediliyor..." });
-      
       const gameData = {
-        name: categoryName.trim(),
-        words: addedWords,
-        ownerId: user.uid, 
-        ownerEmail: user.email || "Üye",
-        ownerUsername: username || "Üye", // EKLENDİ
-        visibility: visibility,
-        status: visibility === 'public' ? (view === 'edit' ? (selectedGame?.status || 'pending') : 'pending') : 'private',
-        updatedAt: Date.now(),
-        createdAt: view === 'edit' ? (selectedGame?.createdAt || Date.now()) : Date.now()
+        name: categoryName.trim(), words: addedWords, ownerId: user.uid, ownerEmail: user.email || "Üye", ownerUsername: username || "Üye",
+        visibility: visibility, status: visibility === 'public' ? (view === 'edit' ? (selectedGame?.status || 'pending') : 'pending') : 'private',
+        updatedAt: Date.now(), createdAt: view === 'edit' ? (selectedGame?.createdAt || Date.now()) : Date.now()
       };
 
       if (view === 'edit') {
         const oldColl = selectedGame.type === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
         const newColl = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
-
         if (oldColl !== newColl) {
           await deleteDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id));
           await setDoc(doc(db, 'artifacts', appId, ...newColl.split('/'), selectedGame.id), gameData);
         } else {
           await setDoc(doc(db, 'artifacts', appId, ...oldColl.split('/'), selectedGame.id), gameData);
         }
-        setStatus({ type: 'success', msg: "Değişiklikler başarıyla kaydedildi!" });
+        setStatus({ type: 'success', msg: "Değişiklikler kaydedildi!" });
       } else {
         const coll = visibility === 'public' ? `public/data/customGames` : `users/${user.uid}/customGames`;
         await addDoc(collection(db, 'artifacts', appId, ...coll.split('/')), gameData);
@@ -365,42 +314,26 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
   return (
     <div className="fixed inset-0 w-full h-screen bg-gray-900/95 flex items-center justify-center p-4 z-50 backdrop-blur-md overflow-y-auto">
       <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-2xl shadow-2xl relative border-4 border-blue-300 my-auto">
-        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors z-10">
-          <X size={32} />
-        </button>
-        
+        <button onClick={onClose} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors z-10"><X size={32} /></button>
+        {/* LİSTE GÖRÜNÜMÜ */}
         {view === 'list' && (
           <div className="animate-fade-in">
-            <h2 className="text-3xl font-black text-blue-600 mb-6 flex items-center gap-3">
-              <Gamepad2 size={36} /> Oyunlarım
-            </h2>
-            
-            <button onClick={openAddChoice} className="w-full mb-6 bg-blue-50 border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-600 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2">
-              <Plus size={24} /> Yeni Oyun Ekle
-            </button>
-
+            <h2 className="text-3xl font-black text-blue-600 mb-6 flex items-center gap-3"><Gamepad2 size={36} /> Oyunlarım</h2>
+            <button onClick={openAddChoice} className="w-full mb-6 bg-blue-50 border-2 border-dashed border-blue-300 hover:bg-blue-100 text-blue-600 font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2"><Plus size={24} /> Yeni Oyun Ekle</button>
             <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-              {myGames.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 font-medium">Henüz bir oyun eklemediniz.</div>
-              ) : (
+              {myGames.length === 0 ? <div className="text-center py-8 text-gray-400 font-medium">Henüz bir oyun eklemediniz.</div> : (
                 myGames.map(game => (
                   <div key={game.id} className="bg-white border-2 border-gray-100 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:border-blue-200 transition-all">
                     <div>
                       <h3 className="font-black text-xl text-gray-800">{game.name}</h3>
                       <div className="flex gap-2 mt-2">
                         <span className="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">{game.words?.length || 0} Kelime</span>
-                        <span className={`text-xs font-bold px-2 py-1 rounded-md ${game.type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                          {game.type === 'public' ? (game.status === 'pending' ? 'Onay Bekliyor' : 'Herkese Açık') : 'Bana Özel'}
-                        </span>
+                        <span className={`text-xs font-bold px-2 py-1 rounded-md ${game.type === 'public' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{game.type === 'public' ? (game.status === 'pending' ? 'Onay Bekliyor' : 'Herkese Açık') : 'Bana Özel'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => openView(game)} className="flex-1 md:flex-none px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
-                        <Eye size={18} /> Görüntüle
-                      </button>
-                      <button onClick={() => openEdit(game)} className="flex-1 md:flex-none px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
-                        <Edit2 size={18} /> Düzenle
-                      </button>
+                      <button onClick={() => openView(game)} className="flex-1 md:flex-none px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors flex items-center justify-center gap-2"><Eye size={18} /> Görüntüle</button>
+                      <button onClick={() => openEdit(game)} className="flex-1 md:flex-none px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold rounded-xl transition-colors flex items-center justify-center gap-2"><Edit2 size={18} /> Düzenle</button>
                     </div>
                   </div>
                 ))
@@ -415,14 +348,12 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
               <button onClick={() => setView('list')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"><ArrowLeft size={24} /></button>
               <h2 className="text-2xl font-black text-blue-600">Oyun Ekleme Yöntemi</h2>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button onClick={() => { setAddMode('single'); setView('add'); }} className="flex flex-col items-center justify-center p-8 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-3xl transition-all gap-4 group">
                 <div className="w-16 h-16 bg-blue-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Edit3 size={32} /></div>
                 <div className="text-xl font-black text-blue-800">Tek Tek Ekle</div>
                 <div className="text-sm font-medium text-blue-600 text-center">Kelimeleri ve yasaklı kelimeleri manuel olarak kutucuklara girin.</div>
               </button>
-
               <button onClick={() => { setAddMode('bulk'); setView('add'); }} className="flex flex-col items-center justify-center p-8 bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 rounded-3xl transition-all gap-4 group relative overflow-hidden">
                 <div className="absolute -right-6 -top-6 text-purple-200 opacity-50 group-hover:scale-110 transition-transform"><Cpu size={120} /></div>
                 <div className="w-16 h-16 bg-purple-500 text-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform relative z-10"><FileJson size={32} /></div>
@@ -439,14 +370,11 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
               <button onClick={() => setView('list')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"><ArrowLeft size={24} /></button>
               <h2 className="text-3xl font-black text-gray-800">{selectedGame.name}</h2>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
               {selectedGame.words?.map((w, idx) => (
                 <div key={idx} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                   <h4 className="font-black text-lg text-blue-700 mb-2 border-b border-blue-100 pb-2">{w.word}</h4>
-                  <ul className="text-sm font-semibold text-red-500 space-y-1">
-                    {w.forbidden.map((f, i) => <li key={i}>- {f}</li>)}
-                  </ul>
+                  <ul className="text-sm font-semibold text-red-500 space-y-1">{w.forbidden.map((f, i) => <li key={i}>- {f}</li>)}</ul>
                 </div>
               ))}
             </div>
@@ -457,17 +385,14 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
           <div className="animate-fade-in flex flex-col max-h-[80vh]">
             <div className="flex items-center gap-4 mb-4 flex-shrink-0">
               <button onClick={() => view === 'edit' ? setView('list') : setView('add-choice')} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition-colors"><ArrowLeft size={24} /></button>
-              <h2 className="text-2xl font-black text-blue-600">
-                {view === 'edit' ? 'Oyunu Düzenle' : (addMode === 'bulk' ? 'Toplu Kelime Yükle' : 'Yeni Oyun Oluştur')}
-              </h2>
+              <h2 className="text-2xl font-black text-blue-600">{view === 'edit' ? 'Oyunu Düzenle' : (addMode === 'bulk' ? 'Toplu Kelime Yükle' : 'Yeni Oyun Oluştur')}</h2>
             </div>
-
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
               <div>
                 <label className="block text-gray-700 font-bold mb-2">Oyun Adı</label>
                 <input value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="Örn: 90'lar Pop" className="w-full border-2 border-blue-200 bg-blue-50 rounded-xl p-3 font-bold text-gray-800 focus:border-blue-500 outline-none" />
               </div>
-
+              
               {addMode === 'bulk' && view === 'add' && (
                 <div className="bg-purple-50 p-4 md:p-5 rounded-2xl border border-purple-200 shadow-sm space-y-4">
                   <div className="flex items-start gap-3 bg-white p-3 rounded-xl border border-purple-100">
@@ -487,8 +412,7 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
                     <Upload size={36} className="text-purple-400 mb-3" />
                     <p className="font-bold text-purple-900 mb-2">JSON Dosyanızı Yükleyin</p>
                     <label className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-xl cursor-pointer transition-colors shadow-md mt-2">
-                      <span>Dosya Seç</span>
-                      <input type="file" accept=".json" onChange={handleUserJSONUpload} className="hidden" />
+                      <span>Dosya Seç</span><input type="file" accept=".json" onChange={handleUserJSONUpload} className="hidden" />
                     </label>
                   </div>
                 </div>
@@ -541,12 +465,7 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
                   <input type="radio" checked={visibility === 'private'} onChange={() => setVisibility('private')} className="hidden" /><Lock size={20} className={visibility === 'private' ? 'text-purple-500' : 'text-gray-400'} /><span className={`font-bold text-sm md:text-base ${visibility === 'private' ? 'text-purple-700' : 'text-gray-500'}`}>Bana Özel</span>
                 </label>
               </div>
-
-              {status && (
-                <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>
-                  {status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}
-                </div>
-              )}
+              {status && <div className={`p-3 rounded-xl font-bold flex items-center gap-2 ${status.type === 'success' ? 'bg-green-100 text-green-700 border-green-200' : status.type === 'info' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-red-100 text-red-700 border-red-200'} border`}>{status.type === 'success' ? <Check size={20} /> : <Info size={20} />} {status.msg}</div>}
             </div>
 
             <div className="pt-4 border-t border-gray-100 flex flex-col md:flex-row gap-3 flex-shrink-0">
@@ -570,7 +489,8 @@ const MyGamesModal = ({ onClose, user, myGames, username }) => {
     </div>
   );
 };
-// --- Kullanıcı Kelime Öneri Modalı ---
+
+// --- 4.2 Kullanıcı Kelime Öneri Modalı ---
 const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   const [category, setCategory] = useState("Genel");
   const [customCategory, setCustomCategory] = useState("");
@@ -653,7 +573,7 @@ const SuggestionModal = ({ onClose, wordDatabase, user }) => {
   );
 };
 
-// --- Yönetici İçin Kelime Düzenleme Satırı ---
+// --- 4.3 Yönetici İçin Kelime Düzenleme Satırı ---
 const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect }) => {
   const [isEditing, setIsEditing] = useState(false);
   
@@ -704,25 +624,28 @@ const AdminWordRow = ({ wordObj, onSave, onDelete, isSelected, onToggleSelect })
   );
 };
 
-// --- Yönetici Paneli Öneri Satırı Bileşeni ---
+// --- 4.4 Yönetici Paneli Öneri Satırı Bileşeni ---
 const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) => {
   
-  // 1. HOOK'LAR (useState) HER ZAMAN EN ÜSTTE VE KOŞULSUZ ÇALIŞMALIDIR:
-  const [word, setWord] = useState(() => suggestion?.word ? String(suggestion.word) : "");
-  const [cat, setCat] = useState(() => suggestion?.category ? String(suggestion.category) : "Genel");
-  const [forbidden, setForbidden] = useState(() => {
+  // 1. HOOK'LAR: En üstte ve koşulsuz tanımlanmalı (React kuralı)
+  const initialWord = suggestion?.word ? String(suggestion.word) : "";
+  const initialCat = suggestion?.category ? String(suggestion.category) : "Genel";
+  const initialForbidden = (() => {
     let arr = ["", "", "", "", ""];
     if (suggestion && Array.isArray(suggestion.forbidden)) {
       arr = suggestion.forbidden.map(f => String(f || ""));
     }
     while (arr.length < 5) arr.push("");
     return arr.slice(0, 5);
-  });
+  })();
 
-  // 2. ÇÖKMEYİ ENGELLEYEN KONTROL (Hook'lardan SONRA gelmeli!)
+  const [word, setWord] = useState(initialWord);
+  const [cat, setCat] = useState(initialCat);
+  const [forbidden, setForbidden] = useState(initialForbidden);
+
+  // 2. KORUMA: Çökmeyi engelleyen kontrol (Mutlaka Hook'lardan sonra!)
   if (!suggestion || !suggestion.id) return null;
 
-  // 3. GÜVENLİ KULLANICI ADI:
   const safeUser = String(suggestion.suggestedBy || "Bilinmiyor");
 
   return (
@@ -731,9 +654,7 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
         <div className="flex-1">
           <div className="flex justify-between items-center mb-1">
             <label className="text-xs font-bold text-purple-600 uppercase block">Kategori</label>
-            <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">
-              Öneren: {safeUser}
-            </span>
+            <span className="text-[10px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full font-bold">Öneren: {safeUser}</span>
           </div>
           <input value={cat} onChange={(e) => setCat(e.target.value)} className="w-full p-2 rounded-lg border border-purple-200 font-bold focus:outline-none focus:border-purple-500"/>
         </div>
@@ -747,12 +668,7 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
         <label className="text-xs font-bold text-red-500 uppercase mb-1 block">Yasaklı Kelimeler</label>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {forbidden.map((fw, i) => (
-            <input 
-              key={i} 
-              value={fw} 
-              onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} 
-              className="w-full p-2 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none focus:border-red-500 capitalize" 
-            />
+            <input key={i} value={fw} onChange={(e) => { const newF = [...forbidden]; newF[i] = e.target.value; setForbidden(newF); }} className="w-full p-2 rounded-lg border border-red-200 text-sm font-semibold focus:outline-none focus:border-red-500 capitalize" />
           ))}
         </div>
       </div>
@@ -764,7 +680,9 @@ const SuggestionItemRow = ({ suggestion, wordDatabase, onApprove, onReject }) =>
     </div>
   );
 }
-// --- Yönetici (Admin) Modalı Bileşeni ---
+/* ==========================================
+   BÖLÜM 4.5: YÖNETİCİ (ADMIN) MODALI
+============================================= */
 const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, reports, messagesList, adminReplyText, setAdminReplyText, handleAdminReply, handleAdminDeleteMessage }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -831,7 +749,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       const newWordObj = { word: word.trim().toLocaleUpperCase('tr-TR'), forbidden: forbidden.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
       const currentWords = wordDatabase[category] || [];
       
-      // YENİ EKLENDİ: Listeyi kaydederken alfabetik sırala
+      // Alfabetik sırala
       const updatedWords = sortWordsAlphabetically([...currentWords, newWordObj]);
 
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), category);
@@ -849,7 +767,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       const currentWords = wordDatabase[catName.trim()] || [];
       const newWordObj = { word: wordVal.trim().toLocaleUpperCase('tr-TR'), forbidden: forbiddenArr.map(f => f.trim().toLocaleUpperCase('tr-TR')) };
       
-      // YENİ EKLENDİ: Listeyi kaydederken alfabetik sırala
+      // Alfabetik sırala
       const updatedWords = sortWordsAlphabetically([...currentWords, newWordObj]);
       
       const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName.trim());
@@ -888,7 +806,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
 
         for (const [catName, newWords] of Object.entries(groupedWords)) {
           const currentWords = wordDatabase[catName] || [];
-          // YENİ EKLENDİ: Listeyi kaydederken alfabetik sırala
           const updatedWords = sortWordsAlphabetically([...currentWords, ...newWords]);
           const catRef = doc(collection(db, 'artifacts', appId, 'public', 'data', 'categories'), catName);
           await setDoc(catRef, { words: updatedWords });
@@ -900,9 +817,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     };
     reader.readAsText(file);
   };
+
   const handleOpenCat = (type, data) => {
-    setSelectedCat({ type, data });
-    setEditCatName(type === 'official' ? data : data.name);
+    setSelectedCat({ type, data }); setEditCatName(type === 'official' ? data : data.name);
     setConfirmDeleteCat(false); setSelectedWords([]);
   };
 
@@ -933,10 +850,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         const catName = selectedCat.data;
         const newWords = [...wordDatabase[catName]];
         newWords[originalIdx] = newWordObj; 
-        
-        // YENİ: Kelime güncellendiğinde sırasını korumak için tekrar alfabetik sırala
         const sortedNewWords = sortWordsAlphabetically(newWords);
-        
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: sortedNewWords });
       } else {
         const gameId = selectedCat.data.id;
@@ -971,7 +885,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     } catch(e) { setStatus({ type: 'error', msg: e.message }); }
   };
 
-  // YENİ: Ekranda görünen liste alfabetik sıralı liste olacak
   const rawWordList = selectedCat ? (selectedCat.type === 'official' ? wordDatabase[selectedCat.data] : (selectedCat.data.words || [])) : [];
   const sortedWordList = sortWordsAlphabetically(rawWordList);
   const isAllSelected = rawWordList.length > 0 && selectedWords.length === rawWordList.length;
@@ -989,7 +902,6 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const handleDeleteSelectedWords = async () => {
     if (selectedWords.length === 0) return;
     const sortedIndices = [...selectedWords].sort((a, b) => b - a);
-
     try {
       if (selectedCat.type === 'official') {
         const catName = selectedCat.data;
@@ -1011,7 +923,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const handleApproveCustomGame = async (gameId) => {
     try {
       await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { status: 'approved' });
-      setStatus({ type: 'success', msg: "Oyun başarıyla onaylandı ve herkese açıldı!" });
+      setStatus({ type: 'success', msg: "Oyun onaylandı ve herkese açıldı!" });
       setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
     } catch (e) { setStatus({ type: 'error', msg: e.message }); }
   };
@@ -1029,7 +941,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     try {
       if (selectedCat.type === 'official') await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', selectedCat.data));
       else await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', selectedCat.data.id));
-      setStatus({ type: 'success', msg: "Kategori başarıyla silindi!" });
+      setStatus({ type: 'success', msg: "Kategori silindi!" });
       setTimeout(() => { setStatus(null); setSelectedCat(null); setConfirmDeleteCat(false); }, 2000);
     } catch (e) { setStatus({ type: 'error', msg: e.message }); }
   };
@@ -1037,17 +949,11 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const handleMoveToCustom = async () => {
     try {
       const catName = selectedCat.data;
-      const words = sortWordsAlphabetically(wordDatabase[catName] || []); // YENİ: Taşıma esnasında sırala
+      const words = sortWordsAlphabetically(wordDatabase[catName] || []);
       setStatus({ type: 'info', msg: "Taşınıyor..." });
-      
-      const gameData = {
-        name: catName, words: words, ownerId: "admin", ownerEmail: "Yönetici",
-        visibility: "public", status: "approved", updatedAt: Date.now(), createdAt: Date.now()
-      };
-
+      const gameData = { name: catName, words: words, ownerId: "admin", ownerEmail: "Yönetici", visibility: "public", status: "approved", updatedAt: Date.now(), createdAt: Date.now() };
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'customGames'), gameData);
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName));
-
       setStatus({ type: 'success', msg: "Başarıyla 'Üyelerden Gelenler'e taşındı!" });
       setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
     } catch (e) { setStatus({ type: 'error', msg: e.message }); }
@@ -1057,11 +963,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
     try {
       const game = selectedCat.data;
       setStatus({ type: 'info', msg: "Taşınıyor..." });
-      const sortedWords = sortWordsAlphabetically(game.words || []); // YENİ: Taşıma esnasında sırala
-      
+      const sortedWords = sortWordsAlphabetically(game.words || []);
       await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', game.name), { words: sortedWords });
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', game.id));
-
       setStatus({ type: 'success', msg: "Başarıyla 'Resmi Kategoriler'e taşındı!" });
       setTimeout(() => { setStatus(null); setSelectedCat(null); }, 2000);
     } catch (e) { setStatus({ type: 'error', msg: e.message }); }
@@ -1070,7 +974,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const handleDeleteReport = async (reportId) => {
     try {
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', reportId));
-      setStatus({ type: 'success', msg: "Bildirim başarıyla silindi." });
+      setStatus({ type: 'success', msg: "Bildirim silindi." });
       setTimeout(() => setStatus(null), 2000);
     } catch(e) { setStatus({ type: 'error', msg: e.message }); }
   };
@@ -1078,23 +982,17 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
   const handleDeleteReportedWord = async (report) => {
     try {
       setStatus({ type: 'info', msg: "Kelime siliniyor..." });
-      
       if (!report.isCustomGame) {
-        const catName = report.categoryName;
-        const currentWords = wordDatabase[catName] || [];
+        const catName = report.categoryName; const currentWords = wordDatabase[catName] || [];
         const newWords = currentWords.filter(w => w.word !== report.word);
         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', catName), { words: newWords });
       } else {
-        const gameId = report.categoryId;
-        const game = customPublicGames.find(g => g.id === gameId);
+        const gameId = report.categoryId; const game = customPublicGames.find(g => g.id === gameId);
         if (game) {
           const newWords = game.words.filter(w => w.word !== report.word);
           await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customGames', gameId), { words: newWords });
-        } else {
-          throw new Error("Bu oyun silinmiş veya özel yapılmış olabilir. Sadece bildirimi silebilirsiniz.");
-        }
+        } else throw new Error("Bu oyun silinmiş veya özel yapılmış olabilir.");
       }
-      
       await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'reports', report.id));
       setStatus({ type: 'success', msg: "Kelime başarıyla silindi ve bildirim kapatıldı!" });
       setTimeout(() => setStatus(null), 2000);
@@ -1147,9 +1045,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
           <button onClick={() => setActiveTab('review')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'review' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><ListTodo size={18} /> Öneriler {suggestions.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">{suggestions.length}</span>}</button>
           <button onClick={() => setActiveTab('stats')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'stats' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><BarChart3 size={18} /> Üyeler / İstatistik</button>
           <button onClick={() => setActiveTab('reports')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'reports' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Flag size={18} /> Bildirimler {reports && reports.length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{reports.length}</span>}</button>
-          <button onClick={() => setActiveTab('messages')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'messages' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}>
-    <Mail size={18} /> Mesajlar {messagesList?.filter(m => !m.isReadAdmin).length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{messagesList.filter(m => !m.isReadAdmin).length}</span>}
-  </button>
+          <button onClick={() => setActiveTab('messages')} className={`flex-1 min-w-[120px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'messages' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Mail size={18} /> Mesajlar {messagesList?.filter(m => !m.isReadAdmin).length > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1 animate-pulse">{messagesList.filter(m => !m.isReadAdmin).length}</span>}</button>
           <button onClick={() => setActiveTab('add')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'add' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Edit3 size={18} /> Tek Ekle</button>
           <button onClick={() => setActiveTab('import')} className={`flex-1 min-w-[100px] py-2 font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${activeTab === 'import' ? 'bg-white text-purple-700 shadow-sm' : 'text-gray-500 hover:bg-gray-200'}`}><Upload size={18} /> Toplu Yükle</button>
         </div>
@@ -1164,10 +1060,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
         {activeTab === 'reports' && (
           <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {!reports || reports.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center">
-                <CheckCircle2 size={48} className="mb-4 text-green-300" />
-                Şu an bekleyen hiçbir hata bildirimi yok. Harika!
-              </div>
+              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center"><CheckCircle2 size={48} className="mb-4 text-green-300" />Şu an bekleyen hiçbir hata bildirimi yok. Harika!</div>
             ) : (
               reports.map(report => (
                 <div key={report.id} className="bg-red-50 rounded-2xl p-4 border-2 border-red-100 mb-4 shadow-sm flex flex-col">
@@ -1196,14 +1089,12 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
             )}
           </div>
         )}
+        
         {/* MESAJLAR İÇERİĞİ */}
         {activeTab === 'messages' && (
           <div className="animate-fade-in max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             {!messagesList || messagesList.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center">
-                <CheckCircle2 size={48} className="mb-4 text-green-300" />
-                Şu an bekleyen hiçbir mesaj yok.
-              </div>
+              <div className="text-center py-12 text-gray-400 font-medium flex flex-col items-center"><CheckCircle2 size={48} className="mb-4 text-green-300" />Şu an bekleyen hiçbir mesaj yok.</div>
             ) : (
               messagesList.map(msg => (
                 <div key={msg.id} className="bg-blue-50 rounded-2xl p-4 border-2 border-blue-100 mb-4 shadow-sm flex flex-col">
@@ -1246,6 +1137,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
             )}
           </div>
         )}
+        
         {/* İSTATİSTİKLER VE ÜYELER SEKMESİ */}
         {activeTab === 'stats' && (
           <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
@@ -1269,44 +1161,23 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
             </div>
 
             <div className="relative mb-4 flex-shrink-0">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="text-gray-400" size={20} />
-              </div>
-              <input 
-                type="text" 
-                placeholder="E-posta adresine göre üye ara..." 
-                value={searchUser}
-                onChange={(e) => setSearchUser(e.target.value.toLowerCase())}
-                className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 font-semibold text-gray-700"
-              />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search className="text-gray-400" size={20} /></div>
+              <input type="text" placeholder="E-posta adresine göre üye ara..." value={searchUser} onChange={(e) => setSearchUser(e.target.value.toLowerCase())} className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-purple-500 font-semibold text-gray-700" />
             </div>
 
             <div className="overflow-y-auto pr-2 flex-1 custom-scrollbar">
               {usersList.length === 0 ? (
                 <div className="text-center py-8 text-gray-400 font-medium">Henüz kayıtlı üye bulunmuyor.</div>
               ) : (
-                usersList
-                  .filter(u => u.email?.toLowerCase().includes(searchUser))
-                  .map(userObj => (
+                usersList.filter(u => u.email?.toLowerCase().includes(searchUser)).map(userObj => (
                     <div key={userObj.uid} className={`flex flex-col md:flex-row md:items-center justify-between p-4 mb-3 rounded-xl border-2 transition-colors ${userObj.isBanned ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100 hover:border-purple-200'}`}>
                       <div className="flex flex-col mb-3 md:mb-0">
-                        <span className={`font-black text-lg ${userObj.isBanned ? 'text-red-700 line-through' : 'text-gray-800'}`}>
-                          {userObj.email}
-                        </span>
-                        <span className="text-xs font-bold text-gray-400 mt-1">
-                          Son Giriş: {userObj.lastLogin ? new Date(userObj.lastLogin).toLocaleString('tr-TR') : 'Bilinmiyor'}
-                        </span>
+                        <span className={`font-black text-lg ${userObj.isBanned ? 'text-red-700 line-through' : 'text-gray-800'}`}>{userObj.email}</span>
+                        <span className="text-xs font-bold text-gray-400 mt-1">Son Giriş: {userObj.lastLogin ? new Date(userObj.lastLogin).toLocaleString('tr-TR') : 'Bilinmiyor'}</span>
                       </div>
                       
-                      <button 
-                        onClick={() => handleToggleBan(userObj.uid, userObj.isBanned)}
-                        className={`px-4 py-2 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${userObj.isBanned ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}
-                      >
-                        {userObj.isBanned ? (
-                          <><ShieldCheck size={18} /> Engeli Kaldır</>
-                        ) : (
-                          <><Ban size={18} /> Engelle</>
-                        )}
+                      <button onClick={() => handleToggleBan(userObj.uid, userObj.isBanned)} className={`px-4 py-2 rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${userObj.isBanned ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-600 hover:bg-red-200'}`}>
+                        {userObj.isBanned ? <><ShieldCheck size={18} /> Engeli Kaldır</> : <><Ban size={18} /> Engelle</>}
                       </button>
                     </div>
                   ))
@@ -1316,7 +1187,7 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
           </div>
         )}
 
-        {/* --- KATEGORİLER İÇERİSİNDE ALFABETİK GÖRÜNÜM --- */}
+        {/* KATEGORİLER İÇERİSİNDE ALFABETİK GÖRÜNÜM */}
         {activeTab === 'categories' && (
           <div className="animate-fade-in flex flex-col h-full max-h-[60vh]">
             {!selectedCat ? (
@@ -1495,8 +1366,9 @@ const AdminModal = ({ onClose, wordDatabase, suggestions, customPublicGames, rep
       </div>
     </div>
   );
-};
-// --- Birleştirilmiş Şık Takım Kartı Bileşeni ---
+};/* ==========================================
+   BÖLÜM 4.6: TAKIM KURULUM KARTI (TEAM SETUP)
+============================================= */
 const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCount, theme = "orange", otherTeamName }) => {
   const [history, setHistory] = useState([teamName || "Takım"]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -1607,9 +1479,10 @@ const TeamSetupCard = ({ title, teamName, setTeamName, playerCount, setPlayerCou
 
 /* ==========================================
    BÖLÜM 5: ANA UYGULAMA BİLEŞENİ (Deme.jsx)
+   Tüm oyunun aktığı ana mekanizma.
 ============================================= */
 export default function Deme() {
-  // --- STATES ---
+  // --- 1. UYGULAMA VE VERİTABANI DURUMLARI (STATES) ---
   const [user, setUser] = useState(null);
   const [wordDatabase, setWordDatabase] = useState(DEFAULT_WORD_DATABASE);
   const [suggestions, setSuggestions] = useState([]);
@@ -1618,6 +1491,7 @@ export default function Deme() {
   const [reports, setReports] = useState([]); 
   const [dbError, setDbError] = useState(""); 
 
+  // --- 2. ARAYÜZ VE MODAL DURUMLARI ---
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
@@ -1626,13 +1500,23 @@ export default function Deme() {
   const [showExitConfirmModal, setShowExitConfirmModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
+  // --- 3. FORMLAR VE MESAJLAŞMA DURUMLARI ---
   const [reportReason, setReportReason] = useState(""); 
   const [reportStatus, setReportStatus] = useState(null); 
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authStatus, setAuthStatus] = useState(null);
+  const [username, setUsername] = useState("");
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [tempUsername, setTempUsername] = useState("");
+  const [messagesList, setMessagesList] = useState([]);
+  const [isMessageOpen, setIsMessageOpen] = useState(false);
+  const [userMsgText, setUserMsgText] = useState("");
+  const [adminReplyText, setAdminReplyText] = useState({});
 
+  // --- 4. OYUN KURULUM DURUMLARI ---
   const [setupStep, setSetupStep] = useState(0); 
   const [team1Name, setTeam1Name] = useState("Kırmızı Ejderler");
   const [team2Name, setTeam2Name] = useState("Mavi Aslanlar");
@@ -1642,6 +1526,7 @@ export default function Deme() {
     timeLimit: 60, penalty: 1, passLimit: 3, endType: 'rounds', endRoundsValue: 6, endScoreValue: 50,
   });
   
+  // --- 5. AKTİF OYUN DURUMLARI ---
   const [gameState, setGameState] = useState('setup'); 
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [currentTeamIndex, setCurrentTeamIndex] = useState(0); 
@@ -1655,19 +1540,17 @@ export default function Deme() {
   const [turnStats, setTurnStats] = useState({ correct: 0, taboo: 0, pass: 0 });
   const [passesLeft, setPassesLeft] = useState(0);
 
+  // --- KAYDIRMA (SWIPE) DURUMLARI ---
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
   const gameRootRef = useRef(null); 
-  const [username, setUsername] = useState("");
-  const [isEditingUsername, setIsEditingUsername] = useState(false);
-  const [tempUsername, setTempUsername] = useState("");
-  // --- MESAJLAŞMA STATE'LERİ ---
-  const [messagesList, setMessagesList] = useState([]);
-  const [isMessageOpen, setIsMessageOpen] = useState(false);
-  const [userMsgText, setUserMsgText] = useState("");
-  const [adminReplyText, setAdminReplyText] = useState({});
-  // Kullanıcı adını veritabanından çekme ve senkronize etme
+
+  /* ==========================================
+     KULLANICI PROFİLİ VE GİRİŞ EFEKTLERİ
+  ============================================= */
+  useEffect(() => { document.title = "Deme"; }, []);
+
   useEffect(() => {
     let unsub = () => {};
     if (user && !user.isAnonymous) {
@@ -1676,7 +1559,6 @@ export default function Deme() {
         if (docSnap.exists() && docSnap.data().username) {
           setUsername(docSnap.data().username);
         } else if (user.email) {
-          // Eğer özel kullanıcı adı yoksa @'ten öncesini (Maks 10 karakter) varsayılan yap
           setUsername(user.email.split('@')[0].substring(0, 10));
         }
       });
@@ -1685,30 +1567,6 @@ export default function Deme() {
     }
     return () => unsub();
   }, [user]);
-
-  // Kullanıcı adını kaydetme ve kısıtlama kuralları
-  const handleSaveUsername = async () => {
-    const forbiddenList = ["yönetici", "admin", "egiticioyun", "deme"];
-    const newName = tempUsername.trim();
-    
-    if (newName.length === 0) {
-      alert("Kullanıcı adı boş olamaz!"); return;
-    }
-    if (forbiddenList.some(fw => newName.toLowerCase().includes(fw))) {
-      alert("Bu ismi kullanıcı adı olarak alamazsınız!"); return;
-    }
-
-    try {
-      await updateDoc(doc(db, 'artifacts', appId, 'userProfiles', user.uid), {
-        username: newName
-      });
-      setIsEditingUsername(false);
-    } catch (error) {
-      alert("Kullanıcı adı güncellenirken hata oluştu.");
-    }
-  };
-  // --- EFFECTS ---
-  useEffect(() => { document.title = "Deme"; }, []);
 
   useEffect(() => {
     if (!auth) return;
@@ -1723,7 +1581,7 @@ export default function Deme() {
         }
       } catch (e) {
         if (e.code === 'auth/operation-not-allowed' || e.code === 'auth/configuration-not-found') {
-          setDbError("Firebase Auth Hatası: Lütfen Firebase Console'da 'Anonymous' (Anonim) girişi aktif edin.");
+          setDbError("Firebase Auth Hatası: Lütfen Firebase Console'dan Anonim girişi aktif edin.");
         }
       }
     };
@@ -1742,6 +1600,9 @@ export default function Deme() {
     return () => unsubscribe();
   }, []);
 
+  /* ==========================================
+     VERİTABANI (FIRESTORE) EFEKTLERİ
+  ============================================= */
   useEffect(() => {
     if (!user || !db) return;
     
@@ -1773,13 +1634,13 @@ export default function Deme() {
       const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
       arr.sort((a,b) => b.timestamp - a.timestamp); setReports(arr);
     });
+
     const msgsRef = collection(db, 'artifacts', appId, 'messages');
     const unsubMsgs = onSnapshot(msgsRef, (snapshot) => {
-      const arr = [];
-      snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
-      arr.sort((a,b) => b.lastUpdatedAt - a.lastUpdatedAt);
-      setMessagesList(arr);
+      const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data() }));
+      arr.sort((a,b) => b.lastUpdatedAt - a.lastUpdatedAt); setMessagesList(arr);
     });
+
     const pubCustomRef = collection(db, 'artifacts', appId, 'public', 'data', 'customGames');
     const unsubPubCustom = onSnapshot(pubCustomRef, (snapshot) => {
       const arr = []; snapshot.forEach(d => arr.push({ id: d.id, ...d.data(), type: 'public' })); setCustomPublicGames(arr);
@@ -1796,6 +1657,9 @@ export default function Deme() {
     return () => { unsubWords(); unsubSuggs(); unsubPubCustom(); unsubPrivCustom(); unsubReports(); unsubMsgs();};
   }, [user]);
 
+  /* ==========================================
+     ZAMANLAYICI VE OYUN İÇİ EFEKTLER
+  ============================================= */
   useEffect(() => {
     const handlePopState = (event) => {
       if (setupStep > 0) { 
@@ -1829,7 +1693,9 @@ export default function Deme() {
     return () => { clearTimeout(mainTimer); soundTimers.forEach(clearTimeout); };
   }, [gameState, timeLeft, showReportModal]); 
 
-  // --- FONKSİYONLAR ---
+  /* ==========================================
+     FONKSİYONLAR - OYUN MANTIĞI VE YÖNETİM
+  ============================================= */
   const minSwipeDistance = 50;
   const nextStep = () => setSetupStep(prev => prev + 1);
   const prevStep = () => setSetupStep(prev => Math.max(0, prev - 1));
@@ -1877,6 +1743,18 @@ export default function Deme() {
   };
 
   const handleLogout = async () => await signOut(auth);
+
+  const handleSaveUsername = async () => {
+    const forbiddenList = ["yönetici", "admin", "egiticioyun", "deme"];
+    const newName = tempUsername.trim();
+    if (newName.length === 0) { alert("Kullanıcı adı boş olamaz!"); return; }
+    if (forbiddenList.some(fw => newName.toLowerCase().includes(fw))) { alert("Bu ismi kullanıcı adı olarak alamazsınız!"); return; }
+
+    try {
+      await updateDoc(doc(db, 'artifacts', appId, 'userProfiles', user.uid), { username: newName });
+      setIsEditingUsername(false);
+    } catch (error) { alert("Kullanıcı adı güncellenirken hata oluştu."); }
+  };
 
   const startGameFlow = (catId, catName, catWords) => {
     setSelectedCategory({ id: catId, name: catName, words: catWords });
@@ -1957,7 +1835,7 @@ export default function Deme() {
       setTimeout(() => { setShowReportModal(false); setReportReason(""); setReportStatus(null); }, 2000);
     } catch(e) { setReportStatus({ type: 'error', msg: "Hata oluştu: " + e.message }); }
   };
-  // --- MESAJLAŞMA FONKSİYONLARI ---
+
   const handleSendMessage = async () => {
     if (!userMsgText.trim()) return;
     const msgRef = doc(db, 'artifacts', appId, 'messages', user.uid);
@@ -1966,17 +1844,11 @@ export default function Deme() {
     try {
       const existing = messagesList.find(m => m.id === user.uid);
       if (existing) {
-        await updateDoc(msgRef, {
-          thread: [...(existing.thread || []), newMessage],
-          lastUpdatedAt: Date.now(),
-          isReadAdmin: false
-        });
+        await updateDoc(msgRef, { thread: [...(existing.thread || []), newMessage], lastUpdatedAt: Date.now(), isReadAdmin: false });
       } else {
         await setDoc(msgRef, {
-          userId: user.uid, userEmail: user.email,
-          username: username || user.email?.split('@')[0] || "İsimsiz",
-          thread: [newMessage], lastUpdatedAt: Date.now(),
-          isReadAdmin: false, isReadUser: true
+          userId: user.uid, userEmail: user.email, username: username || user.email?.split('@')[0] || "İsimsiz",
+          thread: [newMessage], lastUpdatedAt: Date.now(), isReadAdmin: false, isReadUser: true
         });
       }
       setUserMsgText("");
@@ -1992,11 +1864,7 @@ export default function Deme() {
     const newMessage = { sender: 'admin', text: text.trim(), timestamp: Date.now() };
 
     try {
-      await updateDoc(msgRef, {
-        thread: [...(existing.thread || []), newMessage],
-        lastUpdatedAt: Date.now(),
-        isReadUser: false, isReadAdmin: true
-      });
+      await updateDoc(msgRef, { thread: [...(existing.thread || []), newMessage], lastUpdatedAt: Date.now(), isReadUser: false, isReadAdmin: true });
       setAdminReplyText(prev => ({ ...prev, [userId]: "" }));
     } catch(e) { alert("Cevap gönderilemedi: " + e.message); }
   };
@@ -2013,9 +1881,10 @@ export default function Deme() {
       catch(e) {}
     }
   };
-  /* ==========================================
+/* ==========================================
      BÖLÜM 6: RENDER (ARAYÜZ ÇİZİMİ)
   ============================================= */
+
   if (showAdmin) return <AdminModal onClose={() => setShowAdmin(false)} wordDatabase={wordDatabase} suggestions={suggestions} customPublicGames={customPublicGames} reports={reports} messagesList={messagesList} adminReplyText={adminReplyText} setAdminReplyText={setAdminReplyText} handleAdminReply={handleAdminReply} handleAdminDeleteMessage={handleAdminDeleteMessage} />;
   if (showSuggestionModal) return <SuggestionModal onClose={() => setShowSuggestionModal(false)} wordDatabase={wordDatabase} user={user} />;
   
@@ -2064,8 +1933,9 @@ export default function Deme() {
       </div>
     );
   }
-// --- KULLANICI PROFİL MENÜSÜ ---
- if (showProfileMenu) {
+
+  // --- PROFİL MENÜSÜ GÖRÜNÜMÜ ---
+  if (showProfileMenu) {
     const myMsgDoc = messagesList.find(m => m.id === user?.uid);
     const hasUnread = myMsgDoc && !myMsgDoc.isReadUser;
 
@@ -2073,16 +1943,11 @@ export default function Deme() {
       <div className="fixed inset-0 w-full h-screen bg-gray-900/60 flex items-center justify-center p-4 z-[110] backdrop-blur-sm">
         <div className="bg-white rounded-[2rem] p-6 md:p-8 w-full max-w-sm shadow-2xl relative border-4 border-blue-200 animate-bounce-short">
           
-          {/* Kapat Butonu */}
           <button onClick={() => {setShowProfileMenu(false); setIsEditingUsername(false); setIsMessageOpen(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
             <X size={28} />
           </button>
 
-          {/* Mesaj (Zarf) Butonu */}
-          <button 
-            onClick={() => { setIsMessageOpen(!isMessageOpen); if (!isMessageOpen) markUserMessageAsRead(); }} 
-            className="absolute top-4 left-4 text-gray-400 hover:text-blue-500 transition-colors relative"
-          >
+          <button onClick={() => { setIsMessageOpen(!isMessageOpen); if (!isMessageOpen) markUserMessageAsRead(); }} className="absolute top-4 left-4 text-gray-400 hover:text-blue-500 transition-colors relative">
             <Mail size={28} />
             {hasUnread && !isMessageOpen && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse">1</span>
@@ -2091,7 +1956,6 @@ export default function Deme() {
 
           {!isMessageOpen ? (
             <>
-              {/* --- PROFİL GÖRÜNÜMÜ --- */}
               <div className="text-center mb-8 mt-2">
                 <div className="w-20 h-20 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-md">
                   <User size={40} />
@@ -2122,10 +1986,8 @@ export default function Deme() {
             </>
           ) : (
             <>
-              {/* --- MESAJLAŞMA GÖRÜNÜMÜ --- */}
               <div className="flex flex-col h-72 mt-8">
                 <h3 className="font-black text-lg text-blue-800 mb-2 border-b border-blue-100 pb-2 flex items-center gap-2"><Mail size={18}/> Yöneticiye Mesaj</h3>
-                
                 <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 mb-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
                   {myMsgDoc?.thread?.length > 0 ? (
                     myMsgDoc.thread.map((t, idx) => (
@@ -2140,17 +2002,8 @@ export default function Deme() {
                     <div className="h-full flex items-center justify-center text-center text-sm font-bold text-gray-400">Henüz mesajlaşma yok.<br/>İlk mesajınızı aşağıdan gönderebilirsiniz.</div>
                   )}
                 </div>
-
                 <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    maxLength={200}
-                    value={userMsgText} 
-                    onChange={(e) => setUserMsgText(e.target.value)} 
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Yöneticiye mesaj göndermek isterseniz tıklayın..." 
-                    className="flex-1 border-2 border-gray-200 rounded-xl p-2 text-xs font-medium focus:outline-none focus:border-blue-500"
-                  />
+                  <input type="text" maxLength={200} value={userMsgText} onChange={(e) => setUserMsgText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Yöneticiye mesaj göndermek isterseniz tıklayın..." className="flex-1 border-2 border-gray-200 rounded-xl p-2 text-xs font-medium focus:outline-none focus:border-blue-500" />
                   <button onClick={handleSendMessage} className="bg-blue-500 text-white p-2 rounded-xl hover:bg-blue-600 transition-all shadow-sm"><Send size={20}/></button>
                 </div>
               </div>
@@ -2160,6 +2013,7 @@ export default function Deme() {
       </div>
     );
   }
+
   const visiblePublicGames = customPublicGames.filter(g => g.status === 'approved' || g.ownerId === user?.uid);
   const customCategoriesList = [...visiblePublicGames, ...customPrivateGames];
 
@@ -2204,18 +2058,10 @@ export default function Deme() {
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-3 w-full">
-                      <button 
-                        onClick={() => setShowProfileMenu(true)} 
-                        className="flex-1 px-4 py-3.5 bg-white text-blue-600 font-black rounded-xl shadow-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2 hover:scale-105 whitespace-nowrap text-sm sm:text-base border-b-4 border-blue-200 active:border-b-0 active:translate-y-1"
-                      >
+                      <button onClick={() => setShowProfileMenu(true)} className="flex-1 px-4 py-3.5 bg-white text-blue-600 font-black rounded-xl shadow-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2 hover:scale-105 whitespace-nowrap text-sm sm:text-base border-b-4 border-blue-200 active:border-b-0 active:translate-y-1">
                         <User size={20} /> Profilim
                       </button>
-                      
-                      <button 
-                        onClick={handleLogout} 
-                        className="p-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all shadow-lg hover:scale-105 border-b-4 border-red-700 active:border-b-0 active:translate-y-1 flex-shrink-0" 
-                        title="Çıkış Yap"
-                      >
+                      <button onClick={handleLogout} className="p-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all shadow-lg hover:scale-105 border-b-4 border-red-700 active:border-b-0 active:translate-y-1 flex-shrink-0" title="Çıkış Yap">
                         <LogOut size={20} />
                       </button>
                     </div>
